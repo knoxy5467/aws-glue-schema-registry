@@ -30,7 +30,7 @@
     <parent>
         <groupId>software.amazon.glue</groupId>
         <artifactId>schema-registry-parent</artifactId>
-        <version>1.1.10</version>
+        <version>1.1.24</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -56,7 +56,9 @@
         <maven.compiler.plugin.version>3.6.1</maven.compiler.plugin.version>
         <exec-maven-plugin.version>1.6.0</exec-maven-plugin.version>
         <slf4j.version>1.7.28</slf4j.version>
-        <graalvm.version>21.0.0</graalvm.version>
+        <graalvm.version>21.2.0</graalvm.version>
+        <graalvm.native.version>24.0.2</graalvm.native.version>
+        <native.maven.plugin.version>0.11.0</native.maven.plugin.version>
         <junit5.version>5.4.2</junit5.version>
     </properties>
 
@@ -120,6 +122,13 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven.compiler.plugin.version}</version>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
@@ -151,6 +160,52 @@
                                     -H:CLibraryPath=${project.basedir}/c/build/src
                                     -H:ResourceConfigurationFiles=${project.basedir}/src/main/resources/resource-config.json
                                 </buildArgs>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>native-modern</id>
+            <dependencies>
+                <!-- Override with newer GraalVM versions for native-modern profile -->
+                <dependency>
+                    <groupId>org.graalvm.sdk</groupId>
+                    <artifactId>graal-sdk</artifactId>
+                    <version>${graalvm.native.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.graalvm.nativeimage</groupId>
+                    <artifactId>svm</artifactId>
+                    <version>${graalvm.native.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native.maven.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <imageName>libnativeschemaregistry</imageName>
+                            <sharedLibrary>true</sharedLibrary>
+                            <fallback>false</fallback>
+                            <verbose>true</verbose>
+                            <buildArgs>
+                                <buildArg>-H:CLibraryPath=${project.basedir}/c/build/src</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>

@@ -6,7 +6,6 @@ import com.amazonaws.services.schemaregistry.serializer.ProtobufPreprocessor;
 import com.amazonaws.services.schemaregistry.serializers.GlueSchemaRegistrySerializer;
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants;
 import com.google.common.collect.ImmutableMap;
-import com.oracle.svm.core.c.CConst;
 import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.function.CEntryPoint;
@@ -33,15 +32,14 @@ public class GlueSchemaRegistrySerializationHandler {
 
     @CEntryPoint(name = "initialize_serializer")
     public static void initializeSerializer(IsolateThread isolateThread) {
-        //TODO: Add GlueSchemaRegistryConfiguration to this method. This is hard-coded for now.
-        //TODO: Error handling
+        // TODO: Add GlueSchemaRegistryConfiguration to this method. This is hard-coded for now.
+        // TODO: Error handling
         Map<String, String> configMap =
             ImmutableMap.of(
                 AWSSchemaRegistryConstants.AWS_REGION,
                 "us-east-1",
                 AWSSchemaRegistryConstants.SCHEMA_AUTO_REGISTRATION_SETTING,
-                "true"
-            );
+                "true");
         GlueSchemaRegistryConfiguration glueSchemaRegistryConfiguration =
             new GlueSchemaRegistryConfiguration(configMap);
 
@@ -52,12 +50,12 @@ public class GlueSchemaRegistrySerializationHandler {
     public static C_MutableByteArray encodeWithSchema(
         IsolateThread isolateThread,
         C_ReadOnlyByteArray c_readOnlyByteArray,
-        @CConst CCharPointer c_transportName,
+        CCharPointer c_transportName,
         C_GlueSchemaRegistrySchema c_glueSchemaRegistrySchema,
         C_GlueSchemaRegistryErrorPointerHolder errorPointerHolder) {
         try {
 
-            //Access the input C schema object
+            // Access the input C schema object
             final String schemaName = CTypeConversion.toJavaString(c_glueSchemaRegistrySchema.getSchemaName());
             final String schemaDef;
             String rawSchema = CTypeConversion.toJavaString(c_glueSchemaRegistrySchema.getSchemaDef());
@@ -66,8 +64,8 @@ public class GlueSchemaRegistrySerializationHandler {
                 CTypeConversion.toJavaString(c_glueSchemaRegistrySchema.getAdditionalSchemaInfo());
             final String transportName = CTypeConversion.toJavaString(c_transportName);
 
-            //Because Protobuf is different from other data format drastically,
-            //we will need to perform some pre-processing before precede
+            // Because Protobuf is different from other data format drastically,
+            // we will need to perform some pre-processing before precede
             if (DataFormat.PROTOBUF.name().equals(dataFormat)) {
                 schemaDef = ProtobufPreprocessor.convertBase64SchemaToStringSchema(rawSchema);
             } else {
@@ -76,7 +74,7 @@ public class GlueSchemaRegistrySerializationHandler {
 
             Schema javaSchema = new Schema(schemaDef, dataFormat, schemaName);
 
-            //Read the c_byteArray data and create a new mutable byte array with encoded data
+            // Read the c_byteArray data and create a new mutable byte array with encoded data
             byte[] bytesToEncode = fromCReadOnlyByteArray(c_readOnlyByteArray);
 
             if (DataFormat.PROTOBUF.name().equals(dataFormat)) {
@@ -84,7 +82,7 @@ public class GlueSchemaRegistrySerializationHandler {
                     ProtobufPreprocessor.prefixMessageIndexToBytes(bytesToEncode, schemaDef, additionalSchemaInfor);
             }
 
-            //Assuming serializer instance is already initialized
+            // Assuming serializer instance is already initialized
             GlueSchemaRegistrySerializer glueSchemaRegistrySerializer = SerializerInstance.get();
             byte[] encodedBytes =
                 glueSchemaRegistrySerializer.encode(transportName, javaSchema, bytesToEncode);
