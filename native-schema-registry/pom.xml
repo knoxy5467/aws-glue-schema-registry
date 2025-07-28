@@ -206,6 +206,9 @@
                             <verbose>true</verbose>
                             <buildArgs>
                                 <buildArg>-H:CLibraryPath=${project.basedir}/c/build/src</buildArg>
+                                <buildArg>-H:ResourceConfigurationFiles=${project.basedir}/src/main/resources/resource-config.json</buildArg>
+                                <buildArg>--emit build-report</buildArg>
+                                <buildArg>-Os</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>
