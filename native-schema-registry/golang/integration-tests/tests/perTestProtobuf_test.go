@@ -53,7 +53,7 @@ func (p *PerfTestSuite) TestSerializeProtobufTenThousand() {
 	require.NotEmpty(p.T(), gsrEncodedData, "Serialized data should not be empty")
 	p.T().Logf("Serialized message: %d bytes", len(gsrEncodedData))
 
-	p.T().Logf("starting Ten Thousand")
+	p.T().Logf("starting Fifty Thousand")
 	startTime := time.Now()
 	for i := 0; i < 50000; i++ {
 		_, _ = gsr_serializer.Serialize("test-topic", message)
