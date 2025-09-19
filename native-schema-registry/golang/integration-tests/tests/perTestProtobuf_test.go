@@ -1,16 +1,22 @@
-package main
+package integration_tests
 
 import (
 	"path/filepath"
+	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
+	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/testpb"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func main() {
+type PerfTestSuite struct {
+	suite.Suite
+}
+
+func (p *PerfTestSuite) TestSerializeProtobufTenThousand() {
 	message := &testpb.TestMessage{
 		Id:    "sarama-test-789",
 		Name:  "Sarama Integration Test",
@@ -54,8 +60,11 @@ func main() {
 	}
 	endTime := time.Now()
 
-	totalTime := endTime.Nanosecond() - startTime.Nanosecond()
+	totalTime := endTime.Second() - startTime.Second()
 	p.T().Logf("total time for 10000 messages: %d", totalTime)
 
+}
 
+func TestPerfIntegrationSuite(t *testing.T) {
+	suite.Run(t, new(PerfTestSuite))
 }

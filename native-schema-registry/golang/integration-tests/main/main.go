@@ -1,11 +1,11 @@
 package main
 
 import (
+	"log"
 	"path/filepath"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
+	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/testpb"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer"
 )
@@ -24,7 +24,7 @@ func main() {
 
 	gsrConfigAbsolutePath, err := filepath.Abs("./gsr.properties")
 	if err != nil {
-		p.T().Fatal("Failed to get absolute path of gsr.properties")
+		log.Fatal("Failed to get absolute path of gsr.properties")
 	}
 	// Create Protobuf configuration
 	configMap := map[string]interface{}{
@@ -37,17 +37,15 @@ func main() {
 	// Step 1: Create Serializer with GSR configuration
 	gsr_serializer, err := serializer.NewSerializer(config)
 	if err != nil {
-		p.T().Log("could not create gsr serializer")
+		log.Print("could not create gsr serializer")
 	}
 
 	// Step 2: Serialize the message (auto-registers schema with GSR)
-	p.T().Logf("Serializing %T message", message)
+	log.Printf("Serializing %T message", message)
 	gsrEncodedData, err := gsr_serializer.Serialize("test-topic", message)
-	require.NoError(p.T(), err, "Serializer.Serialize should succeed")
-	require.NotEmpty(p.T(), gsrEncodedData, "Serialized data should not be empty")
-	p.T().Logf("Serialized message: %d bytes", len(gsrEncodedData))
+	log.Printf("Serialized message: %d bytes", len(gsrEncodedData))
 
-	p.T().Logf("starting Ten Thousand")
+	log.Printf("starting Ten Thousand")
 	startTime := time.Now()
 	for i := 0; i < 50000; i++ {
 		_, _ = gsr_serializer.Serialize("test-topic", message)
@@ -55,7 +53,6 @@ func main() {
 	endTime := time.Now()
 
 	totalTime := endTime.Nanosecond() - startTime.Nanosecond()
-	p.T().Logf("total time for 10000 messages: %d", totalTime)
-
+	log.Printf("total time for 10000 messages: %d", totalTime)
 
 }

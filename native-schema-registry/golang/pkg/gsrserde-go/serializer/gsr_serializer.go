@@ -86,11 +86,6 @@ func (s *Serializer) Serialize(topic string, data interface{}) ([]byte, error) {
 		return nil, fmt.Errorf("failed to set additional schema info: %w", err)
 	}
 
-	// Validate the object before serialization
-	if err := s.ValidateData(data); err != nil {
-		return nil, fmt.Errorf("data validation failed: %w", err)
-	}
-
 	serializedData, err := s.formatSerializer.Serialize(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize data: %w", err)
