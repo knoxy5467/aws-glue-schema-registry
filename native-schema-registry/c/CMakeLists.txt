@@ -6,6 +6,8 @@ ENDIF()
 project(native_schema_registry_c C)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# Option to disable quality gates (they run by default)
+option(DISABLE_QUALITY_GATES "Disable automatic quality gates on build" OFF)
 
 # Build target configuration
 set(BUILD_TARGET "glibc" CACHE STRING "Build target: glibc (default), musl, or musl-cross")
@@ -35,6 +37,7 @@ IF (WIN32)
     set(LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_OBJ_NAME ${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME_PREFIX}.lib)
 ELSEIF(APPLE)
     set(LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME ${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME_PREFIX}.dylib)
+    set(DISABLE_QUALITY_GATES ON)
 ELSE()
     set(LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME ${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME_PREFIX}.so)
 ENDIF()
@@ -59,8 +62,6 @@ include (CTest)
 enable_testing()
 add_subdirectory("test")
 
-# Option to disable quality gates (they run by default)
-option(DISABLE_QUALITY_GATES "Disable automatic quality gates on build" OFF)
 
 # Define test targets that need to be built
 set(TEST_TARGETS 

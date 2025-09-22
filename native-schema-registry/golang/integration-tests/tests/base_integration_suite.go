@@ -69,6 +69,7 @@ func (s *BaseIntegrationSuite) TearDownTest() {
 
 // createSerializer creates a Serializer configured for AWS GSR
 func (s *BaseIntegrationSuite) createSerializer(config *common.Configuration) *serializer.Serializer {
+	s.T().Log("Creating Serializer with GSR configuration")
 	kafkaSerializer, err := serializer.NewSerializer(config)
 	require.NoError(s.T(), err, "Should create Serializer")
 	require.NotNil(s.T(), kafkaSerializer, "Serializer should not be nil")
@@ -192,6 +193,7 @@ func (s *BaseIntegrationSuite) consumeMessageFromKafka(ctx context.Context, topi
 
 // requireKafkaRunning ensures Kafka is running and accessible
 func (s *BaseIntegrationSuite) requireKafkaRunning() {
+	s.T().Log("Checking if Kafka is running...")
 	conn, err := kafka.Dial("tcp", s.getKafkaBroker())
 	require.NoError(s.T(), err, "Kafka should be running at %s", s.getKafkaBroker())
 	defer conn.Close()
@@ -203,7 +205,9 @@ func (s *BaseIntegrationSuite) requireKafkaRunning() {
 func (s *BaseIntegrationSuite) setupTestInfrastructure() func() {
 	ctx := context.Background()
 
+	s.T().Logf("Setting up Kafka topic %s...", s.topicName)
 	s.createKafkaTopic(ctx, s.topicName)
+	s.T().Logf("Kafka topic %s created", s.topicName)
 
 	return func() {
 		s.deleteKafkaTopic(ctx, s.topicName)
@@ -261,21 +265,25 @@ func (s *BaseIntegrationSuite) waitForTopicReady(ctx context.Context, topicName 
 
 // createKafkaTopic creates a Kafka topic for testing
 func (s *BaseIntegrationSuite) createKafkaTopic(ctx context.Context, topicName string) {
+	s.T().Logf("connecting to kafka...")
 	conn, err := kafka.Dial("tcp", s.getKafkaBroker())
 	require.NoError(s.T(), err)
 	defer conn.Close()
 
+	s.T().Logf("Creating Kafka topic %s...", topicName)
 	err = conn.CreateTopics(kafka.TopicConfig{
 		Topic:             topicName,
 		NumPartitions:     1,
 		ReplicationFactor: 1,
 	})
+	s.T().Logf("Created Kafka topic: %s", topicName)
 	if err != nil {
 		s.T().Logf("Warning: Could not create topic %s (might already exist): %v", topicName, err)
 	} else {
 		s.T().Logf("Created Kafka topic: %s", topicName)
 	}
 
+	s.T().Logf("waiting for topic ready")
 	// Wait for topic to be ready for operations to prevent race conditions
 	s.waitForTopicReady(ctx, topicName)
 }

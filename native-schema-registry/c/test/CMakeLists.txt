@@ -25,15 +25,12 @@ list(
         glue_schema_registry_error_test
 )
 
-#TODO: These tests don't work on Windows and OSX due to CMake not linking the mock library.
-#We have to investigate and fix these.
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    list(APPEND
-            tests
-            glue_schema_registry_serializer_test
-            glue_schema_registry_deserializer_test
-    )
-ENDIF ()
+#Enable serializer and deserializer tests on all platforms
+list(APPEND
+        tests
+        glue_schema_registry_serializer_test
+        glue_schema_registry_deserializer_test
+)
 
 foreach (test ${tests})
     add_executable(

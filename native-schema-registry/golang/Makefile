@@ -57,24 +57,6 @@ else
 	go test -v $(shell go list ./... | grep -v integration-tests) 2>&1 | tee $(BUILD_DIR)/unit-test-output.txt
 endif
 
-# Integration tests with Docker (integration-tests/ directory only)
-.PHONY: test-integ
-test-integ: setup-dirs generate-protos
-ifdef COVERAGE
-	@echo "Running integration tests with coverage..."
-	cd integration-tests && docker compose up -d 
-	cd integration-tests && go test -v -coverpkg=../pkg/gsrserde-go/...,../pkg/GsrSerDe/... -coverprofile=../$(COVERAGE_DIR)/integration-tests-coverage.out ./...
-	cd integration-tests && docker compose down
-	cd integration-tests && go tool cover -html=../$(COVERAGE_DIR)/integration-tests-coverage.out -o ../$(COVERAGE_DIR)/integration-tests-coverage.html
-	@echo "Integration test coverage report: $(COVERAGE_DIR)/integration-tests-coverage.html"
-else
-	@echo "Running integration tests..."
-	cd integration-tests && docker compose up -d | tee  ../$(BUILD_DIR)/integ-docker-logs.txt
-	cd integration-tests && go test -v -count=1 ./... | tee ../$(BUILD_DIR)/integration-test-output.txt
-	cd integration-tests && docker compose logs > docker-logs.txt
-	cd integration-tests && docker compose down
-	@echo "Integration test report: $(BUILD_DIR)/integration-test-output.txt"
-endif
 
 # All tests
 .PHONY: test-all
@@ -126,7 +108,7 @@ generate-protos: setup-dirs
 		fi; \
 	done
 	@echo "Generating integration test protobuf files..."
-	@/usr/local/bin/protoc --proto_path=integration-tests --go_out=integration-tests/testpb --go_opt=paths=source_relative integration-tests/test_message.proto
+	@protoc --proto_path=integration-tests --go_out=integration-tests/testpb --go_opt=paths=source_relative integration-tests/test_message.proto
 	@echo "Protobuf generation complete"
 
 # Allow overriding variables for custom proto generation
@@ -260,7 +242,7 @@ endif
 
 # Integration tests with Docker (integration-tests/ directory only)
 .PHONY: test-integ
-test-integ: setup-dirs generate-protos
+test-integ: setup-dirs
 ifdef COVERAGE
 	@echo "Running integration tests with coverage..."
 	cd integration-tests && docker compose up -d 
@@ -271,7 +253,7 @@ ifdef COVERAGE
 else
 	@echo "Running integration tests..."
 	cd integration-tests && docker compose up -d | tee  ../$(BUILD_DIR)/integ-docker-logs.txt
-	cd integration-tests/tests && go test -count=1 ./... | tee ../../$(BUILD_DIR)/integration-test-output.txt
+	cd integration-tests/tests && go test -v -count=1 ./... | tee ../../$(BUILD_DIR)/integration-test-output.txt
 	cd integration-tests && docker compose logs > docker-logs.txt
 	cd integration-tests && docker compose down
 	@echo "Integration test report: $(BUILD_DIR)/integration-test-output.txt"
