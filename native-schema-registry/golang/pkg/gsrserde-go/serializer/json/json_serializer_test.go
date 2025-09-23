@@ -380,7 +380,7 @@ func TestJsonSerializer_SetAdditionalSchemaInfo(t *testing.T) {
 				return wrapper
 			}(),
 			schema: &gsrserde.Schema{
-				Name:           "TestSchema",
+				SchemaName:     "TestSchema",
 				Definition:     validSchema,
 				DataFormat:     "",
 				AdditionalInfo: "",

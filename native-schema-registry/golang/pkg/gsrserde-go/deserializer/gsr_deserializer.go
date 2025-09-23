@@ -40,7 +40,7 @@ func NewDeserializer(config *common.Configuration) (*Deserializer, error) {
 	}
 
 	// Create core deserializer for GSR operations
-	coreDeserializer, err := gsrserde.NewDeserializer(config.GsrConfigPath)
+	coreDeserializer, err := gsrserde.NewDeserializer(config.GsrConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core deserializer: %w", err)
 	}

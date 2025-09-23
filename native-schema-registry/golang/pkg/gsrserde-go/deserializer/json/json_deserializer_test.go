@@ -55,7 +55,7 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 			name: "ValidDataAndSchema",
 			data: []byte(`{"name": "John", "age": 30}`),
 			schema: &gsrserde.Schema{
-				Name:           "TestSchema",
+				SchemaName:     "TestSchema",
 				Definition:     validSchema,
 				DataFormat:     "JSON",
 				AdditionalInfo: "JsonDataWithSchema",
@@ -67,7 +67,7 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 			name: "ValidDataMinimalPayload",
 			data: []byte(`{"name": "John"}`),
 			schema: &gsrserde.Schema{
-				Name:           "TestSchema",
+				SchemaName:     "TestSchema",
 				Definition:     validSchema,
 				DataFormat:     "JSON",
 				AdditionalInfo: "JsonDataWithSchema",
@@ -79,7 +79,7 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 			name: "EmptyDataValidSchema",
 			data: []byte{},
 			schema: &gsrserde.Schema{
-				Name:           "TestSchema",
+				SchemaName:     "TestSchema",
 				Definition:     validSchema,
 				DataFormat:     "JSON",
 				AdditionalInfo: "JsonDataWithSchema",
@@ -290,7 +290,7 @@ func TestJsonDeserializer_ComplexScenarios(t *testing.T) {
 		}`
 
 		gsrSchema := &gsrserde.Schema{
-			Name:           "ComplexSchema",
+			SchemaName:     "ComplexSchema",
 			Definition:     schema,
 			DataFormat:     "JSON",
 			AdditionalInfo: "JsonDataWithSchema",

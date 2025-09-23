@@ -86,7 +86,7 @@ func TestAvroDeserializer_Deserialize(t *testing.T) {
 			name: "ValidStringData",
 			data: stringData,
 			schema: &gsrserde.Schema{
-				Name:       "StringSchema",
+				SchemaName: "StringSchema",
 				Definition: stringSchema,
 				DataFormat: "AVRO",
 			},
@@ -99,7 +99,7 @@ func TestAvroDeserializer_Deserialize(t *testing.T) {
 			name: "ValidIntData",
 			data: intData,
 			schema: &gsrserde.Schema{
-				Name:       "IntSchema",
+				SchemaName: "IntSchema",
 				Definition: intSchema,
 				DataFormat: "AVRO",
 			},
@@ -112,7 +112,7 @@ func TestAvroDeserializer_Deserialize(t *testing.T) {
 			name: "ValidRecordData",
 			data: recordData,
 			schema: &gsrserde.Schema{
-				Name:       "UserSchema",
+				SchemaName: "UserSchema",
 				Definition: recordSchema,
 				DataFormat: "AVRO",
 			},
@@ -427,7 +427,7 @@ func TestAvroDeserializer_ComplexScenarios(t *testing.T) {
 		require.NoError(t, err)
 
 		gsrSchema := &gsrserde.Schema{
-			Name:       "OrderSchema",
+			SchemaName: "OrderSchema",
 			Definition: schema,
 			DataFormat: "AVRO",
 		}

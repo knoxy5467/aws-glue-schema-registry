@@ -40,7 +40,7 @@ func NewSerializer(config *common.Configuration) (*Serializer, error) {
 	}
 
 
-	coreSerializer, err := gsrserde.NewSerializer(config.GsrConfigPath)
+	coreSerializer, err := gsrserde.NewSerializer(config.GsrConfig)
 
 	// Create core serializer for GSR operations
 	if err != nil {
@@ -131,7 +131,7 @@ func (s *Serializer) getSchemaFromData(data interface{}, topic string) (*gsrserd
 
 	// Create initial schema
 	schema := &gsrserde.Schema{
-		Name:           "", // Will be set by format serializer
+		SchemaName:     "", // Will be set by format serializer
 		Definition:     "", // Will be set by format serializer
 		DataFormat:     "", // Will be determined below
 		AdditionalInfo: "", // Will be set by format serializer
@@ -166,7 +166,7 @@ func (s *Serializer) getSchemaFromData(data interface{}, topic string) (*gsrserd
 
 	// Generate schema name using topic (simple naming strategy)
 	if topic != "" {
-		schema.Name = topic + "-value"
+		schema.SchemaName = topic + "-value"
 	}
 
 	return schema, nil

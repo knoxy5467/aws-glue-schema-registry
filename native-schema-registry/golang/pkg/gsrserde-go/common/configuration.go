@@ -26,7 +26,7 @@ type Configuration struct {
 	AvroRecordType            AvroRecordType
 	ProtobufMessageDescriptor protoreflect.MessageDescriptor
 	JsonObjectType            reflect.Type
-	GsrConfigPath			  string
+	GsrConfig                 map[string]string
 	AdditionalProperties      map[string]interface{}
 }
 var (
@@ -51,12 +51,12 @@ func (c *Configuration) buildConfigs(configs map[string]interface{}) {
 	c.validateAndSetProtobufMessageDescriptor(configs)
 	c.validateAndSetDataFormat(configs)
 	c.validateAndSetJSONObjectType(configs)
-	c.validateAndSetGsrConfigPath(configs)
+	c.validateAndSetGsrConfig(configs)
 }
-func (c *Configuration) validateAndSetGsrConfigPath(configs map[string]interface{}){
+func (c *Configuration) validateAndSetGsrConfig(configs map[string]interface{}){
 	if val, ok := configs[GSRConfigPathKey]; ok {
-		if gsrConfigPath, ok := val.(string); ok {
-			c.GsrConfigPath = gsrConfigPath
+		if gsrConfig, ok := val.(map[string]string); ok {
+			c.GsrConfig = gsrConfig
 		}
 	} 
 }

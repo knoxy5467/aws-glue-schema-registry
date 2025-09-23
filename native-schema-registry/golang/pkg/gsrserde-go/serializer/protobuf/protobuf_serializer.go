@@ -3,10 +3,10 @@ package protobuf
 import (
 	"encoding/base64"
 	"fmt"
-	"reflect"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
 
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
@@ -192,9 +192,17 @@ func (p *ProtobufSerializer) GetSchemaDefinition(data interface{}) (string, erro
 		}
 	}
 
-	// Return base64-encoded protobuf bytes as expected by the Java GSR library
-	// The Java ProtobufPreprocessor.convertBase64SchemaToStringSchema() expects base64-encoded data
-	return base64.StdEncoding.EncodeToString(protoBytes), nil
+	// Convert to base64 and then use core module to convert to .proto text
+	base64Schema := base64.StdEncoding.EncodeToString(protoBytes)
+	protoText, err := gsrcore.ConvertBase64SchemaToStringSchema(base64Schema)
+	if err != nil {
+		return "", &ProtobufSerializationError{
+			Message: "failed to convert to proto text",
+			Cause:   err,
+		}
+	}
+	
+	return protoText, nil
 }
 
 // Validate validates serialized protobuf data against a schema definition.
@@ -317,12 +325,10 @@ func (p *ProtobufSerializer) SetAdditionalSchemaInfo(data interface{}, schema *g
 
 	// Get the message type name
 	msgDesc := protoMsg.ProtoReflect().Descriptor()
+	// Set additional info if available (for compatibility with tests)
 	if msgDesc != nil {
 		// Set the full message name as additional info
 		schema.AdditionalInfo = string(msgDesc.FullName())
-	} else {
-		// Fall back to the Go type name
-		schema.AdditionalInfo = reflect.TypeOf(data).String()
 	}
 
 	// Ensure DataFormat is set correctly

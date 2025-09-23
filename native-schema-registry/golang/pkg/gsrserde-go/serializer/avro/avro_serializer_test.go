@@ -218,7 +218,7 @@ func TestAvroSerializer_SetAdditionalSchemaInfo(t *testing.T) {
 	avroRecord := avro.NewAvroRecord(testSchema, testData)
 
 	schema := &gsrserde.Schema{
-		Name:       "TestRecord",
+		SchemaName: "TestRecord",
 		Definition: "",
 		DataFormat: "AVRO",
 	}

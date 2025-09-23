@@ -68,7 +68,7 @@ func createProtobufDeserializerConfigWithDescriptor(descriptor protoreflect.Mess
 // createValidProtobufSchema creates a valid protobuf schema for testing
 func createValidProtobufSchema() *gsrserde.Schema {
 	return &gsrserde.Schema{
-		Name:           "TestSchema",
+		SchemaName:     "TestSchema",
 		Definition:     test_helpers.CreateTestProtoSchema(),
 		DataFormat:     "PROTOBUF",
 		AdditionalInfo: "test.TestMessage",
@@ -78,7 +78,7 @@ func createValidProtobufSchema() *gsrserde.Schema {
 // createInvalidProtobufSchema creates an invalid protobuf schema for testing
 func createInvalidProtobufSchema(dataFormat, definition string) *gsrserde.Schema {
 	return &gsrserde.Schema{
-		Name:           "InvalidSchema",
+		SchemaName:     "InvalidSchema",
 		Definition:     definition,
 		DataFormat:     dataFormat,
 		AdditionalInfo: "invalid",
@@ -230,7 +230,7 @@ func TestProtobufDeserializer_Deserialize_ValidCases(t *testing.T) {
 			name: "simple protobuf message",
 			data: []byte{0x08, 0x96, 0x01}, // Valid protobuf: field 1, varint 150
 			schema: &gsrserde.Schema{
-				Name:           "SimpleSchema",
+				SchemaName:     "SimpleSchema",
 				Definition:     "syntax = \"proto3\"; message Simple { int64 value = 1; }",
 				DataFormat:     "PROTOBUF",
 				AdditionalInfo: "Simple",
@@ -240,7 +240,7 @@ func TestProtobufDeserializer_Deserialize_ValidCases(t *testing.T) {
 			name: "protobuf with string field",
 			data: []byte{0x0A, 0x04, 0x74, 0x65, 0x73, 0x74}, // Valid: field 1, string "test"
 			schema: &gsrserde.Schema{
-				Name:           "StringSchema",
+				SchemaName:     "StringSchema",
 				Definition:     "syntax = \"proto3\"; message StringMsg { string text = 1; }",
 				DataFormat:     "PROTOBUF",
 				AdditionalInfo: "StringMsg",
