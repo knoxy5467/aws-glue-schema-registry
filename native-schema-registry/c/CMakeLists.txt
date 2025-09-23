@@ -51,7 +51,20 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-set(CMAKE_INSTALL_RPATH "$ORIGIN")
+
+# Platform-specific RPATH configuration
+IF (APPLE)
+    # macOS uses @loader_path instead of $ORIGIN
+    set(CMAKE_INSTALL_RPATH "@loader_path")
+    set(CMAKE_BUILD_RPATH "@loader_path")
+    # Set install name for dylibs to use @rpath
+    set(CMAKE_MACOSX_RPATH TRUE)
+    set(CMAKE_INSTALL_NAME_DIR "@rpath")
+ELSE()
+    # Linux uses $ORIGIN
+    set(CMAKE_INSTALL_RPATH "$ORIGIN")
+    set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+ENDIF()
 
 include_directories("include")
 include_directories(${LIB_NATIVE_SCHEMA_REGISTRY_PATH})

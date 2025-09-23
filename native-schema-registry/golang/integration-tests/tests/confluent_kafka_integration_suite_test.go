@@ -112,12 +112,13 @@ func (s *ConfluentKafkaIntegrationSuite) runConfluentKafkaIntegrationTest(
 // publishMessageToKafkaConfluentKafka publishes data to Kafka using confluent-kafka-go
 func (s *ConfluentKafkaIntegrationSuite) publishMessageToKafkaConfluentKafka(ctx context.Context, topicName string, data []byte) {
 	// Create producer configuration
+
 	config := &kafka.ConfigMap{
-		"bootstrap.servers": s.getKafkaBroker(),
-		"acks":              "all",
+		"bootstrap.servers": "localhost:9092",
+		"api.version.request":      false,
+		"acks":              0,
 		"retries":           3,
 		"max.in.flight.requests.per.connection": 1,
-		"enable.idempotence": true,
 	}
 
 	producer, err := kafka.NewProducer(config)
@@ -139,6 +140,7 @@ func (s *ConfluentKafkaIntegrationSuite) publishMessageToKafkaConfluentKafka(ctx
 	deliveryChan := make(chan kafka.Event)
 	defer close(deliveryChan)
 
+	producer.InitTransactions(ctx)
 	err = producer.Produce(message, deliveryChan)
 	require.NoError(s.T(), err, "Should produce message with confluent-kafka-go")
 
@@ -160,9 +162,12 @@ func (s *ConfluentKafkaIntegrationSuite) publishMessageToKafkaConfluentKafka(ctx
 func (s *ConfluentKafkaIntegrationSuite) consumeMessageFromKafkaConfluentKafka(ctx context.Context, topicName string) []byte {
 	// Create consumer configuration
 	config := &kafka.ConfigMap{
-		"bootstrap.servers": s.getKafkaBroker(),
-		"group.id":          fmt.Sprintf("confluent-test-group-%d", time.Now().UnixNano()),
-		"auto.offset.reset": "earliest",
+		"bootstrap.servers": "127.0.0.1:9092",
+		"group.id":          "test-consumer-group",
+		"api.version.request":      true,
+		"api.version.fallback.ms":  0,
+		"broker.version.fallback":  "3.5.1",
+		"auto.offset.reset":       "earliest",
 	}
 
 	consumer, err := kafka.NewConsumer(config)

@@ -9,10 +9,17 @@ if (CMAKE_SYSTEM_NAME MATCHES "^(Linux)$")
 endif()
 
 add_library(${AWS_COMMON_MEMALLOC} SHARED memory_allocator.c)
-set_target_properties(${AWS_COMMON_MEMALLOC} PROPERTIES
-    BUILD_RPATH "$ORIGIN"
-    INSTALL_RPATH "$ORIGIN"
-)
+IF (APPLE)
+    set_target_properties(${AWS_COMMON_MEMALLOC} PROPERTIES
+        BUILD_RPATH "@loader_path"
+        INSTALL_RPATH "@loader_path"
+    )
+ELSE()
+    set_target_properties(${AWS_COMMON_MEMALLOC} PROPERTIES
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN"
+    )
+ENDIF()
 target_link_libraries(${AWS_COMMON_MEMALLOC} PRIVATE ${AWS_C_COMMON})
 
 #Adding modules in the build order.
@@ -23,10 +30,17 @@ add_library(
         mutable_byte_array.c
         glue_schema_registry_error.c
 )
-set_target_properties(${DATA_TYPES_MODULE_NAME} PROPERTIES
-    BUILD_RPATH "$ORIGIN"
-    INSTALL_RPATH "$ORIGIN"
-)
+IF (APPLE)
+    set_target_properties(${DATA_TYPES_MODULE_NAME} PROPERTIES
+        BUILD_RPATH "@loader_path"
+        INSTALL_RPATH "@loader_path"
+    )
+ELSE()
+    set_target_properties(${DATA_TYPES_MODULE_NAME} PROPERTIES
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN"
+    )
+ENDIF()
 add_custom_command(
         TARGET ${DATA_TYPES_MODULE_NAME}
         POST_BUILD
@@ -81,10 +95,17 @@ add_library(
         glue_schema_registry_serializer.c
         glue_schema_registry_deserializer.c
 )
-set_target_properties(${SERDE_MODULE_NAME} PROPERTIES
-    BUILD_RPATH "$ORIGIN"
-    INSTALL_RPATH "$ORIGIN"
-)
+IF (APPLE)
+    set_target_properties(${SERDE_MODULE_NAME} PROPERTIES
+        BUILD_RPATH "@loader_path"
+        INSTALL_RPATH "@loader_path"
+    )
+ELSE()
+    set_target_properties(${SERDE_MODULE_NAME} PROPERTIES
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN"
+    )
+ENDIF()
 
 target_link_libraries(
         ${DATA_TYPES_MODULE_NAME}
@@ -156,11 +177,15 @@ add_custom_command(
 set(GO_ROOT_PATH ${PROJECT_SOURCE_DIR}/../golang)
 set(GO_LIB_PATH ${GO_ROOT_PATH}/lib)
 
+# Resolve the actual absolute path for install_name_tool (fixes c/../ path issue)
+get_filename_component(RESOLVED_LIB_PATH "${LIB_NATIVE_SCHEMA_REGISTRY_PATH}" REALPATH)
+
 # Copy shared libraries and headers to golang lib directory
 add_custom_command(
         TARGET ${SERDE_MODULE_NAME}
         POST_BUILD
         COMMENT "copying shared libraries and headers for golang integration"
+        COMMAND install_name_tool -change "${RESOLVED_LIB_PATH}/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "@rpath/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" $<TARGET_FILE:${SERDE_MODULE_NAME}>
         COMMAND ${CMAKE_COMMAND} -E make_directory ${GO_LIB_PATH}
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${DATA_TYPES_MODULE_NAME}> ${GO_LIB_PATH}/
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${NATIVE_SCHEMA_REGISTRY_MODULE_NAME}> ${GO_LIB_PATH}/
@@ -169,6 +194,38 @@ add_custom_command(
         COMMAND ${CMAKE_COMMAND} -E make_directory ${GO_LIB_PATH}/include
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/include/ ${GO_LIB_PATH}/include/
 )
+
+# Fix dylib paths for macOS portability after copying to golang lib directory
+if(APPLE)
+    add_custom_command(
+        TARGET ${SERDE_MODULE_NAME}
+        POST_BUILD
+        COMMENT "Fixing dylib paths for macOS portability in golang lib directory"
+        # Fix references in libnative_schema_registry_c.dylib
+        COMMAND echo "DEBUG: Attempting to change ${RESOLVED_LIB_PATH}/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME} to @rpath/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME} in ${GO_LIB_PATH}/libnative_schema_registry_c.dylib"
+        COMMAND otool -L "${GO_LIB_PATH}/libnative_schema_registry_c.dylib"
+        COMMAND install_name_tool -change "${RESOLVED_LIB_PATH}/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "@rpath/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "${GO_LIB_PATH}/libnative_schema_registry_c.dylib"
+        COMMAND echo "DEBUG: After install_name_tool:"
+        COMMAND otool -L "${GO_LIB_PATH}/libnative_schema_registry_c.dylib"
+        # Fix the GraalVM-generated dylib itself
+        COMMAND install_name_tool -change "${RESOLVED_LIB_PATH}/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "@rpath/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "${GO_LIB_PATH}/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}"
+        COMMAND install_name_tool -id "@rpath/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "${GO_LIB_PATH}/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}"
+    )
+endif()
+
+# Fix dylib paths for macOS portability after copying to CSharp lib directory
+if(APPLE)
+    add_custom_command(
+        TARGET ${CSHARP_MODULE_NAME}
+        POST_BUILD
+        COMMENT "Fixing dylib paths for macOS portability in CSharp lib directory"
+        # Fix references in generated dylibs
+        COMMAND install_name_tool -change "${LIB_NATIVE_SCHEMA_REGISTRY_PATH}/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "@rpath/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "${CSHARP_GEN_LIB_PATH}/${CSHARP_MODULE_NAME}.dylib"
+        COMMAND install_name_tool -change "${LIB_NATIVE_SCHEMA_REGISTRY_PATH}/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "@rpath/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "${CSHARP_GEN_LIB_PATH}/libnative_schema_registry_c.dylib"
+        COMMAND install_name_tool -change "${LIB_NATIVE_SCHEMA_REGISTRY_PATH}/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "@rpath/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "${CSHARP_GEN_LIB_PATH}/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}"
+        COMMAND install_name_tool -id "@rpath/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}" "${CSHARP_GEN_LIB_PATH}/${LIB_NATIVE_SCHEMA_REGISTRY_LIBRARY_NAME}"
+    )
+endif()
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU")
     add_compile_options(--coverage)
