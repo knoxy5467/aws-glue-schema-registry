@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package integration_tests
 
 import (
@@ -209,9 +212,9 @@ func (s *JsonIntegrationSuite) validateComplexJsonMessage(original, deserialized
 	s.T().Logf("✅ Complex JSON Schema message validation passed")
 }
 
-// shouldSkipIntegrationTests checks if integration tests should be skipped
+// shouldSkipIntegrationTests checks if integration tests should be skipped.
 func (s *JsonIntegrationSuite) shouldSkipIntegrationTests() bool {
-	return os.Getenv("SKIP_INTEGRATION_TESTS") == "true"
+	return os.Getenv("AWS_INTEGRATION") != "1"
 }
 
 // TestJsonIntegrationSuite runs the JSON integration test suite

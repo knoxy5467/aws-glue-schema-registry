@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package integration_tests
 
 import (
@@ -106,9 +109,12 @@ func (s *AvroIntegrationSuite) validateAvroMessage(original, deserialized interf
 	s.T().Logf("✅ AVRO message validation passed")
 }
 
-// shouldSkipIntegrationTests checks if integration tests should be skipped
+// shouldSkipIntegrationTests checks if integration tests should be skipped.
+// Integration tests require both the `integration` build tag AND AWS_INTEGRATION=1
+// in the environment so that nothing accidentally bills AWS during a default
+// `go test ./...` run.
 func (s *AvroIntegrationSuite) shouldSkipIntegrationTests() bool {
-	return os.Getenv("SKIP_INTEGRATION_TESTS") == "true"
+	return os.Getenv("AWS_INTEGRATION") != "1"
 }
 
 // TestAvroIntegrationSuite runs the AVRO integration test suite
