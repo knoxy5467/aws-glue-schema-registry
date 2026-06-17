@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package integration_tests
 
 import (
@@ -221,9 +224,9 @@ func (s *SaramaIntegrationSuite) convertDynamicToTestMessage(dynamic proto.Messa
 	return concrete, nil
 }
 
-// shouldSkipIntegrationTests checks if integration tests should be skipped
+// shouldSkipIntegrationTests checks if integration tests should be skipped.
 func (s *SaramaIntegrationSuite) shouldSkipIntegrationTests() bool {
-	return os.Getenv("SKIP_INTEGRATION_TESTS") == "true"
+	return os.Getenv("AWS_INTEGRATION") != "1"
 }
 
 // TestSaramaIntegrationSuite runs the Sarama integration test suite
