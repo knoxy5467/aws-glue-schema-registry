@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package integration_tests
 
 import (
@@ -240,9 +243,9 @@ func (s *ConfluentKafkaIntegrationSuite) convertDynamicToTestMessage(dynamic pro
 	return concrete, nil
 }
 
-// shouldSkipIntegrationTests checks if integration tests should be skipped
+// shouldSkipIntegrationTests checks if integration tests should be skipped.
 func (s *ConfluentKafkaIntegrationSuite) shouldSkipIntegrationTests() bool {
-	return os.Getenv("SKIP_INTEGRATION_TESTS") == "true"
+	return os.Getenv("AWS_INTEGRATION") != "1"
 }
 
 // TestConfluentKafkaIntegrationSuite runs the Confluent Kafka integration test suite

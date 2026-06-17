@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package integration_tests
 
 import (
@@ -511,9 +514,9 @@ func (s *MultiThreadedIntegrationSuite) getKafkaBroker() string {
 	return defaultKafkaBroker
 }
 
-// shouldSkipIntegrationTests checks if integration tests should be skipped
+// shouldSkipIntegrationTests checks if integration tests should be skipped.
 func (s *MultiThreadedIntegrationSuite) shouldSkipIntegrationTests() bool {
-	return os.Getenv("SKIP_INTEGRATION_TESTS") == "true"
+	return os.Getenv("AWS_INTEGRATION") != "1"
 }
 
 // TestMultiThreadedIntegrationSuite runs the MultiThreaded integration test suite

@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package integration_tests
 
 import (
@@ -95,9 +98,9 @@ func (s *ProtobufIntegrationSuite) convertDynamicToTestMessage(dynamic proto.Mes
 	return concrete, nil
 }
 
-// shouldSkipIntegrationTests checks if integration tests should be skipped
+// shouldSkipIntegrationTests checks if integration tests should be skipped.
 func (s *ProtobufIntegrationSuite) shouldSkipIntegrationTests() bool {
-	return os.Getenv("SKIP_INTEGRATION_TESTS") == "true"
+	return os.Getenv("AWS_INTEGRATION") != "1"
 }
 
 // TestProtobufIntegrationSuite runs the Protobuf integration test suite
