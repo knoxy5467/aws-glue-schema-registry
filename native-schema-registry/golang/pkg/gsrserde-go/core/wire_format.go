@@ -1,7 +1,6 @@
 package gsrserde
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -37,11 +36,6 @@ const (
 	// WireFormatHeaderSize is the total prefix length: 1 + 1 + 16 = 18 bytes.
 	WireFormatHeaderSize = HeaderVersionByteSize + CompressionByteSize + SchemaVersionIDSize
 )
-
-// ErrIncompatibleData is the sentinel for payloads whose 18-byte prefix is
-// missing or malformed. Anchored to Java GlueSchemaRegistryIncompatibleDataException.
-// Callers MUST check with errors.Is.
-var ErrIncompatibleData = errors.New("payload is not in GSR wire format")
 
 // EncodeWireFormat produces the 18-byte GSR prefix followed by payload bytes.
 //
