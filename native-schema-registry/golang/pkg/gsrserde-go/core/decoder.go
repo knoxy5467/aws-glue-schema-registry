@@ -64,7 +64,10 @@ func (d *GsrDecoder) Decode(data []byte) ([]byte, error) {
 	
 	// For protobuf, strip message index from decompressed payload
 	if schema.DataFormat == "PROTOBUF" {
-		payload = stripMessageIndex(payload)
+		_, payload, err = stripMessageIndex(payload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to strip protobuf message index: %w", err)
+		}
 	}
 
 	return payload, nil

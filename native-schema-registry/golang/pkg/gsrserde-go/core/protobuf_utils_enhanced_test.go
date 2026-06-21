@@ -1,160 +1,185 @@
 package gsrserde
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPrefixMessageIndexToBytes_ErrorCases(t *testing.T) {
 	tests := []struct {
-		name           string
-		data           []byte
+		name             string
+		data             []byte
 		schemaDefinition string
-		schemaName     string
-		expectError    bool
+		schemaName       string
+		wantErrIs        error
 	}{
 		{
-			name:             "Invalid proto definition",
+			name:             "Invalid proto definition surfaces parse error",
 			data:             []byte("test"),
 			schemaDefinition: "invalid proto syntax",
 			schemaName:       "TestMessage",
-			expectError:      false, // Function handles errors gracefully
 		},
 		{
-			name:             "Empty schema definition",
+			name:             "Empty schema definition surfaces parse error",
 			data:             []byte("test"),
 			schemaDefinition: "",
 			schemaName:       "TestMessage",
-			expectError:      false,
 		},
 		{
-			name:             "Message not found",
+			name:             "Message not found returns wrapped ErrMessageTypeNotFound",
 			data:             []byte("test"),
-			schemaDefinition: "syntax = \"proto3\"; message Other { string name = 1; }",
+			schemaDefinition: `syntax = "proto3"; message Other { string name = 1; }`,
 			schemaName:       "NonExistent",
-			expectError:      false,
+			wantErrIs:        ErrMessageTypeNotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := prefixMessageIndexToBytes(tt.data, tt.schemaDefinition, tt.schemaName)
-			// Function should not panic and should return some result
-			assert.NotNil(t, result)
+			_, err := prefixMessageIndexToBytes(tt.data, tt.schemaDefinition, tt.schemaName)
+			require.Error(t, err)
+			if tt.wantErrIs != nil {
+				assert.True(t, errors.Is(err, tt.wantErrIs),
+					"caller relies on errors.Is(err, %v) to discriminate not-found from parse errors", tt.wantErrIs)
+			}
 		})
 	}
 }
 
-// TODO(phase 1): The "Exactly 4 bytes" and "Normal case with message index"
-// rows below assert that stripMessageIndex returns its input unchanged. That
-// matches the original stub but contradicts Java parity: stripMessageIndex
-// must consume the leading unsigned varint and return the remaining bytes
-// (see protobuf_utils.go doc comments and Java
-// ProtobufWireFormatDecoder.java:33-37).
-//
-// Phase 1 should rewrite these rows as:
-//   - {0x00, 0x00, 0x00, 0x00} → {0x00, 0x00, 0x00} (one varint byte 0x00 consumed).
-//   - {0x00, 0x48, 0x65, 0x6c, 0x6c, 0x6f} → {0x48, 0x65, 0x6c, 0x6c, 0x6f} ("Hello"
-//     after a single-byte varint(0)).
-//   - Multi-byte varint header: {0x80, 0x01, 'h', 'i'} → {'h', 'i'} (index 128).
+// TestStripMessageIndex_EdgeCases asserts the spec-anchored behavior of
+// stripMessageIndex now that the function correctly consumes the leading
+// unsigned varint per Java ProtobufWireFormatDecoder.java:33-37.
 func TestStripMessageIndex_EdgeCases(t *testing.T) {
-	tests := []struct {
-		name     string
-		data     []byte
-		expected []byte
-	}{
-		{
-			name:     "Empty data",
-			data:     []byte{},
-			expected: []byte{},
-		},
-		{
-			name:     "Data shorter than 4 bytes",
-			data:     []byte{0x01, 0x02},
-			expected: []byte{0x01, 0x02},
-		},
-		{
-			name:     "Exactly 4 bytes",
-			data:     []byte{0x00, 0x00, 0x00, 0x00},
-			expected: []byte{0x00, 0x00, 0x00, 0x00}, // Current implementation returns data unchanged
-		},
-		{
-			name:     "Normal case with message index",
-			data:     []byte{0x00, 0x00, 0x00, 0x01, 0x48, 0x65, 0x6c, 0x6c, 0x6f},
-			expected: []byte{0x00, 0x00, 0x00, 0x01, 0x48, 0x65, 0x6c, 0x6c, 0x6f}, // Current implementation returns data unchanged
-		},
-	}
+	t.Run("empty data errors", func(t *testing.T) {
+		_, _, err := stripMessageIndex(nil)
+		assert.Error(t, err)
+	})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := stripMessageIndex(tt.data)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
+	t.Run("single varint(0) byte returns empty payload", func(t *testing.T) {
+		idx, rest, err := stripMessageIndex([]byte{0x00})
+		require.NoError(t, err)
+		assert.Equal(t, uint32(0), idx)
+		assert.Empty(t, rest)
+	})
+
+	t.Run("four bytes — one varint(0) then three payload bytes", func(t *testing.T) {
+		idx, rest, err := stripMessageIndex([]byte{0x00, 0x00, 0x00, 0x00})
+		require.NoError(t, err)
+		assert.Equal(t, uint32(0), idx)
+		assert.Equal(t, []byte{0x00, 0x00, 0x00}, rest)
+	})
+
+	t.Run("varint(0) + Hello — strips one byte", func(t *testing.T) {
+		idx, rest, err := stripMessageIndex([]byte{0x00, 0x48, 0x65, 0x6c, 0x6c, 0x6f})
+		require.NoError(t, err)
+		assert.Equal(t, uint32(0), idx)
+		assert.Equal(t, []byte("Hello"), rest)
+	})
+
+	t.Run("varint(128) two-byte prefix — strips two bytes", func(t *testing.T) {
+		// 0x80, 0x01 is varint(128); payload is "hi".
+		idx, rest, err := stripMessageIndex([]byte{0x80, 0x01, 'h', 'i'})
+		require.NoError(t, err)
+		assert.Equal(t, uint32(128), idx)
+		assert.Equal(t, []byte("hi"), rest)
+	})
 }
 
+// TestGetMessageIndexFromProtoDefinition_ComplexCases — the indirect tests via
+// prefixMessageIndexToBytes are kept, but now (a) assert against the prefix
+// bytes the function returns (varint(idx) + data), and (b) check the
+// not-found path returns wrapped ErrMessageTypeNotFound rather than silently
+// producing prefix(0).
 func TestGetMessageIndexFromProtoDefinition_ComplexCases(t *testing.T) {
 	tests := []struct {
 		name             string
 		schemaDefinition string
 		messageName      string
-		expected         int32
+		wantPrefix       []byte // expected varint prefix bytes
+		wantErrIs        error
 	}{
 		{
-			name: "Multiple messages",
+			// Lex-sort on FQ name with empty package: [FirstMessage, SecondMessage, ThirdMessage].
+			// SecondMessage is at index 1.
+			name: "Multiple messages — SecondMessage lex-sorts to index 1",
 			schemaDefinition: `syntax = "proto3";
-			message FirstMessage { string name = 1; }
-			message SecondMessage { int32 id = 1; }
-			message ThirdMessage { bool active = 1; }`,
+				message FirstMessage { string name = 1; }
+				message SecondMessage { int32 id = 1; }
+				message ThirdMessage { bool active = 1; }`,
 			messageName: "SecondMessage",
-			expected:    1,
+			wantPrefix:  []byte{0x01},
 		},
 		{
-			name: "Nested messages",
+			name: "Nested messages — outer message lex-sorts to index 0",
 			schemaDefinition: `syntax = "proto3";
-			message Outer {
-				message Inner { string value = 1; }
-				Inner inner = 1;
-			}`,
+				message Outer {
+					message Inner { string value = 1; }
+					Inner inner = 1;
+				}`,
 			messageName: "Outer",
-			expected:    0,
+			wantPrefix:  []byte{0x00},
 		},
 		{
-			name: "Message with comments",
+			name: "Java worked example MessageIndexFinder.java:74-88 — B.A is index 1",
+			// message B { message C {} message A { message D {} } }
+			// BFS visits B, B.C, B.A, B.A.D → sort lex → [B, B.A, B.A.D, B.C]
+			// indices 0,1,2,3 — B.A at 1.
 			schemaDefinition: `syntax = "proto3";
-			// This is a comment
-			message TestMessage {
-				// Field comment
-				string name = 1;
-			}`,
-			messageName: "TestMessage",
-			expected:    0,
+				message B {
+					message C {}
+					message A { message D {} }
+				}`,
+			messageName: "B.A",
+			wantPrefix:  []byte{0x01},
 		},
 		{
-			name:             "Invalid syntax",
+			name: "Java worked example — B.C is index 3",
+			schemaDefinition: `syntax = "proto3";
+				message B {
+					message C {}
+					message A { message D {} }
+				}`,
+			messageName: "B.C",
+			wantPrefix:  []byte{0x03},
+		},
+		{
+			name:             "Invalid syntax — parse error, not ErrMessageTypeNotFound",
 			schemaDefinition: "not a valid proto definition",
 			messageName:      "TestMessage",
-			expected:         0,
+			wantErrIs:        nil, // parse error; we just need *some* error
 		},
 		{
-			name:             "Empty definition",
+			name:             "Empty definition — parse error",
 			schemaDefinition: "",
 			messageName:      "TestMessage",
-			expected:         0,
+			wantErrIs:        nil,
+		},
+		{
+			name:             "Message not in schema — typed not-found",
+			schemaDefinition: `syntax = "proto3"; message Only { string name = 1; }`,
+			messageName:      "NotPresent",
+			wantErrIs:        ErrMessageTypeNotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Since getMessageIndexFromProtoDefinition is not exported, 
-			// we test the behavior through prefixMessageIndexToBytes
 			data := []byte("test-data")
-			result := prefixMessageIndexToBytes(data, tt.schemaDefinition, tt.messageName)
-			
-			// Verify that the function doesn't panic and returns some result
-			assert.NotNil(t, result)
-			assert.True(t, len(result) >= len(data))
+			result, err := prefixMessageIndexToBytes(data, tt.schemaDefinition, tt.messageName)
+
+			if tt.wantPrefix != nil {
+				require.NoError(t, err)
+				assert.Equal(t, append(append([]byte{}, tt.wantPrefix...), data...), result)
+				return
+			}
+
+			require.Error(t, err)
+			if tt.wantErrIs != nil {
+				assert.True(t, errors.Is(err, tt.wantErrIs))
+			}
 		})
 	}
 }

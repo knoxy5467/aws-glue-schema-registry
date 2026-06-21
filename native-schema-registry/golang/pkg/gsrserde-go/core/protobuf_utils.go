@@ -45,9 +45,9 @@ func ConvertBase64SchemaToStringSchema(base64Schema string) (string, error) {
 	return writer.String(), nil
 }
 
-// prefixMessageIndexToBytes prepends the protobuf message-index varint to the
-// payload. The message index identifies which message type within the schema
-// the payload was serialized as.
+// prefixMessageIndexToBytes prepends the protobuf message-index unsigned varint
+// to the payload. The message index identifies which message type within the
+// schema the payload was serialized as.
 //
 // Java parity reference:
 //
@@ -59,8 +59,16 @@ func ConvertBase64SchemaToStringSchema(base64Schema string) (string, error) {
 // Wire layout: <varint-encoded uint32 message index> || <payload bytes>.
 // For a schema with a single top-level message, messageIndex is 0, so the
 // prefix is the single byte 0x00 followed by the payload.
-func prefixMessageIndexToBytes(data []byte, schemaDefinition, messageType string) []byte {
-	messageIndex := getMessageIndexFromProtoDefinition(schemaDefinition, messageType)
+//
+// Returns a wrapped ErrMessageTypeNotFound when messageType is not in the
+// schema's BFS+lex-sorted descriptor list. Callers MUST surface this error
+// rather than emit the prefix for some other message — that would corrupt the
+// wire format.
+func prefixMessageIndexToBytes(data []byte, schemaDefinition, messageType string) ([]byte, error) {
+	messageIndex, err := getMessageIndexFromProtoDefinition(schemaDefinition, messageType)
+	if err != nil {
+		return nil, err
+	}
 
 	buf := make([]byte, 0, len(data)+5) // 5 bytes max for varint32
 
@@ -73,11 +81,11 @@ func prefixMessageIndexToBytes(data []byte, schemaDefinition, messageType string
 
 	buf = append(buf, data...)
 
-	return buf
+	return buf, nil
 }
 
 // stripMessageIndex consumes the unsigned varint message-index prefix from data
-// and returns the remaining payload bytes.
+// and returns the (index, remainingPayload).
 //
 // Java parity reference:
 //
@@ -86,18 +94,17 @@ func prefixMessageIndexToBytes(data []byte, schemaDefinition, messageType string
 //	  returns (index, remainingStream). The remaining stream is everything after
 //	  the consumed varint bytes.
 //
-// This implementation throws away the decoded index because callers that need
-// the index value are expected to use a separate lookup against the schema's
-// MessageIndexFinder equivalent. If a future caller needs the index, this
-// function should be split into one that returns (index, remainder).
-func stripMessageIndex(data []byte) []byte {
+// Returns NewDeserializationError when the varint is malformed (more than 5
+// bytes or runs off the end of data without a continuation-bit terminator).
+func stripMessageIndex(data []byte) (uint32, []byte, error) {
 	if len(data) < 1 {
-		return data
+		return 0, nil, NewDeserializationError("protobuf payload too short to contain message-index varint")
 	}
 
 	var index uint32
 	var shift uint
 	pos := 0
+	terminated := false
 
 	for pos < len(data) {
 		b := data[pos]
@@ -105,19 +112,20 @@ func stripMessageIndex(data []byte) []byte {
 
 		index |= uint32(b&0x7F) << shift
 		if b&0x80 == 0 {
+			terminated = true
 			break
 		}
 		shift += 7
 		if shift >= 32 {
-			break // Prevent overflow on a malformed > 5-byte varint.
+			return 0, nil, NewDeserializationError("malformed protobuf message-index varint: exceeds 5 bytes")
 		}
 	}
-	_ = index
 
-	if pos < len(data) {
-		return data[pos:]
+	if !terminated {
+		return 0, nil, NewDeserializationError("malformed protobuf message-index varint: missing continuation terminator")
 	}
-	return []byte{}
+
+	return index, data[pos:], nil
 }
 
 // getMessageIndexFromProtoDefinition computes the index of messageType within
@@ -138,17 +146,13 @@ func stripMessageIndex(data []byte) []byte {
 //
 // produces sorted indices: B=0, B.A=1, B.A.D=2, B.C=3.
 //
-// PARITY DIVERGENCE — TODO(phase 1):
-// Java throws AWSSchemaRegistryException when descriptorToFind is not in the
-// schema (MessageIndexFinder.java:35-39). This Go implementation silently
-// returns 0, which would cause the encoder to emit the prefix for the *first*
-// sorted message type and produce a payload that decodes as the wrong type.
-// Phase 1 must change the signature to (uint32, error) and propagate the
-// not-found case.
-func getMessageIndexFromProtoDefinition(schemaDefinition, messageType string) uint32 {
+// Returns ErrMessageTypeNotFound (wrapped with the messageType for context)
+// when messageType is not in the sorted list — mirrors Java's
+// AWSSchemaRegistryException at MessageIndexFinder.java:35-39.
+func getMessageIndexFromProtoDefinition(schemaDefinition, messageType string) (uint32, error) {
 	fileDesc, err := parseSchemaDefinitionToDescriptor(schemaDefinition)
 	if err != nil {
-		return 0
+		return 0, fmt.Errorf("parse schema definition: %w", err)
 	}
 
 	messageTypes := getAllMessageTypesFromDescriptor(fileDesc)
@@ -157,12 +161,11 @@ func getMessageIndexFromProtoDefinition(schemaDefinition, messageType string) ui
 
 	for i, msgType := range messageTypes {
 		if msgType == messageType {
-			return uint32(i)
+			return uint32(i), nil
 		}
 	}
 
-	// PARITY DIVERGENCE: Java throws here. See doc comment above.
-	return 0
+	return 0, fmt.Errorf("%w: %q (sorted candidates: %v)", ErrMessageTypeNotFound, messageType, messageTypes)
 }
 
 func parseSchemaDefinitionToDescriptor(schemaDefinition string) (*desc.FileDescriptor, error) {

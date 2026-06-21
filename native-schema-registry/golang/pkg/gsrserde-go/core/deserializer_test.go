@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/glue/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDeserializer_Decode_Success(t *testing.T) {
@@ -57,20 +58,17 @@ func TestDeserializer_Decode_ProtobufFormat(t *testing.T) {
 			DataFormat:       types.DataFormatProtobuf,
 		}, nil)
 	
-	// Create protobuf data with message index
-	payload := append([]byte{0x00, 0x00, 0x00, 0x00}, []byte("test-payload")...)
-	data := createValidGSRData(t, "test-schema", 1, payload)
+	// Wire payload is <varint(message_index) || protobuf bytes>. For a single
+	// top-level message the index is 0, so the varint is a single 0x00 byte
+	// and the encoded payload bytes follow unchanged. Decode must consume
+	// exactly that one byte and return the rest.
+	wirePayload := append([]byte{0x00}, []byte("test-payload")...)
+	data := createValidGSRData(t, "test-schema", 1, wirePayload)
 
 	result, err := deserializer.Decode(data)
 
-	assert.NoError(t, err)
-	// TODO(phase 1): The next line was authored when stripMessageIndex was a
-	// stub that returned its input unchanged. The implementation now correctly
-	// consumes the leading varint per Java parity (see protobuf_utils.go), so
-	// the expected bytes after Decode → stripMessageIndex on the 4-byte
-	// 0x00,0x00,0x00,0x00 prefix are 0x00,0x00,0x00 + "test-payload", not the
-	// full payload. Rewrite the assertion against the spec, not the stub.
-	assert.Equal(t, payload, result)
+	require.NoError(t, err)
+	assert.Equal(t, []byte("test-payload"), result)
 }
 
 func TestDeserializer_Decode_WithCompression(t *testing.T) {

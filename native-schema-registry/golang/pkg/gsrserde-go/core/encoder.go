@@ -80,7 +80,10 @@ func (s *GsrEncoder) Encode(data []byte, transportName string, schema *Schema) (
 	
 	// For protobuf, add message index prefix BEFORE compression (matches Java implementation)
 	if schema.DataFormat == "PROTOBUF" {
-		compressedData = prefixMessageIndexToBytes(compressedData, schema.SchemaDefinition, schema.SchemaName)
+		compressedData, err = prefixMessageIndexToBytes(compressedData, schema.SchemaDefinition, schema.SchemaName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to prefix protobuf message index: %w", err)
+		}
 	}
 	
 	if s.compressionType == "ZLIB" {
