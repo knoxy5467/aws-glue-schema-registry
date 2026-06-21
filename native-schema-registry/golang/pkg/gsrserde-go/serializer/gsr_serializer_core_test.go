@@ -260,6 +260,41 @@ func TestSerialize_ClosedSerializer_ReturnsError(t *testing.T) {
 	require.Error(t, err)
 }
 
+// TestNewSerializerWithEncoderAndStrategy_TypedNilStrategy_FallsBackToDefault
+// locks in the code-review fix for the Go typed-nil-interface pitfall: a
+// caller passing `var s *suffixStrategy = nil` produces an interface value
+// with non-nil itab and nil concrete pointer. The naive `if strategy == nil`
+// check would pass that through, and the first Serialize call would nil-deref
+// inside SchemaName. The constructor must reject (or substitute) the typed
+// nil so callers get the default rather than a delayed crash.
+func TestNewSerializerWithEncoderAndStrategy_TypedNilStrategy_FallsBackToDefault(t *testing.T) {
+	fake := &fakeGlueClient{}
+	var capturedSchemaName string
+	id := knownAvroVersionID
+	fake.On("GetSchemaByDefinition", mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			in := args.Get(1).(*glue.GetSchemaByDefinitionInput)
+			capturedSchemaName = aws.ToString(in.SchemaId.SchemaName)
+		}).
+		Return(&glue.GetSchemaByDefinitionOutput{
+			SchemaVersionId: &id,
+			Status:          types.SchemaVersionStatusAvailable,
+		}, nil)
+
+	enc := newCoreEncoder(t, fake)
+	var typedNil *suffixStrategy // typed nil pointer, NOT untyped nil
+	s, err := NewSerializerWithEncoderAndStrategy(avroConfig(), enc, typedNil)
+	require.NoError(t, err)
+
+	record, _ := avroTestRecord()
+	// Must not panic — the constructor must have substituted the default
+	// strategy when it saw the typed-nil interface.
+	_, err = s.Serialize("orders", record)
+	require.NoError(t, err)
+	require.Equal(t, "orders", capturedSchemaName,
+		"typed-nil strategy must fall back to DefaultSchemaNameStrategy")
+}
+
 // suffixStrategy is a tiny SchemaNameStrategy implementation that lets the
 // strategy-injection tests prove the strategy field actually wires through.
 type suffixStrategy struct{ suffix string }

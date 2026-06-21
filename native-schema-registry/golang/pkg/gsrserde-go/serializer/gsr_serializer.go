@@ -3,6 +3,7 @@ package serializer
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
 
@@ -64,8 +65,21 @@ func NewSerializerWithEncoderAndStrategy(config *common.Configuration, enc *gsrc
 	if enc == nil {
 		return nil, fmt.Errorf("encoder cannot be nil")
 	}
+	// Guard against both untyped nil and typed-nil interface values
+	// (e.g. a caller passing `var s *MyStrategy = nil` would otherwise
+	// slip past `strategy == nil` and nil-deref inside SchemaName at
+	// the first Serialize call). reflect.Value.IsNil panics on non-nilable
+	// kinds, so only call it when the kind is one of the nilable shapes.
 	if strategy == nil {
 		strategy = gsrcore.DefaultSchemaNameStrategy{}
+	} else {
+		v := reflect.ValueOf(strategy)
+		switch v.Kind() {
+		case reflect.Ptr, reflect.Interface, reflect.Chan, reflect.Func, reflect.Map, reflect.Slice:
+			if v.IsNil() {
+				strategy = gsrcore.DefaultSchemaNameStrategy{}
+			}
+		}
 	}
 	factory := GetSerializerFactory()
 	formatSer, err := factory.GetSerializer(config)
