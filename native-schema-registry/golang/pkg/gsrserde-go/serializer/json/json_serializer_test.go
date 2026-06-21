@@ -7,7 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
 
@@ -369,7 +370,7 @@ func TestJsonSerializer_SetAdditionalSchemaInfo(t *testing.T) {
 	tests := []struct {
 		name          string
 		data          interface{}
-		schema        *gsrserde.Schema
+		schema        *gsrcore.Schema
 		expectError   bool
 		errorContains string
 	}{
@@ -379,9 +380,9 @@ func TestJsonSerializer_SetAdditionalSchemaInfo(t *testing.T) {
 				wrapper, _ := NewJsonDataWithSchema(validSchema, `{"name": "test"}`)
 				return wrapper
 			}(),
-			schema: &gsrserde.Schema{
+			schema: &gsrcore.Schema{
 				SchemaName:     "TestSchema",
-				Definition:     validSchema,
+				SchemaDefinition:     validSchema,
 				DataFormat:     "",
 				AdditionalInfo: "",
 			},
@@ -390,7 +391,7 @@ func TestJsonSerializer_SetAdditionalSchemaInfo(t *testing.T) {
 		{
 			name:          "NilData",
 			data:          nil,
-			schema:        &gsrserde.Schema{},
+			schema:        &gsrcore.Schema{},
 			expectError:   true,
 			errorContains: "data cannot be nil",
 		},
@@ -407,7 +408,7 @@ func TestJsonSerializer_SetAdditionalSchemaInfo(t *testing.T) {
 		{
 			name:          "InvalidDataType",
 			data:          "not a JsonDataWithSchema",
-			schema:        &gsrserde.Schema{},
+			schema:        &gsrcore.Schema{},
 			expectError:   true,
 			errorContains: "JSON serializer only accepts JsonDataWithSchema wrapper objects",
 		},

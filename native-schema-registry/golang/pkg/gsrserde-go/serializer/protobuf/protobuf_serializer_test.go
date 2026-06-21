@@ -9,7 +9,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/test_helpers"
 )
@@ -406,13 +407,13 @@ func TestProtobufSerializer_SetAdditionalSchemaInfo_ErrorCases(t *testing.T) {
 	tests := []struct {
 		name        string
 		data        interface{}
-		schema      *gsrserde.Schema
+		schema      *gsrcore.Schema
 		expectedErr error
 	}{
 		{
 			name:        "nil data",
 			data:        nil,
-			schema:      &gsrserde.Schema{},
+			schema:      &gsrcore.Schema{},
 			expectedErr: ErrNilMessage,
 		},
 		{
@@ -424,7 +425,7 @@ func TestProtobufSerializer_SetAdditionalSchemaInfo_ErrorCases(t *testing.T) {
 		{
 			name:        "non-proto message",
 			data:        "not a proto message",
-			schema:      &gsrserde.Schema{},
+			schema:      &gsrcore.Schema{},
 			expectedErr: ErrInvalidProtoMessage,
 		},
 	}
@@ -471,7 +472,7 @@ func TestProtobufSerializer_SetAdditionalSchemaInfo_ValidCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			schema := &gsrserde.Schema{}
+			schema := &gsrcore.Schema{}
 			
 			err := serializer.SetAdditionalSchemaInfo(tt.data, schema)
 			require.NoError(t, err, "Setting schema info should succeed")
@@ -490,7 +491,7 @@ func TestProtobufSerializer_SetAdditionalSchemaInfo_DynamicMessage(t *testing.T)
 	dynamicMsg := test_helpers.GenerateTestProtoMessage()
 	require.NotNil(t, dynamicMsg, "Should generate dynamic test message")
 
-	schema := &gsrserde.Schema{}
+	schema := &gsrcore.Schema{}
 	err := serializer.SetAdditionalSchemaInfo(dynamicMsg, schema)
 	require.NoError(t, err, "Setting schema info for dynamic message should succeed")
 	
@@ -506,7 +507,7 @@ func TestProtobufSerializer_SetAdditionalSchemaInfo_PreservesExistingDataFormat(
 		Name: proto.String("test.proto"),
 	}
 
-	schema := &gsrserde.Schema{
+	schema := &gsrcore.Schema{
 		DataFormat: "EXISTING_FORMAT",
 	}
 

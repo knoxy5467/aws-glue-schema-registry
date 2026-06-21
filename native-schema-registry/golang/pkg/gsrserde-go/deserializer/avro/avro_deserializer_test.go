@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	hambaavro "github.com/hamba/avro/v2"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
 
@@ -77,7 +78,7 @@ func TestAvroDeserializer_Deserialize(t *testing.T) {
 	tests := []struct {
 		name          string
 		data          []byte
-		schema        *gsrserde.Schema
+		schema        *gsrcore.Schema
 		expectError   bool
 		errorContains string
 		validateResult func(t *testing.T, result interface{})
@@ -85,9 +86,9 @@ func TestAvroDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "ValidStringData",
 			data: stringData,
-			schema: &gsrserde.Schema{
+			schema: &gsrcore.Schema{
 				SchemaName: "StringSchema",
-				Definition: stringSchema,
+				SchemaDefinition: stringSchema,
 				DataFormat: "AVRO",
 			},
 			expectError: false,
@@ -98,9 +99,9 @@ func TestAvroDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "ValidIntData",
 			data: intData,
-			schema: &gsrserde.Schema{
+			schema: &gsrcore.Schema{
 				SchemaName: "IntSchema",
-				Definition: intSchema,
+				SchemaDefinition: intSchema,
 				DataFormat: "AVRO",
 			},
 			expectError: false,
@@ -111,9 +112,9 @@ func TestAvroDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "ValidRecordData",
 			data: recordData,
-			schema: &gsrserde.Schema{
+			schema: &gsrcore.Schema{
 				SchemaName: "UserSchema",
-				Definition: recordSchema,
+				SchemaDefinition: recordSchema,
 				DataFormat: "AVRO",
 			},
 			expectError: false,
@@ -127,14 +128,14 @@ func TestAvroDeserializer_Deserialize(t *testing.T) {
 		{
 			name:          "EmptyData",
 			data:          []byte{},
-			schema:        &gsrserde.Schema{Definition: stringSchema},
+			schema:        &gsrcore.Schema{SchemaDefinition: stringSchema},
 			expectError:   true,
 			errorContains: "cannot deserialize empty data",
 		},
 		{
 			name:          "NilData",
 			data:          nil,
-			schema:        &gsrserde.Schema{Definition: stringSchema},
+			schema:        &gsrcore.Schema{SchemaDefinition: stringSchema},
 			expectError:   true,
 			errorContains: "cannot deserialize empty data",
 		},
@@ -148,8 +149,8 @@ func TestAvroDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "EmptySchemaDefinition",
 			data: stringData,
-			schema: &gsrserde.Schema{
-				Definition: "",
+			schema: &gsrcore.Schema{
+				SchemaDefinition: "",
 			},
 			expectError:   true,
 			errorContains: "schema definition cannot be empty",
@@ -157,8 +158,8 @@ func TestAvroDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "InvalidSchemaDefinition",
 			data: stringData,
-			schema: &gsrserde.Schema{
-				Definition: `{"type": "invalid"}`,
+			schema: &gsrcore.Schema{
+				SchemaDefinition: `{"type": "invalid"}`,
 			},
 			expectError:   true,
 			errorContains: "failed to parse AVRO schema",
@@ -426,9 +427,9 @@ func TestAvroDeserializer_ComplexScenarios(t *testing.T) {
 		avroData, err := createAvroData(schema, testData)
 		require.NoError(t, err)
 
-		gsrSchema := &gsrserde.Schema{
+		gsrSchema := &gsrcore.Schema{
 			SchemaName: "OrderSchema",
-			Definition: schema,
+			SchemaDefinition: schema,
 			DataFormat: "AVRO",
 		}
 
@@ -474,8 +475,8 @@ func TestAvroDeserializer_ComplexScenarios(t *testing.T) {
 		avroData, err := createAvroData(schema, testData)
 		require.NoError(t, err)
 
-		gsrSchema := &gsrserde.Schema{
-			Definition: schema,
+		gsrSchema := &gsrcore.Schema{
+			SchemaDefinition: schema,
 		}
 
 		result, err := deserializer.Deserialize(avroData, gsrSchema)
@@ -508,8 +509,8 @@ func TestAvroDeserializer_ComplexScenarios(t *testing.T) {
 		avroData, err := createAvroData(schema, testData)
 		require.NoError(t, err)
 
-		gsrSchema := &gsrserde.Schema{
-			Definition: schema,
+		gsrSchema := &gsrcore.Schema{
+			SchemaDefinition: schema,
 		}
 
 		result, err := deserializer.Deserialize(avroData, gsrSchema)
@@ -585,8 +586,8 @@ func TestAvroDeserializer_ConcurrentAccess(t *testing.T) {
 				return
 			}
 
-			gsrSchema := &gsrserde.Schema{
-				Definition: schema,
+			gsrSchema := &gsrcore.Schema{
+				SchemaDefinition: schema,
 			}
 
 			result, err := deserializer.Deserialize(avroData, gsrSchema)
@@ -672,8 +673,8 @@ func TestAvroDeserializer_PrimitiveTypes(t *testing.T) {
 			avroData, err := createAvroData(tt.schema, tt.testData)
 			require.NoError(t, err)
 
-			gsrSchema := &gsrserde.Schema{
-				Definition: tt.schema,
+			gsrSchema := &gsrcore.Schema{
+				SchemaDefinition: tt.schema,
 			}
 
 			result, err := deserializer.Deserialize(avroData, gsrSchema)
@@ -712,8 +713,8 @@ func BenchmarkAvroDeserializer_Deserialize(b *testing.B) {
 		b.Fatalf("Failed to create AVRO data: %v", err)
 	}
 
-	gsrSchema := &gsrserde.Schema{
-		Definition: schema,
+	gsrSchema := &gsrcore.Schema{
+		SchemaDefinition: schema,
 	}
 
 	b.ResetTimer()

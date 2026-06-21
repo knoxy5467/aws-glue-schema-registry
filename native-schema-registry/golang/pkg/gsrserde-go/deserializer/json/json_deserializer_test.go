@@ -7,7 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
 
@@ -46,7 +47,7 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 	tests := []struct {
 		name          string
 		data          []byte
-		schema        *gsrserde.Schema
+		schema        *gsrcore.Schema
 		expectError   bool
 		errorContains string
 		expectedResult string
@@ -54,9 +55,9 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "ValidDataAndSchema",
 			data: []byte(`{"name": "John", "age": 30}`),
-			schema: &gsrserde.Schema{
+			schema: &gsrcore.Schema{
 				SchemaName:     "TestSchema",
-				Definition:     validSchema,
+				SchemaDefinition:     validSchema,
 				DataFormat:     "JSON",
 				AdditionalInfo: "JsonDataWithSchema",
 			},
@@ -66,9 +67,9 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "ValidDataMinimalPayload",
 			data: []byte(`{"name": "John"}`),
-			schema: &gsrserde.Schema{
+			schema: &gsrcore.Schema{
 				SchemaName:     "TestSchema",
-				Definition:     validSchema,
+				SchemaDefinition:     validSchema,
 				DataFormat:     "JSON",
 				AdditionalInfo: "JsonDataWithSchema",
 			},
@@ -78,9 +79,9 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "EmptyDataValidSchema",
 			data: []byte{},
-			schema: &gsrserde.Schema{
+			schema: &gsrcore.Schema{
 				SchemaName:     "TestSchema",
-				Definition:     validSchema,
+				SchemaDefinition:     validSchema,
 				DataFormat:     "JSON",
 				AdditionalInfo: "JsonDataWithSchema",
 			},
@@ -90,7 +91,7 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 		{
 			name:          "NilData",
 			data:          nil,
-			schema:        &gsrserde.Schema{Definition: validSchema},
+			schema:        &gsrcore.Schema{SchemaDefinition: validSchema},
 			expectError:   true,
 			errorContains: "cannot deserialize nil data",
 		},
@@ -104,8 +105,8 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "InvalidJsonData",
 			data: []byte(`{"name": "John", "age":}`), // Invalid JSON
-			schema: &gsrserde.Schema{
-				Definition: validSchema,
+			schema: &gsrcore.Schema{
+				SchemaDefinition: validSchema,
 			},
 			expectError:   true,
 			errorContains: "data is not valid JSON",
@@ -113,8 +114,8 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "EmptySchemaDefinition",
 			data: []byte(`{"name": "John"}`),
-			schema: &gsrserde.Schema{
-				Definition: "",
+			schema: &gsrcore.Schema{
+				SchemaDefinition: "",
 			},
 			expectError:   true,
 			errorContains: "schema definition is empty",
@@ -122,8 +123,8 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "WhitespaceOnlySchemaDefinition",
 			data: []byte(`{"name": "John"}`),
-			schema: &gsrserde.Schema{
-				Definition: "   \t\n  ",
+			schema: &gsrcore.Schema{
+				SchemaDefinition: "   \t\n  ",
 			},
 			expectError:   true,
 			errorContains: "schema definition is empty",
@@ -131,8 +132,8 @@ func TestJsonDeserializer_Deserialize(t *testing.T) {
 		{
 			name: "DataDoesNotMatchSchema",
 			data: []byte(`{"age": 30}`), // Missing required "name"
-			schema: &gsrserde.Schema{
-				Definition: validSchema,
+			schema: &gsrcore.Schema{
+				SchemaDefinition: validSchema,
 			},
 			expectError:   true,
 			errorContains: "data validation against schema failed",
@@ -289,9 +290,9 @@ func TestJsonDeserializer_ComplexScenarios(t *testing.T) {
 			]
 		}`
 
-		gsrSchema := &gsrserde.Schema{
+		gsrSchema := &gsrcore.Schema{
 			SchemaName:     "ComplexSchema",
-			Definition:     schema,
+			SchemaDefinition:     schema,
 			DataFormat:     "JSON",
 			AdditionalInfo: "JsonDataWithSchema",
 		}
@@ -322,8 +323,8 @@ func TestJsonDeserializer_ComplexScenarios(t *testing.T) {
 			{"id": 2, "name": "Item 2"}
 		]`
 
-		gsrSchema := &gsrserde.Schema{
-			Definition: schema,
+		gsrSchema := &gsrcore.Schema{
+			SchemaDefinition: schema,
 		}
 
 		result, err := deserializer.Deserialize([]byte(payload), gsrSchema)
@@ -341,7 +342,7 @@ func TestJsonDeserializer_ErrorTypes(t *testing.T) {
 		assert.Nil(t, err, "error should be nil")
 
 	t.Run("JsonDeserializationError", func(t *testing.T) {
-		_, err := deserializer.Deserialize(nil, &gsrserde.Schema{Definition: "{}"})
+		_, err := deserializer.Deserialize(nil, &gsrcore.Schema{SchemaDefinition: "{}"})
 		assert.Error(t, err)
 
 		var deserErr *JsonDeserializationError
@@ -377,8 +378,8 @@ func TestJsonDeserializer_ConcurrentAccess(t *testing.T) {
 			defer func() { done <- true }()
 
 			payload := fmt.Sprintf(`{"id": %d}`, id)
-			gsrSchema := &gsrserde.Schema{
-				Definition: schema,
+			gsrSchema := &gsrcore.Schema{
+				SchemaDefinition: schema,
 			}
 
 			result, err := deserializer.Deserialize([]byte(payload), gsrSchema)

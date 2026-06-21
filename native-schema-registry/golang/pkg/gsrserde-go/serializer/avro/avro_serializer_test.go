@@ -3,7 +3,8 @@ package avro
 import (
 	"testing"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/avro"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
@@ -217,10 +218,10 @@ func TestAvroSerializer_SetAdditionalSchemaInfo(t *testing.T) {
 	}
 	avroRecord := avro.NewAvroRecord(testSchema, testData)
 
-	schema := &gsrserde.Schema{
-		SchemaName: "TestRecord",
-		Definition: "",
-		DataFormat: "AVRO",
+	schema := &gsrcore.Schema{
+		SchemaName:       "TestRecord",
+		SchemaDefinition: "",
+		DataFormat:       "AVRO",
 	}
 
 	err := serializer.SetAdditionalSchemaInfo(avroRecord, schema)
@@ -229,8 +230,8 @@ func TestAvroSerializer_SetAdditionalSchemaInfo(t *testing.T) {
 	}
 
 	// Check if schema definition was set
-	if schema.Definition != testSchema {
-		t.Fatalf("Schema definition not set correctly. Expected: %s, Got: %s", testSchema, schema.Definition)
+	if schema.SchemaDefinition != testSchema {
+		t.Fatalf("Schema definition not set correctly. Expected: %s, Got: %s", testSchema, schema.SchemaDefinition)
 	}
 
 	// Check if additional info was set
