@@ -1,10 +1,7 @@
 package gsrserde
 
 import (
-	"bytes"
-	"compress/zlib"
 	"context"
-	"encoding/binary"
 	"fmt"
 	"strings"
 	"sync"
@@ -13,9 +10,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/glue/types"
 )
 
+// Deprecated: HeaderVersionByte / CompressionByte are kept as aliases so the
+// scaffolding tests in serde_test.go / edge_cases_test.go / deserializer_test.go
+// still compile while they migrate over to WireFormatVersionByte /
+// CompressionByteNone (see wire_format.go). New code MUST use those.
 const (
-	HeaderVersionByte = 0x03
-	CompressionByte   = 0x00
+	HeaderVersionByte = WireFormatVersionByte
+	CompressionByte   = CompressionByteNone
 )
 
 type Schema struct {
@@ -67,6 +68,15 @@ func NewGsrEncoder(configMap map[string]string) (*GsrEncoder, error) {
 	}, nil
 }
 
+// Encode prepends the 18-byte GSR wire-format prefix to data and returns the
+// full payload. The prefix carries the schema-version UUID resolved by
+// getSchemaVersionIdByDefinition.
+//
+// For PROTOBUF schemas the protobuf message-index varint is prepended BEFORE
+// compression (mirrors Java
+// serializer-deserializer/.../ProtobufWireFormatEncoder.java and
+// SerializationDataEncoder.java:62 — compress the schema-format-encoded bytes,
+// then write the wire-format header).
 func (s *GsrEncoder) Encode(data []byte, transportName string, schema *Schema) ([]byte, error) {
 	if data == nil {
 		return nil, NewSerializationError("data cannot be nil")
@@ -75,43 +85,40 @@ func (s *GsrEncoder) Encode(data []byte, transportName string, schema *Schema) (
 		return nil, NewSerializationError("schema cannot be nil")
 	}
 
-	schemaID, schemaVersion, err := s.getSchemaVersionIdByDefinition(schema.SchemaDefinition, schema.SchemaName, schema.DataFormat)
+	schemaVersionID, _, err := s.getSchemaVersionIdByDefinition(schema.SchemaDefinition, schema.SchemaName, schema.DataFormat)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get schema: %w", err)
 	}
 
-	// Apply compression if configured
-	compressedData := data
-	compressionByte := byte(0x00) // No compression
-	
-	// For protobuf, add message index prefix BEFORE compression (matches Java implementation)
+	payload := data
+
+	// Protobuf: prepend the message-index varint BEFORE compression.
 	if schema.DataFormat == "PROTOBUF" {
-		compressedData, err = prefixMessageIndexToBytes(compressedData, schema.SchemaDefinition, schema.SchemaName)
+		payload, err = prefixMessageIndexToBytes(payload, schema.SchemaDefinition, schema.SchemaName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to prefix protobuf message index: %w", err)
 		}
 	}
-	
-	if s.compressionType == "ZLIB" {
-		var buf bytes.Buffer
-		writer := zlib.NewWriter(&buf)
-		writer.Write(compressedData)
-		writer.Close()
-		compressedData = buf.Bytes()
-		compressionByte = byte(0x01) // ZLIB compression
+
+	handler, err := CompressionFactory{}.HandlerForType(CompressionType(s.compressionType))
+	if err != nil {
+		return nil, fmt.Errorf("compression handler: %w", err)
 	}
 
-	var buf bytes.Buffer
-	buf.WriteByte(HeaderVersionByte)
-	buf.WriteByte(compressionByte)
-	
-	schemaIDBytes := []byte(schemaID)
-	binary.Write(&buf, binary.BigEndian, uint32(len(schemaIDBytes)))
-	buf.Write(schemaIDBytes)
-	binary.Write(&buf, binary.BigEndian, schemaVersion)
-	buf.Write(compressedData)
+	compressionByte := CompressionByteNone
+	if handler != nil {
+		compressionByte = handler.CompressionByte()
+		payload, err = handler.Compress(payload)
+		if err != nil {
+			return nil, fmt.Errorf("compress payload: %w", err)
+		}
+	}
 
-	return buf.Bytes(), nil
+	out, err := EncodeWireFormat(schemaVersionID, compressionByte, payload)
+	if err != nil {
+		return nil, fmt.Errorf("encode wire format: %w", err)
+	}
+	return out, nil
 }
 
 func (s *GsrEncoder) Close() error {

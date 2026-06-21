@@ -43,7 +43,7 @@ func TestSerializer_Encode_Success(t *testing.T) {
 	}
 	
 	// Mock successful schema retrieval
-	schemaVersionId := "test-schema-id"
+	schemaVersionId := testUUIDString
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).Return(
 		&glue.GetSchemaByDefinitionOutput{
 			SchemaVersionId: &schemaVersionId,
@@ -60,8 +60,8 @@ func TestSerializer_Encode_Success(t *testing.T) {
 	
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, byte(HeaderVersionByte), result[0])
-	assert.Equal(t, byte(0x00), result[1]) // No compression
+	assert.Equal(t, byte(WireFormatVersionByte), result[0])
+	assert.Equal(t, byte(CompressionByteNone), result[1])
 }
 
 func TestSerializer_Encode_WithZlibCompression(t *testing.T) {
@@ -75,7 +75,7 @@ func TestSerializer_Encode_WithZlibCompression(t *testing.T) {
 		compressionType: "ZLIB",
 	}
 	
-	schemaVersionId := "test-schema-id"
+	schemaVersionId := testUUIDString
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).Return(
 		&glue.GetSchemaByDefinitionOutput{
 			SchemaVersionId: &schemaVersionId,
@@ -92,8 +92,8 @@ func TestSerializer_Encode_WithZlibCompression(t *testing.T) {
 	
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, byte(HeaderVersionByte), result[0])
-	assert.Equal(t, byte(0x01), result[1]) // ZLIB compression
+	assert.Equal(t, byte(WireFormatVersionByte), result[0])
+	assert.Equal(t, byte(CompressionByteZlib), result[1])
 }
 
 func TestSerializer_Encode_ProtobufFormat(t *testing.T) {
@@ -107,7 +107,7 @@ func TestSerializer_Encode_ProtobufFormat(t *testing.T) {
 		compressionType: "NONE",
 	}
 	
-	schemaVersionId := "test-schema-id"
+	schemaVersionId := testUUIDString
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).Return(
 		&glue.GetSchemaByDefinitionOutput{
 			SchemaVersionId: &schemaVersionId,
@@ -147,7 +147,7 @@ func TestSerializer_CreateSchema_Success(t *testing.T) {
 		nil, errors.New("schema not found"))
 
 	latestVersion := int64(1)
-	createdSchemaVersionID := "created-schema-version-uuid"
+	createdSchemaVersionID := otherUUIDString
 	mockClient.On("CreateSchema", mock.Anything, mock.Anything).Return(
 		&glue.CreateSchemaOutput{
 			SchemaVersionId:     &createdSchemaVersionID,
@@ -192,7 +192,7 @@ func TestSerializer_GetSchemaVersionIdByDefinition_Cached(t *testing.T) {
 	// §2.2(b) fix this test asserted the schema *name* came out of the cache,
 	// which was a stub-tracking lie (encoder.go:125 was returning
 	// schema.SchemaName).
-	cachedVersionID := "cached-schema-version-uuid"
+	cachedVersionID := testUUIDString
 	schema := &Schema{
 		SchemaName:       "test-schema",
 		SchemaDefinition: "test",
