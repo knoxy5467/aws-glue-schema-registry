@@ -54,8 +54,14 @@ func (a *Adapter) Produce(ctx context.Context, topic string, key, value []byte) 
 	defer producer.Close()
 
 	topicCopy := topic
+	// Do NOT close(deliveryChan) explicitly. The deferred producer.Close()
+	// runs a synchronous flush that can invoke librdkafka's delivery-report
+	// callback after this function has returned (e.g. on ctx-cancel and
+	// time.After branches below). Closing the channel before the callback
+	// fires would panic 'send on closed channel'. Letting GC reclaim the
+	// channel after the goroutine that produced it goes away is the safe
+	// idiom; the buffered channel ensures the callback never blocks.
 	deliveryChan := make(chan kafka.Event, 1)
-	defer close(deliveryChan)
 
 	if err := producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topicCopy, Partition: kafka.PartitionAny},

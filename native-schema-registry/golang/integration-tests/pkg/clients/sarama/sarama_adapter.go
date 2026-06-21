@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/IBM/sarama"
 
@@ -107,16 +106,15 @@ func (a *Adapter) Consume(ctx context.Context, topic string) ([]byte, error) {
 	}
 	defer pc.Close()
 
-	// Apply DefaultConsumeTimeout if the caller hasn't set their own.
+	// Apply DefaultConsumeTimeout if the caller hasn't set their own;
+	// the ctx is the sole authority for the wait. (An earlier version of
+	// this function added a redundant time.NewTimer "defense-in-depth"
+	// hard cap that violated the caller's longer ctx deadline; removed.)
 	if _, deadlineSet := ctx.Deadline(); !deadlineSet {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, clients.DefaultConsumeTimeout)
 		defer cancel()
 	}
-	// Hard cap as defense-in-depth — if ctx somehow has no deadline
-	// (shouldn't happen given the block above), still bound the wait.
-	timer := time.NewTimer(clients.DefaultConsumeTimeout)
-	defer timer.Stop()
 
 	select {
 	case msg := <-pc.Messages():
@@ -125,8 +123,6 @@ func (a *Adapter) Consume(ctx context.Context, topic string) ([]byte, error) {
 		return nil, fmt.Errorf("sarama: consumer error: %w", err)
 	case <-ctx.Done():
 		return nil, fmt.Errorf("sarama: consume cancelled: %w", ctx.Err())
-	case <-timer.C:
-		return nil, fmt.Errorf("sarama: consume timed out after %s", clients.DefaultConsumeTimeout)
 	}
 }
 
