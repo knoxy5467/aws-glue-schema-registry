@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/kafkaharness"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/deserializer"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer"
@@ -29,11 +30,18 @@ type BaseIntegrationSuite struct {
 	topicName        string
 	topicPrefix      string
 	cleanup          func()
+	broker           *kafkaharness.Broker
 }
 
 // SetupSuite is called once before all tests in the suite
 func (s *BaseIntegrationSuite) SetupSuite() {
 	s.T().Log("=== Setting up Base Integration Suite ===")
+
+	// Phase 4: testcontainers-go owns the Kafka lifecycle. If KAFKA_BROKER
+	// is set, kafkaharness short-circuits and reuses the docker-compose
+	// path (the fallback we keep for environments that can't reach
+	// /var/run/docker.sock from inside the test process).
+	s.broker = kafkaharness.Start(context.Background(), s.T())
 
 	// Verify Kafka is running
 	s.requireKafkaRunning()
@@ -309,8 +317,15 @@ func (s *BaseIntegrationSuite) generateTestTopicName() string {
 	return fmt.Sprintf("%s-%x", prefix, randomBytes)
 }
 
-// getKafkaBroker returns the Kafka broker address
+// getKafkaBroker returns the Kafka broker address. Preference order:
+//  1. The address the testcontainers-go harness brought up (Phase 4 default).
+//  2. KAFKA_BROKER env var (kept for the docker-compose fallback path).
+//  3. defaultKafkaBroker, for callers that talk to a pre-existing broker
+//     without env config (e.g. local debugging against `docker compose up`).
 func (s *BaseIntegrationSuite) getKafkaBroker() string {
+	if s.broker != nil && s.broker.Bootstrap != "" {
+		return s.broker.Bootstrap
+	}
 	if broker := os.Getenv("KAFKA_BROKER"); broker != "" {
 		return broker
 	}
