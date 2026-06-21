@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/glue"
 	"github.com/aws/aws-sdk-go-v2/service/glue/types"
+	"golang.org/x/sync/singleflight"
 )
 
 // Deprecated: HeaderVersionByte / CompressionByte are kept as aliases so the
@@ -40,7 +41,16 @@ type GsrEncoder struct {
 	description                   string
 	schemaAutoRegistrationEnabled bool
 	compressionType               string
-	mutex                         sync.RWMutex
+
+	// versionIDGroup dedups concurrent first-encode of the same schema. Java
+	// achieves this via Caffeine's LoadingCache + AsyncCacheLoader; Go's
+	// idiomatic equivalent is singleflight per cache key. Without this,
+	// N concurrent encoders calling Encode on a brand-new schema would all
+	// fire GetSchemaByDefinition (and possibly CreateSchema), wasting Glue
+	// quota and risking AlreadyExistsException races.
+	versionIDGroup singleflight.Group
+
+	mutex sync.RWMutex
 }
 
 func NewGsrEncoder(configMap map[string]string) (*GsrEncoder, error) {
@@ -128,22 +138,56 @@ func (s *GsrEncoder) Close() error {
 	return nil
 }
 
+// versionIDLookupResult is the singleflight payload — singleflight.Do can only
+// return one value plus an error, so pack the (id, version) tuple in a struct.
+type versionIDLookupResult struct {
+	SchemaVersionID string
+	Version         uint32
+}
+
 func (s *GsrEncoder) getSchemaVersionIdByDefinition(schemaDefinition, schemaName, dataFormat string) (string, uint32, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	// Schema definition is already in correct format (.proto text for protobuf)
-	processedDefinition := schemaDefinition
-
 	cacheKey := fmt.Sprintf("%s:%s", schemaName, dataFormat)
-	if cached, exists := s.schemaCache.Get(cacheKey); exists {
+
+	// Fast path: cache hit. Read-lock so concurrent encoders don't serialize
+	// on the cached path.
+	s.mutex.RLock()
+	cached, exists := s.schemaCache.Get(cacheKey)
+	s.mutex.RUnlock()
+	if exists {
 		schema := cached.(*Schema)
-		// Plan §2.2 divergence (b): cached path must return the Glue schema-version
-		// UUID, not the schema name. The wire-format header carries the UUID, not
-		// the name (16 bytes after version + compression byte). Aligned with the
-		// live-API path below at encoder.go's GetSchemaByDefinition branch.
+		// Plan §2.2 divergence (b): cached path returns the Glue schema-version
+		// UUID, not the schema name. Aligned with the live-API path below.
 		return schema.SchemaVersionID, 1, nil
 	}
+
+	// Slow path: singleflight dedup. N concurrent first-encodes for the same
+	// cacheKey collapse into ONE Glue call. Subsequent calls hit the cache.
+	resAny, err, _ := s.versionIDGroup.Do(cacheKey, func() (interface{}, error) {
+		// Re-check the cache under lock — a sibling call may have populated
+		// it between the RLock release above and the singleflight entry here.
+		s.mutex.Lock()
+		if cached, exists := s.schemaCache.Get(cacheKey); exists {
+			s.mutex.Unlock()
+			schema := cached.(*Schema)
+			return &versionIDLookupResult{SchemaVersionID: schema.SchemaVersionID, Version: 1}, nil
+		}
+		s.mutex.Unlock()
+
+		return s.fetchSchemaVersionID(schemaDefinition, schemaName, dataFormat, cacheKey)
+	})
+	if err != nil {
+		return "", 0, err
+	}
+	res := resAny.(*versionIDLookupResult)
+	return res.SchemaVersionID, res.Version, nil
+}
+
+// fetchSchemaVersionID is the part of getSchemaVersionIdByDefinition that
+// actually talks to Glue. Extracted from the singleflight callback for
+// readability — it must NOT be called outside the singleflight wrapper
+// (parallel callers without dedup would defeat the whole point).
+func (s *GsrEncoder) fetchSchemaVersionID(schemaDefinition, schemaName, dataFormat, cacheKey string) (*versionIDLookupResult, error) {
+	processedDefinition := schemaDefinition
 
 	getResp, err := s.client.GetSchemaByDefinition(context.Background(), &glue.GetSchemaByDefinitionInput{
 		SchemaId: &types.SchemaId{
@@ -160,17 +204,23 @@ func (s *GsrEncoder) getSchemaVersionIdByDefinition(schemaDefinition, schemaName
 			DataFormat:       dataFormat,
 			SchemaVersionID:  *getResp.SchemaVersionId,
 		}
+		s.mutex.Lock()
 		s.schemaCache.Set(cacheKey, schema)
-		return *getResp.SchemaVersionId, 1, nil
+		s.mutex.Unlock()
+		return &versionIDLookupResult{SchemaVersionID: *getResp.SchemaVersionId, Version: 1}, nil
 	}
 
 	schemaVersionId, version, err := s.createSchema(schemaName, dataFormat, schemaDefinition)
 	if err != nil {
-		// If schema already exists, try to register a new version
+		// If schema already exists (race with another producer), register a new version.
 		if strings.Contains(err.Error(), "AlreadyExistsException") || strings.Contains(err.Error(), "already exists") {
-			return s.registerSchemaVersion(schemaDefinition, schemaName, dataFormat)
+			id, ver, regErr := s.registerSchemaVersion(schemaDefinition, schemaName, dataFormat)
+			if regErr != nil {
+				return nil, regErr
+			}
+			return &versionIDLookupResult{SchemaVersionID: id, Version: ver}, nil
 		}
-		return "", 0, err
+		return nil, err
 	}
 
 	schema := &Schema{
@@ -179,8 +229,10 @@ func (s *GsrEncoder) getSchemaVersionIdByDefinition(schemaDefinition, schemaName
 		DataFormat:       dataFormat,
 		SchemaVersionID:  schemaVersionId,
 	}
+	s.mutex.Lock()
 	s.schemaCache.Set(cacheKey, schema)
-	return schemaVersionId, version, nil
+	s.mutex.Unlock()
+	return &versionIDLookupResult{SchemaVersionID: schemaVersionId, Version: version}, nil
 }
 
 func (s *GsrEncoder) registerSchemaVersion(schemaDefinition, schemaName, dataFormat string) (string, uint32, error) {

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/service/glue"
+	"golang.org/x/sync/singleflight"
 )
 
 // GsrDecoder parses GSR-framed payloads.
@@ -15,8 +16,14 @@ type GsrDecoder struct {
 	client       GlueClient
 	registryName string
 	schemaCache  Cache
-	mutex        sync.RWMutex
-	closed       bool
+
+	// schemaGroup dedups concurrent first-decode of the same schema-version
+	// UUID. N concurrent decodes for the same UUID collapse into a single
+	// GetSchemaVersion call.
+	schemaGroup singleflight.Group
+
+	mutex  sync.RWMutex
+	closed bool
 }
 
 // NewGsrDecoder creates a new decoder from a config map.
@@ -118,42 +125,60 @@ func (d *GsrDecoder) Close() error {
 // falling through to a `glue.GetSchemaVersion` call (Java parity:
 // AWSSchemaRegistryClient.java:168-181 uses GetSchemaVersionRequest.builder()
 // .schemaVersionId(uuid) — there is no name-based path).
+//
+// Concurrent first-decodes for the same UUID collapse into one Glue call via
+// singleflight, mirroring Java's Caffeine LoadingCache semantics.
 func (d *GsrDecoder) getSchemaByVersionID(schemaVersionID string) (*Schema, error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
-	if cached, exists := d.schemaCache.Get(schemaVersionID); exists {
+	// Fast path: cache hit.
+	d.mutex.RLock()
+	cached, exists := d.schemaCache.Get(schemaVersionID)
+	d.mutex.RUnlock()
+	if exists {
 		return cached.(*Schema), nil
 	}
 
-	resp, err := d.client.GetSchemaVersion(context.Background(), &glue.GetSchemaVersionInput{
-		SchemaVersionId: &schemaVersionID,
+	// Slow path: singleflight dedup on the version UUID.
+	schemaAny, err, _ := d.schemaGroup.Do(schemaVersionID, func() (interface{}, error) {
+		// Re-check under lock — sibling singleflight winner may have already
+		// populated the cache.
+		d.mutex.Lock()
+		if cached, exists := d.schemaCache.Get(schemaVersionID); exists {
+			d.mutex.Unlock()
+			return cached.(*Schema), nil
+		}
+		d.mutex.Unlock()
+
+		resp, err := d.client.GetSchemaVersion(context.Background(), &glue.GetSchemaVersionInput{
+			SchemaVersionId: &schemaVersionID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get schema: %w", err)
+		}
+		if resp == nil || resp.SchemaDefinition == nil {
+			return nil, errors.New("GetSchemaVersion returned no SchemaDefinition")
+		}
+
+		schemaName := ""
+		if resp.SchemaArn != nil {
+			schemaName = extractSchemaNameFromArn(*resp.SchemaArn)
+		}
+
+		schema := &Schema{
+			SchemaName:       schemaName,
+			SchemaDefinition: *resp.SchemaDefinition,
+			DataFormat:       string(resp.DataFormat),
+			SchemaVersionID:  schemaVersionID,
+		}
+
+		d.mutex.Lock()
+		d.schemaCache.Set(schemaVersionID, schema)
+		d.mutex.Unlock()
+		return schema, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get schema: %w", err)
+		return nil, err
 	}
-	if resp == nil || resp.SchemaDefinition == nil {
-		return nil, errors.New("GetSchemaVersion returned no SchemaDefinition")
-	}
-
-	// SchemaArn → name extraction is a best-effort label only — the wire-
-	// format header doesn't carry the name and the deserialize path doesn't
-	// need it for parsing payloads. Keep it so callers that inspect Schema
-	// still see something useful.
-	schemaName := ""
-	if resp.SchemaArn != nil {
-		schemaName = extractSchemaNameFromArn(*resp.SchemaArn)
-	}
-
-	schema := &Schema{
-		SchemaName:       schemaName,
-		SchemaDefinition: *resp.SchemaDefinition,
-		DataFormat:       string(resp.DataFormat),
-		SchemaVersionID:  schemaVersionID,
-	}
-
-	d.schemaCache.Set(schemaVersionID, schema)
-	return schema, nil
+	return schemaAny.(*Schema), nil
 }
 
 // extractSchemaName preserved for tests that exercise the ARN string parsing

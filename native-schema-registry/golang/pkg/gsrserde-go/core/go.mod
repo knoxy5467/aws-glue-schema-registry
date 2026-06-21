@@ -1,6 +1,6 @@
 module github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core
 
-go 1.21
+go 1.25.0
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.30.3
@@ -10,6 +10,7 @@ require (
 	github.com/jhump/protoreflect v1.17.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/stretchr/testify v1.11.1
+	golang.org/x/sync v0.21.0
 	google.golang.org/protobuf v1.34.2
 )
 
@@ -30,6 +31,5 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	golang.org/x/sync v0.8.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
