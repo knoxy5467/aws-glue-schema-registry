@@ -8,12 +8,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/glue/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSerializer_GetSchemaVersionIdByDefinition_CreateSchemaPath(t *testing.T) {
 	mockClient := &MockGlueClient{}
 	cache, _ := NewCache(300000)
-	
+
 	serializer := &GsrEncoder{
 		client:                        mockClient,
 		registryName:                  "test-registry",
@@ -23,41 +24,38 @@ func TestSerializer_GetSchemaVersionIdByDefinition_CreateSchemaPath(t *testing.T
 		description:                   "test description",
 		compatibility:                 "BACKWARD",
 	}
-	
-	// Mock schema not found by definition
+
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).Return(
 		nil, errors.New("schema not found"))
-	
-	// Mock successful schema creation
+
+	// Java AWSSchemaRegistryClient.java:251 — CreateSchema returns the schema
+	// version UUID; the version *number* is a separate field. The Go code
+	// must return the UUID on the auto-register path, not the schema name.
+	createdSchemaVersionID := "created-schema-version-uuid"
 	latestVersion := int64(2)
 	mockClient.On("CreateSchema", mock.Anything, mock.Anything).Return(
 		&glue.CreateSchemaOutput{
+			SchemaVersionId:     &createdSchemaVersionID,
 			LatestSchemaVersion: &latestVersion,
 		}, nil)
-	
+
 	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test-definition", "test-schema", "JSON")
-	
+
 	assert.NoError(t, err)
-	assert.Equal(t, "test-schema", schemaID)
+	assert.Equal(t, createdSchemaVersionID, schemaID)
 	assert.Equal(t, uint32(2), version)
-	
-	// Verify schema was cached
+
+	// Cached entry must carry the UUID so the cached path returns it on the
+	// next call (Plan §2.2 divergence (b)).
 	cached, exists := cache.Get("test-schema:JSON")
-	assert.True(t, exists)
-	assert.NotNil(t, cached)
+	require.True(t, exists)
+	require.NotNil(t, cached)
+	assert.Equal(t, createdSchemaVersionID, cached.(*Schema).SchemaVersionID)
 }
 
-// TODO(phase 1): The first return value of getSchemaVersionIdByDefinition is
-// the Glue schema-version UUID (encoder.go:143 returns *getResp.SchemaVersionId),
-// which is the value the GSR wire-format header carries (16-byte UUID after
-// version + compression bytes — see Java
-// AWSSchemaRegistryConstants.SCHEMA_REGISTRY_HEADER_VERSION_BYTE comments). The
-// assertion below was written against a stub that echoed the schema name; it
-// is provably wrong against the spec. Phase 1 should rewrite this as
-//   assert.Equal(t, "test-schema-version-id", schemaID)
-// and add a parallel test that verifies the cached path returns the cached
-// version ID (encoder.go:125 currently returns schema.SchemaName, also a
-// stub-tracking bug that needs the same correction).
+// Plan §2.2 divergence (b) — live path: GetSchemaByDefinition returns the
+// schema-version UUID; the cached return must match the live return. Before
+// the fix, the cached path returned schema.SchemaName instead.
 func TestSerializer_GetSchemaVersionIdByDefinition_GetSchemaSuccess(t *testing.T) {
 	mockClient := &MockGlueClient{}
 	cache, _ := NewCache(300000)
@@ -68,7 +66,6 @@ func TestSerializer_GetSchemaVersionIdByDefinition_GetSchemaSuccess(t *testing.T
 		schemaCache:  cache,
 	}
 
-	// Mock successful schema retrieval
 	schemaVersionId := "test-schema-version-id"
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).Return(
 		&glue.GetSchemaByDefinitionOutput{
@@ -79,39 +76,50 @@ func TestSerializer_GetSchemaVersionIdByDefinition_GetSchemaSuccess(t *testing.T
 	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test-definition", "test-schema", "JSON")
 
 	assert.NoError(t, err)
-	assert.Equal(t, "test-schema", schemaID)
+	// The first return value is the Glue schema-version UUID, which is the
+	// value the GSR wire-format header carries (16-byte UUID after version +
+	// compression bytes). Before §2.2(b) fix this asserted "test-schema",
+	// which was provably wrong against the spec.
+	assert.Equal(t, schemaVersionId, schemaID)
 	assert.Equal(t, uint32(1), version)
+
+	// And the cache must carry the same UUID so subsequent cache hits return it.
+	cached, exists := cache.Get("test-schema:JSON")
+	require.True(t, exists)
+	assert.Equal(t, schemaVersionId, cached.(*Schema).SchemaVersionID)
 }
 
 func TestSerializer_GetSchemaVersionIdByDefinition_GetSchemaUnavailable(t *testing.T) {
 	mockClient := &MockGlueClient{}
 	cache, _ := NewCache(300000)
-	
+
 	serializer := &GsrEncoder{
 		client:       mockClient,
 		registryName: "test-registry",
 		schemaCache:  cache,
 	}
-	
-	// Mock schema found but not available
-	schemaVersionId := "test-schema-version-id"
+
+	// Existing version found but not Available → encoder must fall through to
+	// CreateSchema. The CreateSchema response UUID is what bubbles up.
+	existingVersionID := "stale-pending-uuid"
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).Return(
 		&glue.GetSchemaByDefinitionOutput{
-			SchemaVersionId: &schemaVersionId,
+			SchemaVersionId: &existingVersionID,
 			Status:          types.SchemaVersionStatusPending,
 		}, nil)
-	
-	// Mock successful schema creation as fallback
+
+	createdSchemaVersionID := "freshly-created-schema-version-uuid"
 	latestVersion := int64(1)
 	mockClient.On("CreateSchema", mock.Anything, mock.Anything).Return(
 		&glue.CreateSchemaOutput{
+			SchemaVersionId:     &createdSchemaVersionID,
 			LatestSchemaVersion: &latestVersion,
 		}, nil)
-	
+
 	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test-definition", "test-schema", "JSON")
-	
+
 	assert.NoError(t, err)
-	assert.Equal(t, "test-schema", schemaID)
+	assert.Equal(t, createdSchemaVersionID, schemaID)
 	assert.Equal(t, uint32(1), version)
 }
 

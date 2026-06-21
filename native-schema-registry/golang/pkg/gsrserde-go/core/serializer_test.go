@@ -145,16 +145,22 @@ func TestSerializer_CreateSchema_Success(t *testing.T) {
 	// Mock schema not found, then successful creation
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).Return(
 		nil, errors.New("schema not found"))
-	
+
 	latestVersion := int64(1)
+	createdSchemaVersionID := "created-schema-version-uuid"
 	mockClient.On("CreateSchema", mock.Anything, mock.Anything).Return(
 		&glue.CreateSchemaOutput{
+			SchemaVersionId:     &createdSchemaVersionID,
 			LatestSchemaVersion: &latestVersion,
 		}, nil)
-	
-	version, err := serializer.createSchema("test-schema", "JSON", "test-definition")
-	
+
+	versionID, version, err := serializer.createSchema("test-schema", "JSON", "test-definition")
+
 	assert.NoError(t, err)
+	// createSchema must return the UUID from CreateSchemaOutput.SchemaVersionId
+	// (Java AWSSchemaRegistryClient.java:242 returns UUID, not the version
+	// number) — the wire-format header carries the UUID.
+	assert.Equal(t, createdSchemaVersionID, versionID)
 	assert.Equal(t, uint32(1), version)
 }
 
@@ -170,9 +176,9 @@ func TestSerializer_CreateSchema_Error(t *testing.T) {
 	
 	mockClient.On("CreateSchema", mock.Anything, mock.Anything).Return(
 		nil, errors.New("creation failed"))
-	
-	_, err := serializer.createSchema("test-schema", "JSON", "test-definition")
-	
+
+	_, _, err := serializer.createSchema("test-schema", "JSON", "test-definition")
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create schema")
 }
@@ -180,14 +186,24 @@ func TestSerializer_CreateSchema_Error(t *testing.T) {
 func TestSerializer_GetSchemaVersionIdByDefinition_Cached(t *testing.T) {
 	cache, _ := NewCache(300000)
 	serializer := &GsrEncoder{schemaCache: cache}
-	
-	// Pre-populate cache
-	schema := &Schema{SchemaName: "test-schema", SchemaDefinition: "test", DataFormat: "JSON"}
+
+	// Pre-populate cache with a fully-formed entry (including the
+	// SchemaVersionID UUID that the cached path must echo back). Before the
+	// §2.2(b) fix this test asserted the schema *name* came out of the cache,
+	// which was a stub-tracking lie (encoder.go:125 was returning
+	// schema.SchemaName).
+	cachedVersionID := "cached-schema-version-uuid"
+	schema := &Schema{
+		SchemaName:       "test-schema",
+		SchemaDefinition: "test",
+		DataFormat:       "JSON",
+		SchemaVersionID:  cachedVersionID,
+	}
 	cache.Set("test-schema:JSON", schema)
-	
+
 	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test", "test-schema", "JSON")
-	
+
 	assert.NoError(t, err)
-	assert.Equal(t, "test-schema", schemaID)
+	assert.Equal(t, cachedVersionID, schemaID)
 	assert.Equal(t, uint32(1), version)
 }

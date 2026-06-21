@@ -22,6 +22,12 @@ type Schema struct {
 	SchemaDefinition string
 	DataFormat       string
 	SchemaName       string
+	// SchemaVersionID is the Glue schema-version UUID returned by GetSchemaByDefinition,
+	// CreateSchema, or RegisterSchemaVersion. It is the 16-byte UUID that the GSR
+	// wire-format header carries after the version + compression bytes; storing it
+	// on Schema lets the encoder return the same UUID on the cached path that the
+	// live path produced.
+	SchemaVersionID string
 }
 
 type GsrEncoder struct {
@@ -125,7 +131,11 @@ func (s *GsrEncoder) getSchemaVersionIdByDefinition(schemaDefinition, schemaName
 	cacheKey := fmt.Sprintf("%s:%s", schemaName, dataFormat)
 	if cached, exists := s.schemaCache.Get(cacheKey); exists {
 		schema := cached.(*Schema)
-		return schema.SchemaName, 1, nil
+		// Plan §2.2 divergence (b): cached path must return the Glue schema-version
+		// UUID, not the schema name. The wire-format header carries the UUID, not
+		// the name (16 bytes after version + compression byte). Aligned with the
+		// live-API path below at encoder.go's GetSchemaByDefinition branch.
+		return schema.SchemaVersionID, 1, nil
 	}
 
 	getResp, err := s.client.GetSchemaByDefinition(context.Background(), &glue.GetSchemaByDefinitionInput{
@@ -135,18 +145,19 @@ func (s *GsrEncoder) getSchemaVersionIdByDefinition(schemaDefinition, schemaName
 		},
 		SchemaDefinition: &processedDefinition,
 	})
-	
+
 	if err == nil && getResp.SchemaVersionId != nil && getResp.Status == types.SchemaVersionStatusAvailable {
 		schema := &Schema{
 			SchemaName:       schemaName,
 			SchemaDefinition: schemaDefinition,
 			DataFormat:       dataFormat,
+			SchemaVersionID:  *getResp.SchemaVersionId,
 		}
 		s.schemaCache.Set(cacheKey, schema)
 		return *getResp.SchemaVersionId, 1, nil
 	}
 
-	schemaVersionId, err := s.createSchema(schemaName, dataFormat, schemaDefinition)
+	schemaVersionId, version, err := s.createSchema(schemaName, dataFormat, schemaDefinition)
 	if err != nil {
 		// If schema already exists, try to register a new version
 		if strings.Contains(err.Error(), "AlreadyExistsException") || strings.Contains(err.Error(), "already exists") {
@@ -159,9 +170,10 @@ func (s *GsrEncoder) getSchemaVersionIdByDefinition(schemaDefinition, schemaName
 		SchemaName:       schemaName,
 		SchemaDefinition: schemaDefinition,
 		DataFormat:       dataFormat,
+		SchemaVersionID:  schemaVersionId,
 	}
 	s.schemaCache.Set(cacheKey, schema)
-	return schemaName, schemaVersionId, nil
+	return schemaVersionId, version, nil
 }
 
 func (s *GsrEncoder) registerSchemaVersion(schemaDefinition, schemaName, dataFormat string) (string, uint32, error) {
@@ -198,7 +210,15 @@ func (s *GsrEncoder) registerSchemaVersion(schemaDefinition, schemaName, dataFor
 	return *resp.SchemaVersionId, version, nil
 }
 
-func (s *GsrEncoder) createSchema(schemaName, dataFormat, schemaDefinition string) (uint32, error) {
+// createSchema mirrors Java AWSSchemaRegistryClient.java:242 — returns the
+// Glue schema-version UUID (createSchemaResponse.schemaVersionId()), NOT the
+// LatestSchemaVersion integer (which is the version *number*, not the version
+// *UUID*). Java's signature is `public UUID createSchema(...)`.
+//
+// We also return the version number for the caller that propagates it through
+// the encoder's (versionID, versionNumber, error) return — the wire-format
+// header carries the UUID; the version number is informational.
+func (s *GsrEncoder) createSchema(schemaName, dataFormat, schemaDefinition string) (string, uint32, error) {
 	// Convert tags map to AWS SDK format
 	var tags map[string]string
 	if len(s.tags) > 0 {
@@ -216,10 +236,19 @@ func (s *GsrEncoder) createSchema(schemaName, dataFormat, schemaDefinition strin
 		Description:      &s.description,
 		Tags:             tags,
 	})
-	
+
 	if err != nil {
-		return 0, fmt.Errorf("failed to create schema: %w", err)
+		return "", 0, fmt.Errorf("failed to create schema: %w", err)
 	}
 
-	return uint32(*createResp.LatestSchemaVersion), nil
+	if createResp.SchemaVersionId == nil {
+		return "", 0, fmt.Errorf("CreateSchema returned no SchemaVersionId")
+	}
+
+	version := uint32(1)
+	if createResp.LatestSchemaVersion != nil {
+		version = uint32(*createResp.LatestSchemaVersion)
+	}
+
+	return *createResp.SchemaVersionId, version, nil
 }
