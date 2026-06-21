@@ -46,6 +46,18 @@ func TestPrefixMessageIndexToBytes_ErrorCases(t *testing.T) {
 	}
 }
 
+// TODO(phase 1): The "Exactly 4 bytes" and "Normal case with message index"
+// rows below assert that stripMessageIndex returns its input unchanged. That
+// matches the original stub but contradicts Java parity: stripMessageIndex
+// must consume the leading unsigned varint and return the remaining bytes
+// (see protobuf_utils.go doc comments and Java
+// ProtobufWireFormatDecoder.java:33-37).
+//
+// Phase 1 should rewrite these rows as:
+//   - {0x00, 0x00, 0x00, 0x00} → {0x00, 0x00, 0x00} (one varint byte 0x00 consumed).
+//   - {0x00, 0x48, 0x65, 0x6c, 0x6c, 0x6f} → {0x48, 0x65, 0x6c, 0x6c, 0x6f} ("Hello"
+//     after a single-byte varint(0)).
+//   - Multi-byte varint header: {0x80, 0x01, 'h', 'i'} → {'h', 'i'} (index 128).
 func TestStripMessageIndex_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name     string

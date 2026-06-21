@@ -45,78 +45,123 @@ func ConvertBase64SchemaToStringSchema(base64Schema string) (string, error) {
 	return writer.String(), nil
 }
 
+// prefixMessageIndexToBytes prepends the protobuf message-index varint to the
+// payload. The message index identifies which message type within the schema
+// the payload was serialized as.
+//
+// Java parity reference:
+//
+//	serializer-deserializer/src/main/java/com/amazonaws/services/schemaregistry/serializers/protobuf/ProtobufWireFormatEncoder.java:49-62
+//	  - writes messageIndex via CodedOutputStream.writeUInt32NoTag(int) (NOT zig-zag,
+//	    despite that file's javadoc on line 35 — the implementation is plain unsigned varint).
+//	  - then writeRawBytes(payload) appends the payload unchanged.
+//
+// Wire layout: <varint-encoded uint32 message index> || <payload bytes>.
+// For a schema with a single top-level message, messageIndex is 0, so the
+// prefix is the single byte 0x00 followed by the payload.
 func prefixMessageIndexToBytes(data []byte, schemaDefinition, messageType string) []byte {
-	// Get message index from schema definition
 	messageIndex := getMessageIndexFromProtoDefinition(schemaDefinition, messageType)
-	
-	// Create buffer for varint encoding + data
+
 	buf := make([]byte, 0, len(data)+5) // 5 bytes max for varint32
-	
-	// Encode message index as varint (matches Java's writeUInt32NoTag)
+
+	// Plain unsigned varint, equivalent to CodedOutputStream.writeUInt32NoTag.
 	for messageIndex >= 0x80 {
 		buf = append(buf, byte(messageIndex)|0x80)
 		messageIndex >>= 7
 	}
 	buf = append(buf, byte(messageIndex))
-	
-	// Append original data
+
 	buf = append(buf, data...)
-	
+
 	return buf
 }
 
+// stripMessageIndex consumes the unsigned varint message-index prefix from data
+// and returns the remaining payload bytes.
+//
+// Java parity reference:
+//
+//	serializer-deserializer/src/main/java/com/amazonaws/services/schemaregistry/deserializers/protobuf/ProtobufWireFormatDecoder.java:33-37
+//	  getAndRemoveMessageIndex(byte[]) calls CodedInputStream.readUInt32() and
+//	  returns (index, remainingStream). The remaining stream is everything after
+//	  the consumed varint bytes.
+//
+// This implementation throws away the decoded index because callers that need
+// the index value are expected to use a separate lookup against the schema's
+// MessageIndexFinder equivalent. If a future caller needs the index, this
+// function should be split into one that returns (index, remainder).
 func stripMessageIndex(data []byte) []byte {
 	if len(data) < 1 {
 		return data
 	}
-	
-	// Decode varint to find where actual data starts
+
 	var index uint32
 	var shift uint
 	pos := 0
-	
+
 	for pos < len(data) {
 		b := data[pos]
 		pos++
-		
+
 		index |= uint32(b&0x7F) << shift
 		if b&0x80 == 0 {
 			break
 		}
 		shift += 7
 		if shift >= 32 {
-			break // Prevent overflow
+			break // Prevent overflow on a malformed > 5-byte varint.
 		}
 	}
-	
-	// Return data after the varint
+	_ = index
+
 	if pos < len(data) {
 		return data[pos:]
 	}
 	return []byte{}
 }
 
+// getMessageIndexFromProtoDefinition computes the index of messageType within
+// the schema's message-type list, using the same algorithm as Java's
+// MessageIndexFinder.
+//
+// Java parity reference:
+//
+//	serializer-deserializer/src/main/java/com/amazonaws/services/schemaregistry/serializers/protobuf/MessageIndexFinder.java:93-117
+//	  - Build the message-type set by BFS over fileDesc.getMessageTypes() then
+//	    descriptor.getNestedTypes() (level-order traversal).
+//	  - Sort the resulting list lexicographically by Descriptor::getFullName().
+//	  - The target's index in the sorted list is the wire message-index.
+//
+// Example from MessageIndexFinder.java:74-88 — schema:
+//
+//	message B { message C {} message A { message D {} } }
+//
+// produces sorted indices: B=0, B.A=1, B.A.D=2, B.C=3.
+//
+// PARITY DIVERGENCE — TODO(phase 1):
+// Java throws AWSSchemaRegistryException when descriptorToFind is not in the
+// schema (MessageIndexFinder.java:35-39). This Go implementation silently
+// returns 0, which would cause the encoder to emit the prefix for the *first*
+// sorted message type and produce a payload that decodes as the wrong type.
+// Phase 1 must change the signature to (uint32, error) and propagate the
+// not-found case.
 func getMessageIndexFromProtoDefinition(schemaDefinition, messageType string) uint32 {
-	// Parse schema definition (base64 FileDescriptorProto) into descriptor
 	fileDesc, err := parseSchemaDefinitionToDescriptor(schemaDefinition)
 	if err != nil {
 		return 0
 	}
-	
-	// Get all message types from descriptor (matches Java implementation)
+
 	messageTypes := getAllMessageTypesFromDescriptor(fileDesc)
-	
-	// Sort lexicographically (matches Java implementation)
+
 	sort.Strings(messageTypes)
-	
-	// Find index of the target message type
+
 	for i, msgType := range messageTypes {
 		if msgType == messageType {
 			return uint32(i)
 		}
 	}
-	
-	// Default to 0 if not found
+
+	// PARITY DIVERGENCE: Java throws here. See doc comment above.
 	return 0
 }
 
@@ -155,30 +200,30 @@ func parseSchemaDefinitionToDescriptor(schemaDefinition string) (*desc.FileDescr
 	return fileDescs[0], nil
 }
 
+// getAllMessageTypesFromDescriptor returns the fully-qualified names of every
+// message type reachable from fileDesc, in BFS (level-order) order — matching
+// the Java MessageIndexFinder.java:93-106 traversal. The caller is responsible
+// for sorting the result; sorting is intentionally separated so this function
+// can be unit-tested for traversal order independent of the lexicographic sort.
 func getAllMessageTypesFromDescriptor(fileDesc *desc.FileDescriptor) []string {
 	var messageTypes []string
-	
-	// Level-order traversal like Java implementation
+
 	queue := make([]*desc.MessageDescriptor, 0)
-	
-	// Add top-level message types
+
 	for _, msgDesc := range fileDesc.GetMessageTypes() {
 		queue = append(queue, msgDesc)
 	}
-	
-	// Process queue (breadth-first traversal)
+
 	for len(queue) > 0 {
 		msgDesc := queue[0]
 		queue = queue[1:]
-		
-		// Add this message type
+
 		messageTypes = append(messageTypes, msgDesc.GetFullyQualifiedName())
-		
-		// Add nested message types to queue
+
 		for _, nestedDesc := range msgDesc.GetNestedMessageTypes() {
 			queue = append(queue, nestedDesc)
 		}
 	}
-	
+
 	return messageTypes
 }

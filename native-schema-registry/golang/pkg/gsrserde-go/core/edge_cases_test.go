@@ -47,16 +47,27 @@ func TestSerializer_GetSchemaVersionIdByDefinition_CreateSchemaPath(t *testing.T
 	assert.NotNil(t, cached)
 }
 
+// TODO(phase 1): The first return value of getSchemaVersionIdByDefinition is
+// the Glue schema-version UUID (encoder.go:143 returns *getResp.SchemaVersionId),
+// which is the value the GSR wire-format header carries (16-byte UUID after
+// version + compression bytes — see Java
+// AWSSchemaRegistryConstants.SCHEMA_REGISTRY_HEADER_VERSION_BYTE comments). The
+// assertion below was written against a stub that echoed the schema name; it
+// is provably wrong against the spec. Phase 1 should rewrite this as
+//   assert.Equal(t, "test-schema-version-id", schemaID)
+// and add a parallel test that verifies the cached path returns the cached
+// version ID (encoder.go:125 currently returns schema.SchemaName, also a
+// stub-tracking bug that needs the same correction).
 func TestSerializer_GetSchemaVersionIdByDefinition_GetSchemaSuccess(t *testing.T) {
 	mockClient := &MockGlueClient{}
 	cache, _ := NewCache(300000)
-	
+
 	serializer := &GsrEncoder{
 		client:       mockClient,
 		registryName: "test-registry",
 		schemaCache:  cache,
 	}
-	
+
 	// Mock successful schema retrieval
 	schemaVersionId := "test-schema-version-id"
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).Return(
@@ -64,9 +75,9 @@ func TestSerializer_GetSchemaVersionIdByDefinition_GetSchemaSuccess(t *testing.T
 			SchemaVersionId: &schemaVersionId,
 			Status:          types.SchemaVersionStatusAvailable,
 		}, nil)
-	
+
 	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test-definition", "test-schema", "JSON")
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, "test-schema", schemaID)
 	assert.Equal(t, uint32(1), version)

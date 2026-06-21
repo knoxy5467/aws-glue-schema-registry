@@ -65,10 +65,25 @@ func TestConvertBase64SchemaToStringSchema(t *testing.T) {
 	}
 }
 
+// TODO(phase 1): The two tests below were written against an early stub of
+// prefixMessageIndexToBytes / stripMessageIndex that returned the input
+// unchanged. They are now red because the implementation correctly emits and
+// consumes the unsigned-varint message-index prefix per Java parity (see
+// protobuf_utils.go doc comments).
+//
+// Replace these with spec-anchored assertions during the Phase 1 core rewrite:
+//   - prefixMessageIndexToBytes("test data", schema, msgType="TestMessage")
+//     where the schema has a single top-level message TestMessage → expect
+//     [0x00, 't', 'e', 's', 't', ' ', 'd', 'a', 't', 'a'] (varint(0) + payload).
+//   - stripMessageIndex([0x00, 't', 'e', 's', 't', ...]) → expect ['t', 'e', ...].
+//   - Multi-byte varint boundaries: index 127 → [0x7f, ...]; index 128 →
+//     [0x80, 0x01, ...]; index 16383 → [0xff, 0x7f, ...]; index 16384 →
+//     [0x80, 0x80, 0x01, ...].
+//   - Round-trip property: stripMessageIndex(prefixMessageIndexToBytes(p, …)) == p.
 func TestPrefixMessageIndexToBytes(t *testing.T) {
 	data := []byte("test data")
 	result := prefixMessageIndexToBytes(data, "schema", "message")
-	
+
 	if string(result) != "test data" {
 		t.Error("Expected data unchanged")
 	}
@@ -77,7 +92,7 @@ func TestPrefixMessageIndexToBytes(t *testing.T) {
 func TestStripMessageIndex(t *testing.T) {
 	data := []byte("test data")
 	result := stripMessageIndex(data)
-	
+
 	if string(result) != "test data" {
 		t.Error("Expected data unchanged")
 	}
