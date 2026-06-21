@@ -16,7 +16,7 @@ import (
 
 // Deserializer handles schema registry deserialization
 type GsrDecoder struct {
-	client       GlueClientInterface
+	client       GlueClient
 	registryName string
 	schemaCache  Cache
 	mutex        sync.RWMutex

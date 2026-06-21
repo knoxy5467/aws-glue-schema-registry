@@ -25,7 +25,7 @@ type Schema struct {
 }
 
 type GsrEncoder struct {
-	client                        GlueClientInterface
+	client                        GlueClient
 	registryName                  string
 	compatibility                 string
 	tags                          map[string]string
