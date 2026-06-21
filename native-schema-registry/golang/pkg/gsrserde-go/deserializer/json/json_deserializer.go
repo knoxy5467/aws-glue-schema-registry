@@ -7,7 +7,8 @@ import (
 
 	"github.com/xeipuuv/gojsonschema"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
 
@@ -91,7 +92,7 @@ func NewJsonDeserializer(config *common.Configuration) (*JsonDeserializer, error
 //
 //	interface{}: The validated JSON payload as a string
 //	error: Any error that occurred during deserialization
-func (j *JsonDeserializer) Deserialize(data []byte, schema *gsrserde.Schema) (interface{}, error) {
+func (j *JsonDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (interface{}, error) {
 	if data == nil {
 		return nil, &JsonDeserializationError{
 			Message: "cannot deserialize nil data",
@@ -121,7 +122,7 @@ func (j *JsonDeserializer) Deserialize(data []byte, schema *gsrserde.Schema) (in
 	}
 
 	// Get schema definition from schema object
-	schemaDefinition := schema.Definition
+	schemaDefinition := schema.SchemaDefinition
 	if strings.TrimSpace(schemaDefinition) == "" {
 		return nil, &JsonDeserializationError{
 			Message: "schema definition is empty",

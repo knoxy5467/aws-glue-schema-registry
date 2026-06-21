@@ -1,165 +1,146 @@
 package deserializer
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
 
-// stringToDataFormat converts a string representation of data format to DataFormat enum
-func stringToDataFormat(dataFormatStr string) (common.DataFormat, error) {
-	switch dataFormatStr {
-	case "AVRO":
-		return common.DataFormatAvro, nil
-	case "JSON":
-		return common.DataFormatJSON, nil
-	case "PROTOBUF":
-		return common.DataFormatProtobuf, nil
-	default:
-		return common.DataFormatUnknown, fmt.Errorf("unsupported data format: %s", dataFormatStr)
-	}
-}
+// ErrClosed is returned when Deserialize is called on a Deserializer whose
+// Close() has already run.
+var ErrClosed = errors.New("deserializer is closed")
 
-// Deserializer is a high-level deserializer that mirrors the C# implementation
-// It provides a high-level interface for deserializing messages using AWS Glue Schema Registry
-// NOTE: This deserializer is NOT thread-safe. Each instance should be used by
-// only one context/operation to comply with native library constraints.
+// ErrNilData is the sentinel for nil data input on the read-side surfaces
+// (GetSchema). Deserialize itself returns nil on nil input (Java parity).
+var ErrNilData = errors.New("data cannot be nil")
+
+// Deserializer orchestrates the GSR wire-format decode (via core) and the
+// format-layer payload decode.
 type Deserializer struct {
-	coreDeserializer   *gsrserde.Deserializer
+	coreDecoder        *gsrcore.GsrDecoder
 	formatDeserializer DataFormatDeserializer
 	formatFactory      DeserializerFactory
 	config             *common.Configuration
 	closed             bool
 }
 
-// NewDeserializer creates a new deserializer instance
+// NewDeserializer is the production constructor.
 func NewDeserializer(config *common.Configuration) (*Deserializer, error) {
 	if config == nil {
 		return nil, fmt.Errorf("configuration cannot be nil")
 	}
-
-	// Create core deserializer for GSR operations
-	coreDeserializer, err := gsrserde.NewDeserializer(config.GsrConfig)
+	dec, err := gsrcore.NewGsrDecoder(config.GsrConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create core deserializer: %w", err)
+		return nil, fmt.Errorf("failed to create core decoder: %w", err)
 	}
+	return NewDeserializerWithDecoder(config, dec)
+}
 
-	// Get format deserializer factory
-	formatFactory := GetDeserializerFactory()
-
-	// Create format deserializer based on configuration
-	formatDeserializer, err := formatFactory.GetDeserializer(config)
+// NewDeserializerWithDecoder is the test-seam constructor: callers supply a
+// pre-built *gsrcore.GsrDecoder (typically backed by a fake GlueClient via
+// gsrcore.NewGsrDecoderForTest).
+func NewDeserializerWithDecoder(config *common.Configuration, dec *gsrcore.GsrDecoder) (*Deserializer, error) {
+	if config == nil {
+		return nil, fmt.Errorf("configuration cannot be nil")
+	}
+	if dec == nil {
+		return nil, fmt.Errorf("decoder cannot be nil")
+	}
+	factory := GetDeserializerFactory()
+	formatDes, err := factory.GetDeserializer(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create format deserializer: %w", err)
 	}
-
 	return &Deserializer{
-		coreDeserializer:   coreDeserializer,
-		formatDeserializer: formatDeserializer,
-		formatFactory:      formatFactory,
+		coreDecoder:        dec,
+		formatDeserializer: formatDes,
+		formatFactory:      factory,
 		config:             config,
-		closed:             false,
 	}, nil
 }
 
-// Deserialize deserializes a message using AWS Glue Schema Registry
-// This method mirrors the C# GlueSchemaRegistryKafkaDeserializer.Deserialize method
+// Deserialize decodes the GSR wire-format payload, looks up the schema via
+// core's cache, and delegates payload decoding to the format-layer impl.
+// The topic argument is retained for parity with the legacy/Java surface
+// but is not used by the core decoder (the wire-format prefix carries the
+// schema-version-id directly).
 func (d *Deserializer) Deserialize(topic string, data []byte) (interface{}, error) {
 	if d.closed {
-		return nil, gsrserde.ErrClosed
+		return nil, ErrClosed
 	}
-
-	// Handle nil data case (mirrors C# behavior)
 	if data == nil {
 		return nil, nil
 	}
 
-	// Check if data can be decoded (mirrors C# CanDecode check)
-	canDecode, err := d.coreDeserializer.CanDecode(data)
+	canDecode, err := d.coreDecoder.CanDecode(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check if data can be decoded: %w", err)
 	}
-
 	if !canDecode {
 		return nil, fmt.Errorf("byte data cannot be decoded: data does not contain GSR header")
 	}
 
-	// Decode the GSR-wrapped bytes (mirrors C# Decode call)
-	decodedBytes, err := d.coreDeserializer.Decode(data)
+	decodedBytes, err := d.coreDecoder.Decode(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode GSR data: %w", err)
 	}
 
-	// Extract schema information (mirrors C# DecodeSchema call)
-	schema, err := d.coreDeserializer.DecodeSchema(data)
+	schema, err := d.coreDecoder.DecodeSchema(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode schema: %w", err)
 	}
 
-	// Deserialize the actual message content (mirrors C# deserializer.Deserialize call)
 	result, err := d.formatDeserializer.Deserialize(decodedBytes, schema)
 	if err != nil {
-		return nil, fmt.Errorf("failed to deserialize %s data: %w", d.config.DataFormat , err)
+		return nil, fmt.Errorf("failed to deserialize %s data: %w", d.config.DataFormat, err)
 	}
-
 	return result, nil
 }
 
-// CanDeserialize checks if the provided data can be deserialized
+// CanDeserialize reports whether data is GSR-framed.
 func (d *Deserializer) CanDeserialize(data []byte) (bool, error) {
 	if d.closed {
-		return false, gsrserde.ErrClosed
+		return false, ErrClosed
 	}
-
 	if data == nil {
 		return false, nil
 	}
-
-	return d.coreDeserializer.CanDecode(data)
+	return d.coreDecoder.CanDecode(data)
 }
 
-// GetSchema extracts schema information from the data without deserializing the message
-func (d *Deserializer) GetSchema(data []byte) (*gsrserde.Schema, error) {
+// GetSchema returns the schema referenced by the wire-format prefix without
+// decoding the payload.
+func (d *Deserializer) GetSchema(data []byte) (*gsrcore.Schema, error) {
 	if d.closed {
-		return nil, gsrserde.ErrClosed
+		return nil, ErrClosed
 	}
-
 	if data == nil {
-		return nil, gsrserde.ErrNilData
+		return nil, ErrNilData
 	}
-
-	return d.coreDeserializer.DecodeSchema(data)
+	return d.coreDecoder.DecodeSchema(data)
 }
 
-// GetConfiguration returns the current configuration
+// GetConfiguration returns the current configuration.
 func (d *Deserializer) GetConfiguration() *common.Configuration {
 	return d.config
 }
 
-// Close releases all resources associated with the deserializer
+// Close releases all resources owned by the deserializer.
 func (d *Deserializer) Close() error {
-	if d == nil {
+	if d == nil || d.closed {
 		return nil
 	}
-	if d.closed {
-		return nil
-	}
-
 	d.closed = true
-
-	// Close core deserializer
-	if d.coreDeserializer != nil {
-		err := d.coreDeserializer.Close()
-		if err != nil {
-			return fmt.Errorf("failed to close core deserializer: %w", err)
+	if d.coreDecoder != nil {
+		if err := d.coreDecoder.Close(); err != nil {
+			return fmt.Errorf("failed to close core decoder: %w", err)
 		}
 	}
-
 	return nil
 }
 
-// IsClosed returns whether the deserializer is closed
-func (d *Deserializer) IsClosed() bool {
-	return d.closed
-}
+// IsClosed reports whether Close() has been called.
+func (d *Deserializer) IsClosed() bool { return d.closed }

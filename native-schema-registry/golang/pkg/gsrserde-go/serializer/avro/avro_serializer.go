@@ -6,7 +6,8 @@ import (
 
 	hambaavro "github.com/hamba/avro/v2"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/avro"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
@@ -268,7 +269,7 @@ func (a *AvroSerializer) ValidateObject(data interface{}) error {
 // Returns:
 //
 //	error: Any error that occurred during schema update
-func (a *AvroSerializer) SetAdditionalSchemaInfo(data interface{}, schema *gsrserde.Schema) error {
+func (a *AvroSerializer) SetAdditionalSchemaInfo(data interface{}, schema *gsrcore.Schema) error {
 	if data == nil {
 		return &AvroSerializationError{
 			Message: "data cannot be nil",
@@ -293,7 +294,7 @@ func (a *AvroSerializer) SetAdditionalSchemaInfo(data interface{}, schema *gsrse
 	}
 
 	// Set the schema definition from the AvroRecord
-	schema.Definition = record.Schema
+	schema.SchemaDefinition = record.Schema
 
 	// Set the data type as additional info
 	schema.AdditionalInfo = reflect.TypeOf(record.Data).String()

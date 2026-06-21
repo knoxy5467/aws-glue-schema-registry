@@ -1,7 +1,7 @@
 package serializer
 
 import (
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
 )
 
 // DataFormatSerializer defines the interface for format-specific serializers.
@@ -63,5 +63,5 @@ type DataFormatSerializer interface {
 	//
 	// Returns:
 	//   error: Any error that occurred during schema update
-	SetAdditionalSchemaInfo(data interface{}, schema *gsrserde.Schema) error
+	SetAdditionalSchemaInfo(data interface{}, schema *gsrcore.Schema) error
 }

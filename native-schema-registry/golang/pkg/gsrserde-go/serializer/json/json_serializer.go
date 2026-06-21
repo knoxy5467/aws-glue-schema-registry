@@ -7,7 +7,8 @@ import (
 
 	"github.com/xeipuuv/gojsonschema"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
 
@@ -305,7 +306,7 @@ func (j *JsonSerializer) ValidateObject(data interface{}) error {
 //
 // Returns:
 //   error: Any error that occurred during schema update
-func (j *JsonSerializer) SetAdditionalSchemaInfo(data interface{}, schema *gsrserde.Schema) error {
+func (j *JsonSerializer) SetAdditionalSchemaInfo(data interface{}, schema *gsrcore.Schema) error {
 	if data == nil {
 		return &JsonSerializationError{
 			Message: "data cannot be nil",

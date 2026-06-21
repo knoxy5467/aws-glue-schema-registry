@@ -8,7 +8,6 @@ import (
 	"google.golang.org/protobuf/reflect/protodesc"
 	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
 
@@ -299,7 +298,7 @@ func (p *ProtobufSerializer) ValidateObject(data interface{}) error {
 // Returns:
 //
 //	error: Any error that occurred during schema update
-func (p *ProtobufSerializer) SetAdditionalSchemaInfo(data interface{}, schema *gsrserde.Schema) error {
+func (p *ProtobufSerializer) SetAdditionalSchemaInfo(data interface{}, schema *gsrcore.Schema) error {
 	if data == nil {
 		return &ProtobufSerializationError{
 			Message: "data cannot be nil",

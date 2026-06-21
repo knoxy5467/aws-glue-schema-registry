@@ -5,7 +5,8 @@ import (
 
 	hambaavro "github.com/hamba/avro/v2"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
 
@@ -70,7 +71,7 @@ func NewAvroDeserializer(config *common.Configuration) (*AvroDeserializer, error
 //
 //	interface{}: The deserialized Go struct/data
 //	error: Any error that occurred during deserialization
-func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrserde.Schema) (interface{}, error) {
+func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (interface{}, error) {
 	if len(data) == 0 {
 		return nil, &AvroDeserializationError{
 			Message: "cannot deserialize empty data",
@@ -85,7 +86,7 @@ func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrserde.Schema) (in
 		}
 	}
 
-	if schema.Definition == "" {
+	if schema.SchemaDefinition == "" {
 		return nil, &AvroDeserializationError{
 			Message: "schema definition cannot be empty",
 			Cause:   ErrInvalidSchema,
@@ -93,7 +94,7 @@ func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrserde.Schema) (in
 	}
 
 	// Parse AVRO schema using hamba/avro
-	avroSchema, err := hambaavro.Parse(schema.Definition)
+	avroSchema, err := hambaavro.Parse(schema.SchemaDefinition)
 	if err != nil {
 		return nil, &AvroDeserializationError{
 			Message: "failed to parse AVRO schema",

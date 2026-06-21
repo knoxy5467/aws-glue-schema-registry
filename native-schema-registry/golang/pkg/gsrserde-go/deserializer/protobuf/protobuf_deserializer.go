@@ -7,7 +7,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
 
@@ -71,7 +72,7 @@ func NewProtobufDeserializer(config *common.Configuration ) (*ProtobufDeserializ
 //
 //	interface{}: The deserialized protobuf message as a dynamic message
 //	error: Any error that occurred during deserialization
-func (pd *ProtobufDeserializer) Deserialize(data []byte, schema *gsrserde.Schema) (interface{}, error) {
+func (pd *ProtobufDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (interface{}, error) {
 	// Validate input parameters
 	if data == nil {
 		return nil, ErrNilData
@@ -90,7 +91,7 @@ func (pd *ProtobufDeserializer) Deserialize(data []byte, schema *gsrserde.Schema
 		return nil, ErrSchemaNotProtobuf
 	}
 
-	if schema.Definition == "" {
+	if schema.SchemaDefinition == "" {
 		return nil, ErrInvalidSchema
 	}
 

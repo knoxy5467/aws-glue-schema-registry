@@ -1,7 +1,7 @@
 package deserializer
 
 import (
-	gsrserde "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
 )
 
 // DataFormatDeserializer defines the interface for format-specific deserializers.
@@ -21,6 +21,6 @@ type DataFormatDeserializer interface {
 	// Returns:
 	//   interface{}: The deserialized object (type depends on format)
 	//   error: Any error that occurred during deserialization
-	Deserialize(data []byte, schema *gsrserde.Schema) (interface{}, error)
+	Deserialize(data []byte, schema *gsrcore.Schema) (interface{}, error)
 
 }

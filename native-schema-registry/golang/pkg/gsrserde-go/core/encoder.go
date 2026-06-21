@@ -30,6 +30,11 @@ type Schema struct {
 	// on Schema lets the encoder return the same UUID on the cached path that the
 	// live path produced.
 	SchemaVersionID string
+	// AdditionalInfo is opaque format-layer metadata that the orchestrator and
+	// format-specific serializers attach to a Schema for downstream consumption
+	// (e.g. the protobuf full-message-name for dynamic-message dispatch). Core
+	// reads/writes nothing here; it round-trips the field through the cache.
+	AdditionalInfo string
 }
 
 type GsrEncoder struct {

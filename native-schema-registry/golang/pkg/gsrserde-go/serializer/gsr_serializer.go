@@ -1,92 +1,105 @@
 package serializer
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go"
+	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/avro"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
 
-// stringToDataFormat converts a string representation of data format to DataFormat enum
-func stringToDataFormat(dataFormatStr string) (common.DataFormat, error) {
-	switch dataFormatStr {
-	case "AVRO":
-		return common.DataFormatAvro, nil
-	case "JSON":
-		return common.DataFormatJSON, nil
-	case "PROTOBUF":
-		return common.DataFormatProtobuf, nil
-	default:
-		return common.DataFormatUnknown, fmt.Errorf("unsupported data format: %s", dataFormatStr)
-	}
-}
+// ErrClosed is returned when Serialize/Close is called on a Serializer
+// whose Close() has already run. The legacy CGO wrapper exposed an
+// identically-named error from a sibling package; deleting that wrapper
+// pulled the sentinel into this package.
+var ErrClosed = errors.New("serializer is closed")
 
-// It provides a high-level interface for serializing messages using AWS Glue Schema Registry
-// NOTE: This serializer is NOT thread-safe. Each instance should be used by
-// only one context/operation to comply with native library constraints.
+// ErrNilData is returned by ValidateData when data is nil.
+var ErrNilData = errors.New("data cannot be nil")
+
+// Serializer orchestrates the format-layer SerDe and the GSR wire-format
+// encode. It owns a *gsrcore.GsrEncoder for the header/compression/UUID
+// resolution; the format-layer DataFormatSerializer handles the payload
+// encoding.
 type Serializer struct {
-	coreSerializer   *gsrserde.Serializer
+	coreEncoder      *gsrcore.GsrEncoder
 	formatSerializer DataFormatSerializer
 	formatFactory    SerializerFactory
 	config           *common.Configuration
+	schemaNaming     gsrcore.SchemaNameStrategy
 	closed           bool
 }
 
-// NewSerializer creates a new serializer instance
+// NewSerializer is the production constructor. It builds a real
+// *gsrcore.GsrEncoder from the config's GsrConfig map (which in turn loads
+// an aws.Config and instantiates the Glue SDK client) and uses
+// DefaultSchemaNameStrategy.
 func NewSerializer(config *common.Configuration) (*Serializer, error) {
 	if config == nil {
 		return nil, fmt.Errorf("configuration cannot be nil")
 	}
-
-
-	coreSerializer, err := gsrserde.NewSerializer(config.GsrConfig)
-
-	// Create core serializer for GSR operations
+	enc, err := gsrcore.NewGsrEncoder(config.GsrConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create core serializer: %w", err)
+		return nil, fmt.Errorf("failed to create core encoder: %w", err)
 	}
+	return NewSerializerWithEncoderAndStrategy(config, enc, gsrcore.DefaultSchemaNameStrategy{})
+}
 
-	// Get format serializer factory
-	formatFactory := GetSerializerFactory()
+// NewSerializerWithEncoder is the test-seam constructor: callers supply a
+// pre-built *gsrcore.GsrEncoder (typically backed by a fake GlueClient via
+// gsrcore.NewGsrEncoderForTest) and get the default SchemaNameStrategy.
+func NewSerializerWithEncoder(config *common.Configuration, enc *gsrcore.GsrEncoder) (*Serializer, error) {
+	return NewSerializerWithEncoderAndStrategy(config, enc, gsrcore.DefaultSchemaNameStrategy{})
+}
 
-	// Create format serializer based on configuration
-	formatSerializer, err := formatFactory.GetSerializer(config)
+// NewSerializerWithEncoderAndStrategy is the most general constructor. The
+// production NewSerializer and the test seam NewSerializerWithEncoder both
+// route through this.
+func NewSerializerWithEncoderAndStrategy(config *common.Configuration, enc *gsrcore.GsrEncoder, strategy gsrcore.SchemaNameStrategy) (*Serializer, error) {
+	if config == nil {
+		return nil, fmt.Errorf("configuration cannot be nil")
+	}
+	if enc == nil {
+		return nil, fmt.Errorf("encoder cannot be nil")
+	}
+	if strategy == nil {
+		strategy = gsrcore.DefaultSchemaNameStrategy{}
+	}
+	factory := GetSerializerFactory()
+	formatSer, err := factory.GetSerializer(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create format serializer: %w", err)
 	}
-
 	return &Serializer{
-		coreSerializer:   coreSerializer,
-		formatSerializer: formatSerializer,
-		formatFactory:    formatFactory,
+		coreEncoder:      enc,
+		formatSerializer: formatSer,
+		formatFactory:    factory,
 		config:           config,
-		closed:           false,
+		schemaNaming:     strategy,
 	}, nil
 }
 
-// Serialize serializes a message using AWS Glue Schema Registry
+// Serialize encodes a payload using the configured format serializer and
+// prepends the GSR wire-format header (delegated to core).
 func (s *Serializer) Serialize(topic string, data interface{}) ([]byte, error) {
 	if s.closed {
-		return nil, gsrserde.ErrClosed
+		return nil, ErrClosed
 	}
-
 	if data == nil {
 		return nil, nil
 	}
 
-	// Create schema based on the data type
-	schema, err := s.getSchemaFromData(data, topic)
+	schema, err := s.schemaFromData(data, topic)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create schema from data: %w", err)
 	}
 
-	// Let the format serializer set additional schema info
 	if err := s.formatSerializer.SetAdditionalSchemaInfo(data, schema); err != nil {
 		return nil, fmt.Errorf("failed to set additional schema info: %w", err)
 	}
 
-	// Validate the object before serialization
 	if err := s.ValidateData(data); err != nil {
 		return nil, fmt.Errorf("data validation failed: %w", err)
 	}
@@ -96,110 +109,77 @@ func (s *Serializer) Serialize(topic string, data interface{}) ([]byte, error) {
 		return nil, fmt.Errorf("failed to serialize data: %w", err)
 	}
 
-	// Wrap with GSR header using transport name (topic)
-	encodedData, err := s.coreSerializer.Encode(serializedData, topic, schema)
+	encodedData, err := s.coreEncoder.Encode(serializedData, topic, schema)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode GSR data: %w", err)
 	}
-
 	return encodedData, nil
 }
 
-// ValidateData validates that the provided data can be serialized
+// ValidateData validates that the provided data can be serialized.
 func (s *Serializer) ValidateData(data interface{}) error {
 	if s.closed {
-		return gsrserde.ErrClosed
+		return ErrClosed
 	}
-
 	if data == nil {
-		return gsrserde.ErrNilData
+		return ErrNilData
 	}
-
-	// Get the appropriate format serializer
-	formatSerializer := s.formatSerializer
-
-	// Validate the object
-	return formatSerializer.ValidateObject(data)
+	return s.formatSerializer.ValidateObject(data)
 }
 
-
-// This determines the appropriate data format based on the Go type
-func (s *Serializer) getSchemaFromData(data interface{}, topic string) (*gsrserde.Schema, error) {
+// schemaFromData mirrors the legacy getSchemaFromData but routes the
+// schema name through the injected SchemaNameStrategy rather than the
+// hard-coded "topic + \"-value\"" of the CGO path.
+func (s *Serializer) schemaFromData(data interface{}, topic string) (*gsrcore.Schema, error) {
 	if data == nil {
-		return nil, gsrserde.ErrNilData
+		return nil, ErrNilData
 	}
 
-	// Create initial schema
-	schema := &gsrserde.Schema{
-		SchemaName:     "", // Will be set by format serializer
-		Definition:     "", // Will be set by format serializer
-		DataFormat:     "", // Will be determined below
-		AdditionalInfo: "", // Will be set by format serializer
-	}
+	schema := &gsrcore.Schema{}
 
-	// Determine data format based on type
-	// This enforces schema-aware types for AVRO
 	switch data.(type) {
 	case *avro.AvroRecord:
 		schema.DataFormat = "AVRO"
 	default:
-		// Check if it's a protobuf message
 		if _, ok := data.(interface{ ProtoMessage() }); ok {
 			schema.DataFormat = "PROTOBUF"
 		} else {
-			// Last possible format is JSON
 			schema.DataFormat = "JSON"
 		}
 	}
-	
-	// Get schema definition from the data
+
 	definition, err := s.formatSerializer.GetSchemaDefinition(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get schema definition: %w", err)
 	}
-	schema.Definition = definition
+	schema.SchemaDefinition = definition
 
-	// Set additional schema info
 	if err := s.formatSerializer.SetAdditionalSchemaInfo(data, schema); err != nil {
 		return nil, fmt.Errorf("failed to set additional schema info: %w", err)
 	}
 
-	// Generate schema name using topic (simple naming strategy)
-	if topic != "" {
-		schema.SchemaName = topic + "-value"
-	}
-
+	schema.SchemaName = s.schemaNaming.SchemaName(topic)
 	return schema, nil
 }
 
-// GetConfiguration returns the current configuration
+// GetConfiguration returns the current configuration.
 func (s *Serializer) GetConfiguration() *common.Configuration {
 	return s.config
 }
 
-// Close releases all resources associated with the serializer
+// Close releases all resources owned by the serializer.
 func (s *Serializer) Close() error {
-	if s == nil {
+	if s == nil || s.closed {
 		return nil
 	}
-	if s.closed {
-		return nil
-	}
-
 	s.closed = true
-
-	// Close core serializer
-	if s.coreSerializer != nil {
-		err := s.coreSerializer.Close()
-		if err != nil {
-			return fmt.Errorf("failed to close core serializer: %w", err)
+	if s.coreEncoder != nil {
+		if err := s.coreEncoder.Close(); err != nil {
+			return fmt.Errorf("failed to close core encoder: %w", err)
 		}
 	}
-
 	return nil
 }
 
-// IsClosed returns whether the serializer is closed
-func (s *Serializer) IsClosed() bool {
-	return s.closed
-}
+// IsClosed reports whether Close() has been called.
+func (s *Serializer) IsClosed() bool { return s.closed }
