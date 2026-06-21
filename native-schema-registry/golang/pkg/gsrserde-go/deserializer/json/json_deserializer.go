@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/xeipuuv/gojsonschema"
 
@@ -110,6 +111,18 @@ func (j *JsonDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 	// Handle empty data case
 	if len(data) == 0 {
 		return "", nil
+	}
+
+	// RFC 8259 §8.1: JSON text exchanged between systems must be encoded
+	// in UTF-8. encoding/json itself silently replaces invalid UTF-8 in
+	// string bodies with U+FFFD, which corrupts data without surfacing.
+	// Reject invalid UTF-8 up front so callers see a typed
+	// JsonDeserializationError instead of a quietly-mangled payload.
+	if !utf8.Valid(data) {
+		return nil, &JsonDeserializationError{
+			Message: "data is not valid JSON: non-UTF-8 bytes",
+			Cause:   ErrInvalidJsonData,
+		}
 	}
 
 	// Validate that data is valid JSON
