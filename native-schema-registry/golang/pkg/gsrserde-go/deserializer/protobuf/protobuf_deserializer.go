@@ -33,6 +33,14 @@ var (
 
 	// ErrDeserializationFailed is returned when protobuf deserialization fails
 	ErrDeserializationFailed = fmt.Errorf("protobuf deserializer: deserialization failed")
+
+	// ErrNilDescriptor is returned by NewProtobufDeserializer when the
+	// configuration omits ProtobufMessageDescriptor. Chained through
+	// core.ErrInvalidProtobufPayload (and therefore core.ErrGSR) so callers
+	// can detect "protobuf misconfigured" without importing this package.
+	// Java parity: ProtobufDeserializer's constructor surfaces missing
+	// descriptor state via AWSSchemaRegistryException, not a JVM panic.
+	ErrNilDescriptor = fmt.Errorf("%w: protobuf deserializer: message descriptor cannot be nil", gsrcore.ErrInvalidProtobufPayload)
 )
 
 // ProtobufDeserializer implements the DataFormatDeserializer interface for protobuf messages.
@@ -45,14 +53,17 @@ type ProtobufDeserializer struct {
 }
 
 // NewProtobufDeserializer creates a new ProtobufDeserializer instance.
-// The configuration must contain the protobuf message descriptor for deserialization.
-func NewProtobufDeserializer(config *common.Configuration ) (*ProtobufDeserializer, error) {
+// The configuration must contain the protobuf message descriptor for
+// deserialization; a nil descriptor surfaces as the typed sentinel
+// ErrNilDescriptor (whose chain reaches core.ErrInvalidProtobufPayload and
+// core.ErrGSR) — not a panic. Java parity: ProtobufDeserializer reports
+// missing descriptor via AWSSchemaRegistryException, recoverable by callers.
+func NewProtobufDeserializer(config *common.Configuration) (*ProtobufDeserializer, error) {
 	if config == nil {
 		return nil, common.ErrNilConfig
 	}
 	if config.ProtobufMessageDescriptor == nil {
-		panic("protobuf message descriptor cannot be nil")
-
+		return nil, ErrNilDescriptor
 	}
 	return &ProtobufDeserializer{
 		config:            config,

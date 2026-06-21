@@ -133,24 +133,50 @@ func TestNewProtobufDeserializer_ErrorCases(t *testing.T) {
 	tests := []struct {
 		name   string
 		config *common.Configuration
-		panics bool
 	}{
 		{
 			name:   "nil config",
 			config: nil,
-			panics: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.panics {
-				deserializer, err := NewProtobufDeserializer(tt.config)
-				assert.Nil(t, deserializer, "NewProtobufDeserializer should return a nil deserializer")
-				assert.Error(t, err, "Should return an error")
-			}
+			deserializer, err := NewProtobufDeserializer(tt.config)
+			assert.Nil(t, deserializer, "NewProtobufDeserializer should return a nil deserializer")
+			assert.Error(t, err, "Should return an error")
 		})
 	}
+}
+
+// TestNewProtobufDeserializer_NilDescriptor_ReturnsTypedError is the Phase 3
+// red→green test for replacing the panic-on-nil-descriptor with a typed
+// error return. Java parity: ProtobufDeserializer's constructor surfaces
+// the missing-descriptor case via AWSSchemaRegistryException, not a JVM
+// panic. The Go equivalent is core.ErrInvalidProtobufPayload (or a typed
+// constructor-level error) returned from NewProtobufDeserializer.
+//
+// Pre-Phase-3 behavior: a non-nil config with a nil ProtobufMessageDescriptor
+// triggered `panic("protobuf message descriptor cannot be nil")` inside the
+// constructor — unrecoverable from typical Go control flow.
+func TestNewProtobufDeserializer_NilDescriptor_ReturnsTypedError(t *testing.T) {
+	configMap := make(map[string]interface{})
+	configMap[common.DataFormatTypeKey] = common.DataFormatProtobuf
+	// Intentionally omit ProtobufMessageDescriptorKey so the descriptor
+	// stays nil after NewConfiguration.
+	cfg := common.NewConfiguration(configMap)
+	require.NotNil(t, cfg, "config builder must succeed")
+	require.Nil(t, cfg.ProtobufMessageDescriptor, "descriptor must be unset for this scenario")
+
+	// Constructor must NOT panic — instead it must return (nil, error)
+	// whose error chain reaches the new typed sentinel and core.ErrGSR.
+	require.NotPanics(t, func() {
+		des, err := NewProtobufDeserializer(cfg)
+		assert.Nil(t, des, "deserializer must be nil on missing descriptor")
+		require.Error(t, err, "constructor must return an error, not panic")
+		assert.ErrorIs(t, err, ErrNilDescriptor, "chain must reach the typed sentinel")
+		assert.ErrorIs(t, err, gsrcore.ErrGSR, "chain must reach core.ErrGSR")
+	})
 }
 
 func TestProtobufDeserializer_Deserialize_ErrorCases(t *testing.T) {
