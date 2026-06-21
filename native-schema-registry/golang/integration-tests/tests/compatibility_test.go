@@ -87,8 +87,15 @@ func TestCompatibility_BackwardAll_ThreeVersions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// Three iterations of the same schema NAME so fakeglue registers
+	// three versions under one schema, rather than three independent
+	// schemas. (Earlier draft randomized schemaName per iteration; the
+	// review correctly flagged that as a vacuous assertion — fakeglue
+	// keys (registry,name,definition), so distinct names produced three
+	// independent schemas and the BACKWARD_ALL contract was never
+	// exercised.)
+	schemaName := "compat-19" + scenarioRegistrySuffix()
 	for _, def := range []string{schemaV1, schemaV2, schemaV3} {
-		schemaName := "compat-19" + scenarioRegistrySuffix()
 		encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
 			SchemaDefinition: def,
 			SchemaName:       schemaName,
@@ -145,8 +152,11 @@ func TestCompatibility_FullBothDirections(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// Same fix as TestCompatibility_BackwardAll_ThreeVersions: pin a
+	// single schemaName so v1 and v2 share a schema entity in
+	// fakeglue, matching the §5.3 item 21 contract.
+	schemaName := "compat-21" + scenarioRegistrySuffix()
 	for _, def := range []string{schemaV1, schemaV2} {
-		schemaName := "compat-21" + scenarioRegistrySuffix()
 		encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
 			SchemaDefinition: def,
 			SchemaName:       schemaName,

@@ -169,29 +169,17 @@ func TestLifecycle_CacheTTLEviction(t *testing.T) {
 }
 
 // §5.3 item 17 — cache size eviction. Distinct schemas beyond the
-// cache size evict the oldest. patrickmn/go-cache doesn't have a
-// hard size cap (it's TTL-only), so this test is a placeholder that
-// documents the gap and pins the current behavior (no eviction).
+// cache size evict the oldest. patrickmn/go-cache is TTL-only with no
+// hard size cap, so the §5.3 item 17 contract cannot be asserted
+// against the current core/cache implementation.
 //
-// When the cache implementation gains a size cap, this test should
-// become an actual eviction assertion.
+// An earlier draft of this test ran a 5-schema loop and ended with
+// a t.Logf; the review correctly flagged that as a false-green —
+// a test that asserts nothing falsely raises the §5.3 coverage
+// number. Make the gap visible by t.Skip-ing with the reason. When
+// the cache gains a size cap (tracked in PHASE-4-AWS-NOTES.md /
+// future Phase 1 work), flip this to an actual eviction assertion.
 func TestLifecycle_CacheSizeEviction(t *testing.T) {
-	t.Parallel()
-	f := fakeglue.New()
-	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
-		RegistryName:                  "default-registry",
-		SchemaAutoRegistrationEnabled: true,
-	})
-	require.NoError(t, err)
-
-	for i := 0; i < 5; i++ {
-		schema := &gsrcore.Schema{
-			SchemaDefinition: avroSchemaLifecycle,
-			SchemaName:       "lifecycle-17-" + scenarioRegistrySuffix(),
-			DataFormat:       "AVRO",
-		}
-		_, err := enc.Encode([]byte("payload"), schema.SchemaName, schema)
-		require.NoError(t, err)
-	}
-	t.Logf("§5.3 item 17 (cache size eviction): TODO — patrickmn/go-cache is TTL-only, no size cap. CreateSchema count: %d", f.CallCounts["CreateSchema"])
+	t.Skip("§5.3 item 17 not implemented: patrickmn/go-cache is TTL-only, no size cap. " +
+		"When the cache gains a size cap, replace this skip with an actual eviction assertion.")
 }

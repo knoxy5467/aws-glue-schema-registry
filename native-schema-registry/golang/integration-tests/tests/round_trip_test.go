@@ -44,6 +44,16 @@ type roundTripScenario struct {
 	clientName  string // adapter name; resolved at runtime so tests stay parallel-safe
 }
 
+// extraClientNames + extraAdapterCtors are registration hooks for
+// build-tagged adapters (confluent today; franz-go in a future
+// phase). The plain `//go:build integration` build only carries
+// sarama + segmentio; `integration && confluent` adds confluent via
+// round_trip_confluent_test.go's init().
+var (
+	extraClientNames  []string
+	extraAdapterCtors = map[string]func(t *testing.T, bootstrap string) clients.Adapter{}
+)
+
 // allRoundTripScenarios enumerates the format × compression × Kafka-
 // client matrix the plan calls for. Auto-register is implicit (true)
 // for these — the dedicated lifecycle test in
@@ -54,7 +64,7 @@ func allRoundTripScenarios() []roundTripScenario {
 		fmtProtobufStatic, fmtProtobufDynamic,
 	}
 	compressions := []string{"NONE", "ZLIB"}
-	clientsList := []string{"sarama", "segmentio"}
+	clientsList := append([]string{"sarama", "segmentio"}, extraClientNames...)
 
 	out := make([]roundTripScenario, 0, len(formats)*len(compressions)*len(clientsList))
 	for _, f := range formats {
@@ -73,8 +83,9 @@ func (s roundTripScenario) scenarioName() string {
 }
 
 // adapterFor builds the requested adapter against the testcontainers
-// broker. Returns the adapter and a cleanup function — Close()
-// invocation belongs in t.Cleanup, not the scenario body.
+// broker. Returns the adapter; Close() runs via t.Cleanup. Build-tag
+// gated adapters (confluent) register through extraAdapterCtors so
+// adding one doesn't require a switch edit here.
 func adapterFor(t *testing.T, name string, bootstrap string) clients.Adapter {
 	t.Helper()
 	switch name {
@@ -88,23 +99,43 @@ func adapterFor(t *testing.T, name string, bootstrap string) clients.Adapter {
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = a.Close() })
 		return a
-	default:
-		t.Fatalf("adapterFor: unknown client %q", name)
-		return nil
 	}
+	if ctor, ok := extraAdapterCtors[name]; ok {
+		return ctor(t, bootstrap)
+	}
+	t.Fatalf("adapterFor: unknown client %q", name)
+	return nil
 }
 
 // configFor returns a serializer/deserializer configuration for the
 // given format. Used by §5.3 items 1-6 round-trip scenarios.
+//
+// common.NewConfiguration accepts a map[string]string under
+// common.GSRConfigPathKey and threads it verbatim into the GsrEncoder
+// constructor (see common/configuration.go validateAndSetGsrConfig).
+// That's the seam scenarios use to override `compression`, `region`,
+// `schemaAutoRegistrationEnabled`, etc. Earlier drafts of this file
+// stuffed those overrides under a `gsrConfigOverrides` key that
+// NewConfiguration ignores — silently degenerating comp=NONE and
+// comp=ZLIB subtests to whatever single value lived in
+// gsr.properties. The fix is to pass the overrides through the
+// recognized key.
 func configFor(t *testing.T, s roundTripScenario, gsrPath string) *common.Configuration {
 	t.Helper()
+	gsrMap := map[string]string{
+		"region":                        defaultAWSRegion,
+		"registry.name":                 testRegistryName,
+		"compression":                   s.compression,
+		"schemaAutoRegistrationEnabled": "true",
+	}
+	// gsrPath is retained as documentation that the on-disk
+	// gsr.properties is the production seam; tests bypass it via the
+	// recognized in-memory map so each scenario can pin its own
+	// compression knob.
+	_ = gsrPath
 	configMap := map[string]interface{}{
-		common.GSRConfigPathKey: gsrPath,
+		common.GSRConfigPathKey: gsrMap,
 	}
-	gsr := map[string]string{
-		"compression": s.compression,
-	}
-	configMap["gsrConfigOverrides"] = gsr // documentation only; the production NewSerializer reads gsrPath
 
 	switch s.format {
 	case fmtAvroGeneric, fmtAvroSpecific:

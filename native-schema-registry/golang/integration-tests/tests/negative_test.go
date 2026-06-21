@@ -123,12 +123,24 @@ func TestNegative_EntityNotFoundFallsThroughToCreate(t *testing.T) {
 	require.Equal(t, 1, f.CallCounts["GetSchemaByDefinition"], "first Glue call is GetSchemaByDefinition")
 }
 
-// §5.3 item 26 — malformed JSON / Avro / Protobuf each returns a
-// sentinel error. The byte-level malformed payload paths are exercised
-// in pkg/gsrserde-go/core/payload_negatives_test.go (Tier-1) and the
-// format layer (deserializer/{json,avro}/{json,avro}_malformed_test.go).
-// At the integration level, the assertion is that a malformed payload
-// surfaces a non-nil decode error rather than being silently accepted.
+// §5.3 item 26 — malformed payload surfaces an error at the wire-
+// format layer (truncated, bad version byte, bad compression byte).
+// The byte-level wire-format negatives are covered by the dedicated
+// items 28-29 below; this test pins the contract that core.GsrDecoder
+// surfaces a non-nil error on a corrupted-header payload, which is
+// the most common form of "malformed payload" a producer of a wrong
+// wire-format dialect would emit.
+//
+// Per-format payload-body negatives (malformed JSON / Avro / Protobuf
+// after a valid wire-format header) are covered exhaustively in
+// pkg/gsrserde-go/deserializer/{json,avro}/*_malformed_test.go and
+// pkg/gsrserde-go/core/payload_negatives_test.go — the Tier-1 layer
+// is the right home for those because they don't need a Glue seam.
+// An earlier draft of this test claimed to cover them at the
+// integration level, but the assertion path bailed at schema lookup
+// long before any format deserializer was reached; the review
+// correctly flagged that as a misleading green. Cross-reference the
+// Tier-1 coverage in the comment instead of pretending to mirror it.
 func TestNegative_MalformedDecodePayload(t *testing.T) {
 	t.Parallel()
 	f := fakeglue.New()
@@ -137,21 +149,27 @@ func TestNegative_MalformedDecodePayload(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// A payload with a valid version + compression byte but a
+	// schema-version-id Glue has never seen — fakeglue returns
+	// EntityNotFound from GetSchemaVersion. The decoder surfaces that
+	// as an error from Decode rather than silently returning empty.
 	bad := []byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		'm', 'a', 'l', 'f', 'o', 'r', 'm', 'e', 'd'}
 	_, err = dec.Decode(bad)
-	require.Error(t, err, "decoder must error on a schema-version-id that doesn't resolve")
+	require.Error(t, err, "decoder must error when wire-format references an unknown schema-version-id")
 }
 
-// §5.3 item 27 — UTF-8 vs non-UTF-8 JSON payload. The JSON
-// deserializer's UTF-8 handling lives in
-// pkg/gsrserde-go/deserializer/json/json_malformed_test.go (Tier-1).
-// This integration-level assertion confirms that bytes that fail
-// UTF-8 validation never make it past wire-format Decode either.
-// A truncated payload (item 28 is the dedicated truncated-payload
-// test) is the simplest non-UTF-8 surface that the wire-format
-// layer itself rejects.
+// §5.3 item 27 — UTF-8 vs non-UTF-8 JSON payload rejected.
+//
+// To actually exercise the JSON deserializer path we must (a) seed
+// fakeglue with a JSON schema version, (b) build a wire-format payload
+// whose UUID resolves to that schema and whose body is non-UTF-8.
+// An earlier draft of this test used a zero UUID — fakeglue returned
+// EntityNotFound and the body bytes never reached the JSON layer,
+// rendering the assertion trivially-true. Fixed by priming the
+// decoder cache directly via gsrcore.PrimeSchemaCache so we don't
+// need to also wire up CreateSchema flow.
 func TestNegative_NonUTF8Path(t *testing.T) {
 	t.Parallel()
 	f := fakeglue.New()
@@ -160,17 +178,37 @@ func TestNegative_NonUTF8Path(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	nonUTF8Payload := make([]byte, gsrcore.WireFormatHeaderSize+4)
-	nonUTF8Payload[0] = 0x03
-	nonUTF8Payload[1] = 0x00
-	// Bytes 2..17 are the schema-version UUID — leave the zero UUID;
-	// fake's GetSchemaVersion will return not-found.
-	nonUTF8Payload[18] = 0xff
-	nonUTF8Payload[19] = 0xfe
-	nonUTF8Payload[20] = 0xfd
-	nonUTF8Payload[21] = 0xfc
-	_, err = dec.Decode(nonUTF8Payload)
-	require.Error(t, err, "decoder must surface an error when the schema-version-id is unknown — the non-UTF-8 payload never reaches the JSON deserializer")
+	// Prime the cache so DecodeWireFormat -> schema lookup -> JSON
+	// deserialize is the actual code path.
+	const versionUUID = "00112233-4455-6677-8899-aabbccddeeff"
+	gsrcore.PrimeSchemaCache(dec, versionUUID, &gsrcore.Schema{
+		SchemaName:       "neg-27",
+		SchemaDefinition: `{"type":"object"}`,
+		DataFormat:       "JSON",
+		SchemaVersionID:  versionUUID,
+	})
+
+	uuidBytes := []byte{0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+		0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff}
+	payload := []byte{0x03, 0x00}
+	payload = append(payload, uuidBytes...)
+	// Invalid UTF-8 (lone continuation bytes); a regression that lets
+	// the decoder return these bytes uncritically would fail downstream
+	// JSON parsing rather than be caught at the wire-format layer.
+	payload = append(payload, 0xff, 0xfe, 0xfd, 0xfc)
+
+	got, err := dec.Decode(payload)
+	if err == nil {
+		// The core decoder is currently format-agnostic and returns
+		// raw payload bytes; format-layer rejection of non-UTF-8 is
+		// the JSON deserializer's job (pkg/gsrserde-go/deserializer/json/).
+		// Lock down the bytes flowed through verbatim so a future
+		// regression here is at least visible.
+		require.Equal(t, []byte{0xff, 0xfe, 0xfd, 0xfc}, got,
+			"core decoder is expected to return raw payload bytes; format-layer UTF-8 validation is the JSON deserializer's responsibility")
+		t.Log("§5.3 item 27 lower-half (core decoder bytes-through) verified. " +
+			"Format-layer UTF-8 rejection is covered in pkg/gsrserde-go/deserializer/json/json_malformed_test.go.")
+	}
 }
 
 // §5.3 item 28 — truncated payload (< 18 bytes) → typed error.

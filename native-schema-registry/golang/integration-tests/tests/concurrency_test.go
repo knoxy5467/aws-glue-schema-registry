@@ -93,19 +93,34 @@ func TestConcurrency_SingleflightFirstEncode(t *testing.T) {
 
 	const goroutines = 32
 
+	// Collect per-goroutine errors so a regression that makes the
+	// cached-path branch nil-deref (or any other latent encoder bug)
+	// surfaces alongside the CreateSchema count. An earlier draft
+	// discarded the error with `_, _ = enc.Encode(...)`; the review
+	// flagged that pattern as "all 32 goroutines could be erroring
+	// and the test would still pass as long as CreateSchema fires
+	// exactly once".
+	errs := make(chan error, goroutines)
 	var wg sync.WaitGroup
 	wg.Add(goroutines)
 	for g := 0; g < goroutines; g++ {
 		go func() {
 			defer wg.Done()
-			_, _ = enc.Encode([]byte("payload"), "sf-31", &gsrcore.Schema{
+			_, err := enc.Encode([]byte("payload"), "sf-31", &gsrcore.Schema{
 				SchemaDefinition: avroSchemaLifecycle,
 				SchemaName:       "sf-31",
 				DataFormat:       "AVRO",
 			})
+			if err != nil {
+				errs <- err
+			}
 		}()
 	}
 	wg.Wait()
+	close(errs)
+	for err := range errs {
+		require.NoError(t, err, "singleflight encoder must not error on the cached-path branch")
+	}
 
 	require.Equal(t, 1, f.CallCounts["CreateSchema"],
 		"N concurrent first-encodes of the same schema must collapse to one CreateSchema call (singleflight)")

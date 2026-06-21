@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/kafkaharness"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/testpb"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/deserializer"
@@ -31,6 +32,7 @@ type MultiThreadedIntegrationSuite struct {
 	suite.Suite
 	topicName string
 	cleanup   func()
+	broker    *kafkaharness.Broker
 }
 
 // TestResult represents the result of a goroutine's serialization/deserialization operations
@@ -46,10 +48,16 @@ type TestResult struct {
 // SetupSuite initializes the test suite
 func (s *MultiThreadedIntegrationSuite) SetupSuite() {
 	s.T().Log("=== Setting up MultiThreaded Integration Suite ===")
-	
+
+	// Phase 4: testcontainers-go owns the Kafka lifecycle for this
+	// standalone suite the same way it does for BaseIntegrationSuite.
+	// Without this, getKafkaBroker() falls back to localhost:9092 and
+	// the entire suite fails to dial Kafka under `make test-integ`.
+	s.broker = kafkaharness.Start(context.Background(), s.T())
+
 	// Verify Kafka is running
 	s.requireKafkaRunning()
-	
+
 	s.T().Log("=== MultiThreaded Integration Suite Setup Complete ===")
 }
 
@@ -506,8 +514,14 @@ func (s *MultiThreadedIntegrationSuite) generateTestTopicName() string {
 	return fmt.Sprintf("multithreaded-gsr-integration-test-%x", randomBytes)
 }
 
-// getKafkaBroker returns the Kafka broker address
+// getKafkaBroker returns the Kafka broker address. Preference order
+// matches BaseIntegrationSuite.getKafkaBroker: testcontainers harness
+// first (Phase 4 default), KAFKA_BROKER env second (docker-compose
+// fallback), defaultKafkaBroker last.
 func (s *MultiThreadedIntegrationSuite) getKafkaBroker() string {
+	if s.broker != nil && s.broker.Bootstrap != "" {
+		return s.broker.Bootstrap
+	}
 	if broker := os.Getenv("KAFKA_BROKER"); broker != "" {
 		return broker
 	}

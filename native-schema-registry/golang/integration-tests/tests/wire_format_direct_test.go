@@ -3,6 +3,8 @@
 package integration_tests
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -123,16 +125,29 @@ func TestWireFormat_DecodeRejectsBadCompressionByte(t *testing.T) {
 
 // §5.3 item 12 — Java golden-byte parity. The authoritative fixtures
 // live in pkg/gsrserde-go/core/testdata/golden/ and are exercised by
-// the core/ unit tests. Mirror at the integration level so the §5.3
-// row is checked even when a contributor only runs `go test -tags
-// integration ./integration-tests/...`. The actual byte comparison
-// runs in core/, not here — this is a sentinel test that documents
-// where the bytes live and fails loudly if the fixture disappears.
+// the core/ unit tests. Mirror at the integration level so a
+// contributor running ONLY the integration suite catches a fixture
+// deletion / rename. An earlier draft of this test was a t.Log-only
+// sentinel; the review correctly flagged that a no-assertion test is
+// worse than a missing test because it falsely contributes to the
+// green count. Now we stat the fixture files so deleting them turns
+// THIS test red.
 func TestWireFormat_JavaGoldenByteParityPresence(t *testing.T) {
 	t.Parallel()
-	// This is intentionally a forward reference (no behavior
-	// assertion) — the fixture-presence check belongs in core/, where
-	// the testdata/ directory is rooted. Documented here so anyone
-	// scanning the §5.3 list sees item 12 has a covered seat.
-	t.Log("§5.3 item 12 (golden-byte parity) is covered in pkg/gsrserde-go/core/golden_bytes_parity_test.go")
+	// Path is relative to the test's cwd (Go sets cwd to the package
+	// dir, i.e. integration-tests/tests). Two levels up reaches the
+	// outer-module root, then into pkg/gsrserde-go/core/testdata.
+	root := filepath.Join("..", "..", "pkg", "gsrserde-go", "core", "testdata", "golden")
+	required := []string{
+		"wire-only__none__fixed-uuid__hello.bin",
+		"wire-only__zlib__fixed-uuid__hello.bin",
+		"README.md",
+	}
+	for _, name := range required {
+		path := filepath.Join(root, name)
+		info, err := os.Stat(path)
+		require.NoError(t, err, "§5.3 item 12 fixture %q missing — Java golden-byte parity coverage is broken", path)
+		require.False(t, info.IsDir(), "§5.3 item 12 fixture %q is a directory, expected a file", path)
+		require.Greater(t, info.Size(), int64(0), "§5.3 item 12 fixture %q is empty", path)
+	}
 }
