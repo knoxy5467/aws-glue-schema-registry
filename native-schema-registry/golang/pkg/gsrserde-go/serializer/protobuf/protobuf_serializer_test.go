@@ -362,6 +362,75 @@ func TestProtobufSerializer_Validate_ErrorCases(t *testing.T) {
 	}
 }
 
+// TestProtobufSerializer_Validate_RejectsNonProtoBytes is the Phase 3 red→green
+// test for replacing Validate(string, []byte)'s null-check-only stub with a
+// real wire-format check. Java parity: ProtobufSerializer.java:106-109 leaves
+// validate(byte[]) as a TODO, but the Go library has no other place to
+// surface "these bytes are not protobuf" before they reach the encoder, so we
+// promote the stub to a real probe.
+//
+// Bytes that are not well-formed protobuf (no leading varint tag, or invalid
+// wire-type) must return a typed *ProtobufValidationError whose chain reaches
+// core.ErrInvalidProtobufPayload and therefore core.ErrGSR.
+func TestProtobufSerializer_Validate_RejectsNonProtoBytes(t *testing.T) {
+	config := createProtobufConfig()
+	serializer := NewProtobufSerializer(config)
+
+	tests := []struct {
+		name string
+		data []byte
+	}{
+		// Wire-type 7 is reserved/invalid in proto wire format. A single byte
+		// of 0x0F encodes (field=1, wire=7) which proto.Unmarshal rejects.
+		{name: "invalid wire type", data: []byte{0x0F}},
+		// A length-delimited (wire=2) tag claiming 16 bytes but with only 3
+		// payload bytes; classic truncation case.
+		{name: "truncated length-delimited", data: []byte{0x0A, 0x10, 0x01, 0x02, 0x03}},
+		// An ASCII string that happens to have invalid wire bytes when read
+		// as protobuf — the catch-all "bytes that obviously aren't proto".
+		{name: "ascii noise", data: []byte("not a proto message")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := serializer.Validate("test-schema", tt.data)
+			require.Error(t, err, "non-proto bytes must be rejected")
+			var validationErr *ProtobufValidationError
+			assert.ErrorAs(t, err, &validationErr, "Should return ProtobufValidationError")
+			assert.ErrorIs(t, err, gsrcore.ErrInvalidProtobufPayload,
+				"chain must reach core.ErrInvalidProtobufPayload")
+			assert.ErrorIs(t, err, gsrcore.ErrGSR,
+				"chain must reach core.ErrGSR for unified callers")
+		})
+	}
+}
+
+// TestProtobufSerializer_ValidateObject_PointerToStringTypedError is the
+// Phase 3 red→green test for replacing the protobuf serializer's stub error
+// surface with one rooted in core.ErrInvalidProtobufPayload. Passing a
+// *string — which clearly isn't a proto.Message — must surface as a typed
+// *ProtobufValidationError whose chain reaches the new core sentinel.
+//
+// Pre-Phase-3 behavior: returns ProtobufValidationError wrapping the local
+// ErrInvalidProtoMessage sentinel only. Post-Phase-3: the chain also reaches
+// core.ErrInvalidProtobufPayload (and therefore core.ErrGSR), so callers can
+// use errors.Is at any granularity to detect "this isn't a protobuf value".
+func TestProtobufSerializer_ValidateObject_PointerToStringTypedError(t *testing.T) {
+	config := createProtobufConfig()
+	serializer := NewProtobufSerializer(config)
+
+	s := "not a proto message"
+	err := serializer.ValidateObject(&s)
+	require.Error(t, err, "*string must be rejected as not a protobuf value")
+
+	var validationErr *ProtobufValidationError
+	assert.ErrorAs(t, err, &validationErr, "Should return ProtobufValidationError")
+	assert.ErrorIs(t, err, gsrcore.ErrInvalidProtobufPayload,
+		"chain must reach core.ErrInvalidProtobufPayload")
+	assert.ErrorIs(t, err, gsrcore.ErrGSR,
+		"chain must reach core.ErrGSR for unified callers")
+}
+
 func TestProtobufSerializer_Validate_ValidData(t *testing.T) {
 	config := createProtobufConfig()
 	serializer := NewProtobufSerializer(config)

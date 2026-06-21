@@ -48,6 +48,16 @@ func TestErrSchemaAutoRegistrationDisabled_IsErrGSR(t *testing.T) {
 	assert.True(t, errors.Is(ErrSchemaAutoRegistrationDisabled, ErrGSR))
 }
 
+func TestErrInvalidProtobufPayload_IsErrGSR(t *testing.T) {
+	assert.True(t, errors.Is(ErrInvalidProtobufPayload, ErrGSR))
+}
+
+func TestErrInvalidProtobufPayload_ChainsThroughFmtErrorf(t *testing.T) {
+	wrapped := fmt.Errorf("protobuf: %w", ErrInvalidProtobufPayload)
+	assert.True(t, errors.Is(wrapped, ErrInvalidProtobufPayload))
+	assert.True(t, errors.Is(wrapped, ErrGSR))
+}
+
 func TestSerializationError_IsErrGSR(t *testing.T) {
 	err := NewSerializationError("anything")
 	assert.True(t, errors.Is(err, ErrGSR))

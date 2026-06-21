@@ -45,6 +45,15 @@ var ErrMessageTypeNotFound = fmt.Errorf("%w: protobuf message type not found in 
 // AWSSchemaRegistryConstants.AUTO_REGISTRATION_IS_DISABLED_MSG.
 var ErrSchemaAutoRegistrationDisabled = fmt.Errorf("%w: schema auto-registration is disabled", ErrGSR)
 
+// ErrInvalidProtobufPayload is returned by the protobuf format layer when a
+// candidate value (object or byte slice) is rejected as not a valid protobuf
+// message. Wraps ErrGSR so callers can errors.Is at either granularity.
+//
+// Java parity: AWSSchemaRegistryException thrown at
+// serializer-deserializer/src/main/java/com/amazonaws/services/schemaregistry/serializers/protobuf/ProtobufSerializer.java:113-115
+// when an object is not an instance of com.google.protobuf.Message.
+var ErrInvalidProtobufPayload = fmt.Errorf("%w: value is not a valid protobuf message", ErrGSR)
+
 // SerializationError wraps a failure that originated inside Encode. It carries
 // the original error so errors.Unwrap, errors.Is, and errors.As all chain
 // through to the underlying cause (sentinel, SDK error, parser error, …).
