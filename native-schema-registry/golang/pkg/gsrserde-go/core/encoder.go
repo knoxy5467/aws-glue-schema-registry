@@ -215,6 +215,26 @@ func (s *GsrEncoder) fetchSchemaVersionID(schemaDefinition, schemaName, dataForm
 		return &versionIDLookupResult{SchemaVersionID: *getResp.SchemaVersionId, Version: 1}, nil
 	}
 
+	// Phase 4.5 bug 2 fix: only fall through to CreateSchema on the
+	// documented auto-register trigger (EntityNotFoundException). Any
+	// other typed error from GetSchemaByDefinition — AccessDenied,
+	// Throttling, InvalidInput, network — must propagate directly.
+	// Java parity: AWSSchemaRegistryClient.java:151 only catches
+	// EntityNotFoundException and re-raises everything else. The
+	// previous code's blanket fall-through was write-amplifying
+	// (turned read-denied into write-attempt) and could mask the
+	// originating typed error behind a CreateSchema failure.
+	//
+	// `err == nil && getResp == nil` (or success-shape getResp with
+	// SchemaVersionId == nil) is also treated as "not present" — Glue
+	// returns 200 with empty body in some edge cases.
+	if err != nil {
+		var notFound *types.EntityNotFoundException
+		if !errors.As(err, &notFound) {
+			return nil, fmt.Errorf("get schema by definition: %w", err)
+		}
+	}
+
 	schemaVersionId, version, err := s.createSchema(schemaName, dataFormat, schemaDefinition)
 	if err != nil {
 		// If schema already exists (race with another producer), register a new version.

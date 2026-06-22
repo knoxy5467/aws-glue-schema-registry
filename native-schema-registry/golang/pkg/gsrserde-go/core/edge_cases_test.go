@@ -1,7 +1,6 @@
 package gsrserde
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/glue"
@@ -29,8 +28,13 @@ func TestSerializer_GetSchemaVersionIdByDefinition_CreateSchemaPath(t *testing.T
 		compatibility:                 "BACKWARD",
 	}
 
+	// Phase 4.5 bug 2: the encoder only falls through to CreateSchema
+	// on EntityNotFoundException — an untyped errors.New("…") would
+	// (correctly) propagate as a real error rather than auto-register.
+	// Use the typed not-found error to drive the auto-register path
+	// this test is asserting.
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).Return(
-		nil, errors.New("schema not found"))
+		nil, newEntityNotFoundError())
 
 	createdSchemaVersionID := otherUUIDString
 	latestVersion := int64(2)

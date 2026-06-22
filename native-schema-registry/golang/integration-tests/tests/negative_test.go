@@ -41,18 +41,15 @@ var _ smithy.APIError = throttlingError{}
 const negativeAvroSchema = `{"type":"record","name":"User","fields":[{"name":"id","type":"string"}]}`
 
 // §5.3 item 23 — IAM denied → returns a typed error wrapping the SDK's
-// AccessDeniedException. Drive via ForceGetSchemaError so the failure
-// happens at the GetSchemaByDefinition step (mirrors the first Glue
-// call the encoder makes).
+// AccessDeniedException. Phase 4.5 bug 2 fix: only ForceGetSchemaError
+// needs to be set now that the encoder gates fall-through on the
+// EntityNotFoundException type. The post-fix contract is that
+// CreateSchema is NEVER called when GetSchemaByDefinition returns a
+// non-EntityNotFound error — asserted explicitly via CallCounts.
 func TestNegative_IAMDenied(t *testing.T) {
 	t.Parallel()
 	f := fakeglue.New()
-	// The encoder falls through GetSchemaByDefinition errors to
-	// CreateSchema (auto-register path). Set the error on BOTH calls
-	// so the IAM denied surfaces regardless of which step the test
-	// happens to drive.
 	f.ForceGetSchemaError = &types.AccessDeniedException{Message: ptr("denied")}
-	f.ForceCreateError = &types.AccessDeniedException{Message: ptr("denied")}
 	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
 		RegistryName: "default-registry",
 	})
@@ -66,21 +63,21 @@ func TestNegative_IAMDenied(t *testing.T) {
 	require.Error(t, err)
 	var ad *types.AccessDeniedException
 	require.True(t, errors.As(err, &ad), "encoder must surface AccessDeniedException via errors.As (got %T: %v)", err, err)
+	require.Equal(t, 0, f.CallCounts["CreateSchema"],
+		"AccessDenied on GetSchemaByDefinition must NOT trigger a write-amplifying CreateSchema attempt")
 }
 
 // §5.3 item 24 — Throttling. Glue's ThrottlingException is retryable;
 // the AWS SDK retry middleware swallows transient errors and only
 // surfaces after retries are exhausted. With the test seam (which
 // does not run middleware), ForceGetSchemaError = ThrottlingException
-// surfaces on the very first call. The behavior we lock down here is:
-// the encoder propagates the typed error rather than swallowing it.
+// surfaces on the very first call. Phase 4.5 bug 2 fix: the encoder
+// no longer attempts CreateSchema on a throttled read, doubling load
+// on an already-throttled Glue.
 func TestNegative_Throttling(t *testing.T) {
 	t.Parallel()
 	f := fakeglue.New()
-	// Same fall-through note as TestNegative_IAMDenied: force the
-	// error on both Glue calls so throttling surfaces.
 	f.ForceGetSchemaError = throttlingError{}
-	f.ForceCreateError = throttlingError{}
 	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
 		RegistryName: "default-registry",
 	})
@@ -96,6 +93,8 @@ func TestNegative_Throttling(t *testing.T) {
 	require.True(t, errors.As(err, &apiErr), "encoder must surface a smithy.APIError-typed error (got %T: %v)", err, err)
 	require.Equal(t, "ThrottlingException", apiErr.ErrorCode(),
 		"the surfaced error must carry the ThrottlingException API code so the retry middleware matches")
+	require.Equal(t, 0, f.CallCounts["CreateSchema"],
+		"ThrottlingException on GetSchemaByDefinition must NOT trigger an additional CreateSchema call (which would double the load)")
 }
 
 // §5.3 item 25 — EntityNotFoundException on GetSchemaVersion +
