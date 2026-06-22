@@ -11,7 +11,6 @@ import (
 	smithy "github.com/aws/smithy-go"
 	"github.com/stretchr/testify/require"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/fakeglue"
 	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
 )
 
@@ -46,24 +45,32 @@ const negativeAvroSchema = `{"type":"record","name":"User","fields":[{"name":"id
 // EntityNotFoundException type. The post-fix contract is that
 // CreateSchema is NEVER called when GetSchemaByDefinition returns a
 // non-EntityNotFound error — asserted explicitly via CallCounts.
+//
+// Phase 4.7: requiresFake=true. Driving an IAM-denied response on
+// real Glue would require a separate role + AssumeRole flow, which
+// is Phase 5 canary territory. The fake's Force* path proves the
+// encoder's response-handling code; the canary will prove the IAM
+// resolver chain itself.
 func TestNegative_IAMDenied(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	f.ForceGetSchemaError = &types.AccessDeniedException{Message: ptr("denied")}
-	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
+	scenarioGate(t, false, true)
+	h := newGlueHandle(t)
+	h.Fake.ForceGetSchemaError = &types.AccessDeniedException{Message: ptr("denied")}
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
 		RegistryName: "default-registry",
 	})
 	require.NoError(t, err)
 
-	_, err = enc.Encode([]byte("payload"), "neg-23", &gsrcore.Schema{
+	schemaName := randomGlueName(t, "neg-23")
+	_, err = enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
 		SchemaDefinition: negativeAvroSchema,
-		SchemaName:       "neg-23",
+		SchemaName:       schemaName,
 		DataFormat:       "AVRO",
 	})
 	require.Error(t, err)
 	var ad *types.AccessDeniedException
 	require.True(t, errors.As(err, &ad), "encoder must surface AccessDeniedException via errors.As (got %T: %v)", err, err)
-	require.Equal(t, 0, f.CallCounts["CreateSchema"],
+	require.Equal(t, 0, h.Fake.CallCounts["CreateSchema"],
 		"AccessDenied on GetSchemaByDefinition must NOT trigger a write-amplifying CreateSchema attempt")
 }
 
@@ -74,18 +81,25 @@ func TestNegative_IAMDenied(t *testing.T) {
 // surfaces on the very first call. Phase 4.5 bug 2 fix: the encoder
 // no longer attempts CreateSchema on a throttled read, doubling load
 // on an already-throttled Glue.
+//
+// Phase 4.7: requiresFake=true. Real throttling is intentionally
+// rare and difficult to provoke deterministically; the canary
+// harness (Phase 5) will exercise the SDK retry path against real
+// Glue under load.
 func TestNegative_Throttling(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	f.ForceGetSchemaError = throttlingError{}
-	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
+	scenarioGate(t, false, true)
+	h := newGlueHandle(t)
+	h.Fake.ForceGetSchemaError = throttlingError{}
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
 		RegistryName: "default-registry",
 	})
 	require.NoError(t, err)
 
-	_, err = enc.Encode([]byte("payload"), "neg-24", &gsrcore.Schema{
+	schemaName := randomGlueName(t, "neg-24")
+	_, err = enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
 		SchemaDefinition: negativeAvroSchema,
-		SchemaName:       "neg-24",
+		SchemaName:       schemaName,
 		DataFormat:       "AVRO",
 	})
 	require.Error(t, err)
@@ -93,7 +107,7 @@ func TestNegative_Throttling(t *testing.T) {
 	require.True(t, errors.As(err, &apiErr), "encoder must surface a smithy.APIError-typed error (got %T: %v)", err, err)
 	require.Equal(t, "ThrottlingException", apiErr.ErrorCode(),
 		"the surfaced error must carry the ThrottlingException API code so the retry middleware matches")
-	require.Equal(t, 0, f.CallCounts["CreateSchema"],
+	require.Equal(t, 0, h.Fake.CallCounts["CreateSchema"],
 		"ThrottlingException on GetSchemaByDefinition must NOT trigger an additional CreateSchema call (which would double the load)")
 }
 
@@ -102,24 +116,31 @@ func TestNegative_Throttling(t *testing.T) {
 // CreateSchema. The fakeglue.Fake's empty-state path is exactly this:
 // GetSchemaByDefinition returns EntityNotFound, the encoder falls
 // through to CreateSchema, and the encode succeeds.
+//
+// Phase 4.7: requiresFake=true. The exact-CallCount asserts are
+// fake-only. Real Glue exercises the same fall-through path via
+// auto-register-on-fresh-schema-name in TestCompatibility_BackwardV1ToV2
+// and friends.
 func TestNegative_EntityNotFoundFallsThroughToCreate(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
+	scenarioGate(t, false, true)
+	h := newGlueHandle(t)
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
 		RegistryName:                  "default-registry",
 		SchemaAutoRegistrationEnabled: true,
 	})
 	require.NoError(t, err)
 
-	encoded, err := enc.Encode([]byte("payload"), "neg-25", &gsrcore.Schema{
+	schemaName := randomGlueName(t, "neg-25")
+	encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
 		SchemaDefinition: negativeAvroSchema,
-		SchemaName:       "neg-25",
+		SchemaName:       schemaName,
 		DataFormat:       "AVRO",
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, encoded)
-	require.Equal(t, 1, f.CallCounts["CreateSchema"], "auto-register=true should fall through to CreateSchema")
-	require.Equal(t, 1, f.CallCounts["GetSchemaByDefinition"], "first Glue call is GetSchemaByDefinition")
+	require.Equal(t, 1, h.Fake.CallCounts["CreateSchema"], "auto-register=true should fall through to CreateSchema")
+	require.Equal(t, 1, h.Fake.CallCounts["GetSchemaByDefinition"], "first Glue call is GetSchemaByDefinition")
 }
 
 // §5.3 item 26 — malformed payload surfaces an error at the wire-
@@ -142,16 +163,17 @@ func TestNegative_EntityNotFoundFallsThroughToCreate(t *testing.T) {
 // Tier-1 coverage in the comment instead of pretending to mirror it.
 func TestNegative_MalformedDecodePayload(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	dec, err := gsrcore.NewGsrDecoderForTest(f, gsrcore.GsrDecoderOptions{
+	h := newGlueHandle(t)
+	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
 		RegistryName: "default-registry",
 	})
 	require.NoError(t, err)
 
 	// A payload with a valid version + compression byte but a
-	// schema-version-id Glue has never seen — fakeglue returns
-	// EntityNotFound from GetSchemaVersion. The decoder surfaces that
-	// as an error from Decode rather than silently returning empty.
+	// schema-version-id Glue has never seen — both fakeglue and real
+	// Glue return EntityNotFound (or 400) from GetSchemaVersion. The
+	// decoder surfaces that as an error from Decode rather than
+	// silently returning empty.
 	bad := []byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		'm', 'a', 'l', 'f', 'o', 'r', 'm', 'e', 'd'}
@@ -171,8 +193,11 @@ func TestNegative_MalformedDecodePayload(t *testing.T) {
 // need to also wire up CreateSchema flow.
 func TestNegative_NonUTF8Path(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	dec, err := gsrcore.NewGsrDecoderForTest(f, gsrcore.GsrDecoderOptions{
+	// This test primes the decoder cache directly via
+	// PrimeSchemaCache and never reaches the underlying GlueClient;
+	// it's backend-agnostic, no gate needed.
+	h := newGlueHandle(t)
+	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
 		RegistryName: "default-registry",
 	})
 	require.NoError(t, err)
@@ -214,8 +239,10 @@ func TestNegative_NonUTF8Path(t *testing.T) {
 // §5.3 item 28 — truncated payload (< 18 bytes) → typed error.
 func TestNegative_TruncatedPayload(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	dec, err := gsrcore.NewGsrDecoderForTest(f, gsrcore.GsrDecoderOptions{
+	// Truncation check happens entirely inside DecodeWireFormat
+	// (size guard); no GlueClient call. Backend-agnostic.
+	h := newGlueHandle(t)
+	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
 		RegistryName: "default-registry",
 	})
 	require.NoError(t, err)
@@ -239,8 +266,10 @@ func TestNegative_TruncatedPayload(t *testing.T) {
 // what this test pins.
 func TestNegative_UnknownVersionUUID(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	dec, err := gsrcore.NewGsrDecoderForTest(f, gsrcore.GsrDecoderOptions{
+	// Unknown-UUID lookup goes through GetSchemaVersion; both backends
+	// surface an error here. Backend-agnostic.
+	h := newGlueHandle(t)
+	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
 		RegistryName: "default-registry",
 	})
 	require.NoError(t, err)

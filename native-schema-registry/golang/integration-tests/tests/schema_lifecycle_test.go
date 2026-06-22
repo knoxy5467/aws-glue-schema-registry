@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/fakeglue"
 	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
 )
 
@@ -30,32 +29,41 @@ const (
 // §5.3 item 13 — auto-register a new schema; subsequent encode reuses
 // the cached version-id. Asserted by counting CreateSchema /
 // GetSchemaByDefinition invocations on the fake.
+//
+// Phase 4.7: gated requiresFake=true. The assertion shape (exact
+// CallCounts on the GlueClient) only makes sense against fakeglue;
+// real Glue has no equivalent introspection. A companion
+// requiresReal=true test would assert the behavior via a separate
+// route (e.g. wire-format prefix bytes equal across calls) — that
+// companion is fmt:lifecycle_real_test.go in the same package.
 func TestLifecycle_AutoRegister_ThenCacheReuse(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
+	scenarioGate(t, false, true)
+	h := newGlueHandle(t)
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
 		RegistryName:                  "default-registry",
 		Compatibility:                 "BACKWARD",
 		SchemaAutoRegistrationEnabled: true,
 	})
 	require.NoError(t, err)
 
+	schemaName := randomGlueName(t, "lifecycle-13")
 	schema := &gsrcore.Schema{
 		SchemaDefinition: avroSchemaLifecycle,
-		SchemaName:       "lifecycle-13",
+		SchemaName:       schemaName,
 		DataFormat:       "AVRO",
 	}
-	out1, err := enc.Encode([]byte("payload-1"), "lifecycle-13", schema)
+	out1, err := enc.Encode([]byte("payload-1"), schemaName, schema)
 	require.NoError(t, err)
-	out2, err := enc.Encode([]byte("payload-2"), "lifecycle-13", schema)
+	out2, err := enc.Encode([]byte("payload-2"), schemaName, schema)
 	require.NoError(t, err)
 
 	require.Equal(t, out1[:gsrcore.WireFormatHeaderSize], out2[:gsrcore.WireFormatHeaderSize],
 		"both encodes should reuse the same wire-format prefix (cached version-id)")
 
-	require.Equal(t, 1, f.CallCounts["CreateSchema"],
+	require.Equal(t, 1, h.Fake.CallCounts["CreateSchema"],
 		"second Encode must hit the cache, not call CreateSchema again")
-	require.LessOrEqual(t, f.CallCounts["GetSchemaByDefinition"], 1,
+	require.LessOrEqual(t, h.Fake.CallCounts["GetSchemaByDefinition"], 1,
 		"second Encode must hit the cache, not re-call GetSchemaByDefinition")
 }
 
@@ -63,22 +71,31 @@ func TestLifecycle_AutoRegister_ThenCacheReuse(t *testing.T) {
 // error WITHOUT calling CreateSchema. This is the safety guarantee
 // callers need when they explicitly do not want their producer to
 // mutate the registry.
+//
+// Phase 4.7: the error-surface assertion (ErrSchemaAutoRegistrationDisabled
+// is wrapped) holds on either backend, but the "CreateSchema was not
+// called" assertion is fake-specific. Gate requiresFake=true so the
+// real-mode run skips this and the dedicated requiresReal companion
+// in fmt:lifecycle_real_test.go re-asserts the error surface against
+// a never-existed schema name in real Glue.
 func TestLifecycle_AutoRegisterDisabled_UnknownSchemaErrors(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
+	scenarioGate(t, false, true)
+	h := newGlueHandle(t)
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
 		RegistryName:                  "default-registry",
 		Compatibility:                 "BACKWARD",
 		SchemaAutoRegistrationEnabled: false,
 	})
 	require.NoError(t, err)
 
+	schemaName := randomGlueName(t, "lifecycle-14")
 	schema := &gsrcore.Schema{
 		SchemaDefinition: avroSchemaLifecycle,
-		SchemaName:       "lifecycle-14",
+		SchemaName:       schemaName,
 		DataFormat:       "AVRO",
 	}
-	_, err = enc.Encode([]byte("payload"), "lifecycle-14", schema)
+	_, err = enc.Encode([]byte("payload"), schemaName, schema)
 
 	// Phase 4.5 bug 1 fix: the encoder honors
 	// SchemaAutoRegistrationEnabled now. §5.3 item 14's contract is
@@ -87,7 +104,7 @@ func TestLifecycle_AutoRegisterDisabled_UnknownSchemaErrors(t *testing.T) {
 	require.Error(t, err, "auto-register=false + unknown schema must error")
 	require.True(t, errors.Is(err, gsrcore.ErrSchemaAutoRegistrationDisabled),
 		"surfaced error must wrap ErrSchemaAutoRegistrationDisabled (got %T: %v)", err, err)
-	require.Equal(t, 0, f.CallCounts["CreateSchema"],
+	require.Equal(t, 0, h.Fake.CallCounts["CreateSchema"],
 		"CreateSchema must NOT be called when auto-register is disabled")
 }
 
@@ -97,23 +114,29 @@ func TestLifecycle_AutoRegisterDisabled_UnknownSchemaErrors(t *testing.T) {
 // every time. This test pins the behavior under the test-seam encoder
 // so a future "pre-registered schema id" feature has a clear
 // regression backstop.
+//
+// Phase 4.7: requiresFake=true. The "primed cache short-circuits the
+// Glue lookup" assertion can only be asserted by counting calls on
+// the fake — the real Glue path has no equivalent introspection.
 func TestLifecycle_PreRegisteredSchemaID(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	// Seed the fake as if the schema were created out-of-band.
+	scenarioGate(t, false, true)
+	h := newGlueHandle(t)
+	schemaName := randomGlueName(t, "lifecycle-15")
+	// Seed the encoder cache as if the schema were created out-of-band.
 	priorSchema := &gsrcore.Schema{
 		SchemaDefinition: avroSchemaLifecycle,
-		SchemaName:       "lifecycle-15",
+		SchemaName:       schemaName,
 		DataFormat:       "AVRO",
 		SchemaVersionID:  "00000000-0000-0000-0000-000000000123",
 	}
-	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
 		RegistryName: "default-registry",
 	})
 	require.NoError(t, err)
 	gsrcore.PrimeEncoderCache(enc, priorSchema.SchemaName, priorSchema.DataFormat, priorSchema)
 
-	out, err := enc.Encode([]byte("payload"), "lifecycle-15", priorSchema)
+	out, err := enc.Encode([]byte("payload"), schemaName, priorSchema)
 	require.NoError(t, err)
 	// Bytes 2..17 of the wire-format prefix are the UUID; assert the
 	// cached UUID flowed through verbatim.
@@ -122,44 +145,49 @@ func TestLifecycle_PreRegisteredSchemaID(t *testing.T) {
 		out[2:gsrcore.WireFormatHeaderSize],
 		"primed cache must short-circuit Glue lookup and use the seeded version UUID")
 
-	require.Equal(t, 0, f.CallCounts["GetSchemaByDefinition"], "primed cache must skip Glue lookup")
-	require.Equal(t, 0, f.CallCounts["CreateSchema"], "primed cache must skip CreateSchema")
+	require.Equal(t, 0, h.Fake.CallCounts["GetSchemaByDefinition"], "primed cache must skip Glue lookup")
+	require.Equal(t, 0, h.Fake.CallCounts["CreateSchema"], "primed cache must skip CreateSchema")
 }
 
 // §5.3 item 16 — cache TTL eviction. After TTL, a fresh
 // GetSchemaByDefinition call is made. Hardcoded short TTL keeps the
 // wall-clock cost down — 50ms is comfortably above patrickmn/go-cache's
 // 1ms-tick resolution.
+//
+// Phase 4.7: requiresFake=true. Verifying TTL eviction requires
+// counting GetSchemaByDefinition calls; that's fake-specific.
 func TestLifecycle_CacheTTLEviction(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
+	scenarioGate(t, false, true)
+	h := newGlueHandle(t)
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
 		RegistryName:                  "default-registry",
 		SchemaAutoRegistrationEnabled: true,
 		CacheTTLMillis:                50,
 	})
 	require.NoError(t, err)
 
+	schemaName := randomGlueName(t, "lifecycle-16")
 	schema := &gsrcore.Schema{
 		SchemaDefinition: avroSchemaLifecycle,
-		SchemaName:       "lifecycle-16",
+		SchemaName:       schemaName,
 		DataFormat:       "AVRO",
 	}
-	_, err = enc.Encode([]byte("payload-1"), "lifecycle-16", schema)
+	_, err = enc.Encode([]byte("payload-1"), schemaName, schema)
 	require.NoError(t, err)
 
 	time.Sleep(200 * time.Millisecond) // > TTL + cleanup tick
 
-	_, err = enc.Encode([]byte("payload-2"), "lifecycle-16", schema)
+	_, err = enc.Encode([]byte("payload-2"), schemaName, schema)
 	require.NoError(t, err)
 
 	// After TTL eviction, the second encode must re-resolve the
 	// schema. GetSchemaByDefinition succeeds (the fake still has the
 	// schema from the first encode), so CreateSchema is NOT called
 	// twice.
-	require.GreaterOrEqual(t, f.CallCounts["GetSchemaByDefinition"], 2,
+	require.GreaterOrEqual(t, h.Fake.CallCounts["GetSchemaByDefinition"], 2,
 		"GetSchemaByDefinition should be called again after TTL eviction")
-	require.Equal(t, 1, f.CallCounts["CreateSchema"],
+	require.Equal(t, 1, h.Fake.CallCounts["CreateSchema"],
 		"CreateSchema should still be called only once — the schema exists in Glue after the first encode")
 }
 

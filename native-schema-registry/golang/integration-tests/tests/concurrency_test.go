@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/fakeglue"
 	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
 )
 
@@ -28,16 +27,18 @@ import (
 // this version pins the orchestrator-level invariant through fakeglue.
 
 // §5.3 item 30 — multithreaded produce/consume with shared serializer
-// /deserializer instances.
+// /deserializer instances. Backend-agnostic on the race/cache property;
+// the CallCounts assertion at the end is fake-only and lives under a
+// nil-guard on h.Fake.
 func TestConcurrency_SharedInstancesDoNotRace(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
+	h := newGlueHandle(t)
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
 		RegistryName:                  "default-registry",
 		SchemaAutoRegistrationEnabled: true,
 	})
 	require.NoError(t, err)
-	dec, err := gsrcore.NewGsrDecoderForTest(f, gsrcore.GsrDecoderOptions{
+	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
 		RegistryName: "default-registry",
 	})
 	require.NoError(t, err)
@@ -53,10 +54,15 @@ func TestConcurrency_SharedInstancesDoNotRace(t *testing.T) {
 	// smaller than goroutines*perGoroutine so the cache-hit branch
 	// runs many times across the test.
 	pool := []string{
-		"shared-pool-a-" + scenarioRegistrySuffix(),
-		"shared-pool-b-" + scenarioRegistrySuffix(),
-		"shared-pool-c-" + scenarioRegistrySuffix(),
-		"shared-pool-d-" + scenarioRegistrySuffix(),
+		randomGlueName(t, "shared-pool-a"),
+		randomGlueName(t, "shared-pool-b"),
+		randomGlueName(t, "shared-pool-c"),
+		randomGlueName(t, "shared-pool-d"),
+	}
+	if h.Cleanup != nil {
+		for _, name := range pool {
+			h.Cleanup.TrackSchema("default-registry", name)
+		}
 	}
 
 	var wg sync.WaitGroup
@@ -92,10 +98,13 @@ func TestConcurrency_SharedInstancesDoNotRace(t *testing.T) {
 
 	// With 4 pool entries and singleflight, CreateSchema should fire
 	// at most once per pool entry — proves the cache fast-path is
-	// actually exercised under concurrency.
-	require.LessOrEqual(t, f.Count("CreateSchema"), len(pool),
-		"singleflight + cache must collapse concurrent first-encodes per pool entry; saw %d CreateSchema calls for %d distinct names",
-		f.Count("CreateSchema"), len(pool))
+	// actually exercised under concurrency. Real Glue has no
+	// equivalent introspection so we only assert this on fake.
+	if h.Fake != nil {
+		require.LessOrEqual(t, h.Fake.Count("CreateSchema"), len(pool),
+			"singleflight + cache must collapse concurrent first-encodes per pool entry; saw %d CreateSchema calls for %d distinct names",
+			h.Fake.Count("CreateSchema"), len(pool))
+	}
 }
 
 // §5.3 item 31 — concurrent first-encode of the same schema only
@@ -103,16 +112,21 @@ func TestConcurrency_SharedInstancesDoNotRace(t *testing.T) {
 // guarantees this; we pin the orchestrator-level invariant by
 // running N goroutines against the same schemaName + definition and
 // asserting CreateSchema's count is 1.
+//
+// Phase 4.7: requiresFake=true. The "exactly one CreateSchema"
+// assertion is fake-only.
 func TestConcurrency_SingleflightFirstEncode(t *testing.T) {
 	t.Parallel()
-	f := fakeglue.New()
-	enc, err := gsrcore.NewGsrEncoderForTest(f, gsrcore.GsrEncoderOptions{
+	scenarioGate(t, false, true)
+	h := newGlueHandle(t)
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
 		RegistryName:                  "default-registry",
 		SchemaAutoRegistrationEnabled: true,
 	})
 	require.NoError(t, err)
 
 	const goroutines = 32
+	schemaName := randomGlueName(t, "sf-31")
 
 	// Collect per-goroutine errors so a regression that makes the
 	// cached-path branch nil-deref (or any other latent encoder bug)
@@ -127,9 +141,9 @@ func TestConcurrency_SingleflightFirstEncode(t *testing.T) {
 	for g := 0; g < goroutines; g++ {
 		go func() {
 			defer wg.Done()
-			_, err := enc.Encode([]byte("payload"), "sf-31", &gsrcore.Schema{
+			_, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
 				SchemaDefinition: avroSchemaLifecycle,
-				SchemaName:       "sf-31",
+				SchemaName:       schemaName,
 				DataFormat:       "AVRO",
 			})
 			if err != nil {
@@ -143,6 +157,6 @@ func TestConcurrency_SingleflightFirstEncode(t *testing.T) {
 		require.NoError(t, err, "singleflight encoder must not error on the cached-path branch")
 	}
 
-	require.Equal(t, 1, f.CallCounts["CreateSchema"],
+	require.Equal(t, 1, h.Fake.CallCounts["CreateSchema"],
 		"N concurrent first-encodes of the same schema must collapse to one CreateSchema call (singleflight)")
 }
