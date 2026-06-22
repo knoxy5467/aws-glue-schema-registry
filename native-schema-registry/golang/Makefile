@@ -99,6 +99,47 @@ else
 	@echo "Integration test report: $(BUILD_DIR)/integration-test-output.txt"
 endif
 
+# test-integ-real runs the §5.3 integration suite against REAL AWS
+# Glue (GSR_GLUE=real). Phase 4.7 wired the realglue package + the
+# newGlueHandle selector; this target is the user-facing entry point.
+#
+# Safety layers:
+#   1. Hard fail if neither AWS_PROFILE nor AWS_ACCESS_KEY_ID is set
+#      (no creds → realglue.New errors at construction, but failing
+#      earlier here keeps the user from waiting on Kafka startup
+#      before learning their creds aren't set).
+#   2. 5s sleep + banner so an accidental invocation is interruptible.
+#   3. 30-minute timeout cap so a stuck real-Glue call doesn't run
+#      forever.
+#
+# Region defaults to AWS_REGION, falling back to us-east-2 inside
+# realglue.New (plan §6.3 anchor — matches the existing Java/C#
+# canary account).
+REAL_INTEG_TIMEOUT := 30m
+REAL_REGION := $(if $(AWS_REGION),$(AWS_REGION),us-east-2)
+
+.PHONY: test-integ-real
+test-integ-real: setup-dirs generate-protos
+	@if [ -z "$$AWS_PROFILE" ] && [ -z "$$AWS_ACCESS_KEY_ID" ]; then \
+		echo "ERROR: test-integ-real requires AWS credentials"; \
+		echo "  set AWS_PROFILE=<your-beta-profile> OR"; \
+		echo "  set AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY"; \
+		echo "  see integration-tests/REAL-AWS-RUNBOOK.md for the full prereqs list"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "============================================================"
+	@echo "About to bill real AWS Glue in $(REAL_REGION)."
+	@echo "Press Ctrl-C within 5s to abort."
+	@echo "============================================================"
+	@echo ""
+	@sleep 5
+	cd integration-tests && GSR_GLUE=real AWS_INTEGRATION=1 $(GO) test -tags integration -count=1 -timeout $(REAL_INTEG_TIMEOUT) ./... 2>&1 | tee ../$(BUILD_DIR)/integration-test-real-output.txt
+	@echo ""
+	@echo "Run complete. Verify no leaked resources:"
+	@echo "  aws glue list-registries --region $(REAL_REGION) | grep gsr-go-it-"
+	@echo "  (should print nothing)"
+
 # test-integ-confluent adds the `confluent` build tag so the
 # confluent-kafka-go adapter (CGO + librdkafka) and its leg of the
 # §5.3 matrix are exercised. Separated from test-integ because
@@ -218,7 +259,8 @@ help:
 	@echo "Available targets:"
 	@echo "  build                       Compile/validate module and create package artifacts"
 	@echo "  test                        Run unit + component tests (excludes integration tests, <30s, no Docker/AWS)"
-	@echo "  test-integ                  Run §5.3 integration tests (AWS_INTEGRATION=1, testcontainers-go Kafka, $(INTEG_TIMEOUT) timeout)"
+	@echo "  test-integ                  Run §5.3 integration tests (AWS_INTEGRATION=1, fakeglue, testcontainers-go Kafka, $(INTEG_TIMEOUT) timeout)"
+	@echo "  test-integ-real             Run §5.3 integration tests against REAL AWS Glue (GSR_GLUE=real, bills AWS, $(REAL_INTEG_TIMEOUT) timeout)"
 	@echo "  test-integ-dockerized       Run integration tests inside an Alpine container (CI parity, mounts ~/.aws ro)"
 	@echo "  test-all                    Run all tests (unit, component, and integration)"
 	@echo "  cover-test                  Run unit + component tests with coverage"
