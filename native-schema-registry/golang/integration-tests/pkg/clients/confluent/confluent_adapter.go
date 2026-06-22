@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/google/uuid"
 
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/clients"
 )
@@ -71,11 +72,14 @@ func (a *Adapter) Produce(ctx context.Context, topic string, key, value []byte) 
 		return fmt.Errorf("confluent: produce: %w", err)
 	}
 
-	deadline := 30 * time.Second
-	if d, ok := ctx.Deadline(); ok {
-		if rem := time.Until(d); rem < deadline && rem > 0 {
-			deadline = rem
-		}
+	// ctx is the sole authority for the delivery wait. If the caller
+	// didn't set a deadline, apply DefaultConsumeTimeout so a wedged
+	// broker can't block forever; the previous min(30s, ctx) cap
+	// silently shrank a caller's longer ctx and is removed.
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, clients.DefaultConsumeTimeout)
+		defer cancel()
 	}
 
 	select {
@@ -88,8 +92,6 @@ func (a *Adapter) Produce(ctx context.Context, topic string, key, value []byte) 
 			return fmt.Errorf("confluent: delivery: %w", msg.TopicPartition.Error)
 		}
 		return nil
-	case <-time.After(deadline):
-		return errors.New("confluent: delivery deadline exceeded")
 	case <-ctx.Done():
 		return fmt.Errorf("confluent: produce cancelled: %w", ctx.Err())
 	}
@@ -97,9 +99,11 @@ func (a *Adapter) Produce(ctx context.Context, topic string, key, value []byte) 
 
 // Consume subscribes and reads one message.
 func (a *Adapter) Consume(ctx context.Context, topic string) ([]byte, error) {
+	// uuid for the group ID — UnixNano collides on coarse-clock
+	// platforms under t.Parallel, causing one reader to hang.
 	cfg := &kafka.ConfigMap{
 		"bootstrap.servers": a.brokers[0],
-		"group.id":          fmt.Sprintf("confluent-adapter-%d", time.Now().UnixNano()),
+		"group.id":          "confluent-adapter-" + uuid.NewString(),
 		"auto.offset.reset": "earliest",
 	}
 	consumer, err := kafka.NewConsumer(cfg)

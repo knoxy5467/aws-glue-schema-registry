@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/IBM/sarama"
 
@@ -52,7 +53,6 @@ func (a *Adapter) Produce(ctx context.Context, topic string, key, value []byte) 
 	if err != nil {
 		return fmt.Errorf("sarama: new producer: %w", err)
 	}
-	defer producer.Close()
 
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
@@ -60,13 +60,28 @@ func (a *Adapter) Produce(ctx context.Context, topic string, key, value []byte) 
 		Value: sarama.ByteEncoder(value),
 	}
 
-	// Honor ctx via a goroutine — sarama's SyncProducer doesn't accept
-	// a context directly.
+	// sarama's SyncProducer doesn't accept ctx, so we run the send in
+	// a goroutine and select on ctx. The wg ensures producer.Close()
+	// only runs after the goroutine has returned — sarama.SyncProducer
+	// is not safe under concurrent SendMessage + Close (Close drains
+	// the internal input channel SendMessage writes to). On ctx-cancel
+	// the caller doesn't wait for the send to finish (that defeats the
+	// cancel) but we do queue a deferred wait+close so the goroutine
+	// has somewhere to land its result without panicking. Buffered
+	// `done` ensures the goroutine never blocks writing the result.
+	var wg sync.WaitGroup
 	done := make(chan error, 1)
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		_, _, err := producer.SendMessage(msg)
 		done <- err
 	}()
+	defer func() {
+		wg.Wait()
+		_ = producer.Close()
+	}()
+
 	select {
 	case err := <-done:
 		if err != nil {

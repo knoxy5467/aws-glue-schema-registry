@@ -7,8 +7,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -46,15 +44,39 @@ func requireAWSIntegration(t *testing.T) {
 // scenarioTopicName returns a topic name unique to this test plus an
 // 8-hex-char random suffix. Same shape as the legacy
 // generateTestTopicName but tied to a *testing.T instead of a suite
-// receiver. Replaces unsafe '/' (from t.Name()'s `Parent/Sub` form)
-// with '-' so Kafka accepts it.
+// receiver.
+//
+// Kafka topic names must match `[a-zA-Z0-9._-]+`. t.Name() can carry
+// '/', ' ', and — for table-driven subtests with `key=value` names
+// — '=', plus arbitrary punctuation. Map every non-conforming
+// character to '-' so the matrix's t.Run names ('fmt=avro/comp=NONE')
+// produce broker-acceptable topics rather than silently failing every
+// subtest with InvalidTopicException.
 func scenarioTopicName(t *testing.T) string {
 	t.Helper()
 	buf := make([]byte, 4)
 	_, _ = rand.Read(buf)
-	name := strings.ReplaceAll(t.Name(), "/", "-")
-	name = strings.ReplaceAll(name, " ", "-")
-	return fmt.Sprintf("phase4-%s-%x", name, buf)
+	return fmt.Sprintf("phase4-%s-%x", sanitizeKafkaTopicSegment(t.Name()), buf)
+}
+
+// sanitizeKafkaTopicSegment maps any character outside Kafka's topic
+// regex [a-zA-Z0-9._-] to '-'. Exported as a helper so other places
+// in the suite that build topic names can stay consistent.
+func sanitizeKafkaTopicSegment(s string) string {
+	out := make([]byte, 0, len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c >= 'a' && c <= 'z',
+			c >= 'A' && c <= 'Z',
+			c >= '0' && c <= '9',
+			c == '.', c == '_', c == '-':
+			out = append(out, c)
+		default:
+			out = append(out, '-')
+		}
+	}
+	return string(out)
 }
 
 // scenarioRegistrySuffix randomizes the schema-name suffix used by a
@@ -65,18 +87,6 @@ func scenarioRegistrySuffix() string {
 	buf := make([]byte, 4)
 	_, _ = rand.Read(buf)
 	return fmt.Sprintf("-%x", buf)
-}
-
-// gsrPropertiesPath returns the absolute path to the seeded
-// gsr.properties so every scenario gets a consistent config-on-disk
-// regardless of where `go test` is invoked from.
-func gsrPropertiesPath(t *testing.T) string {
-	t.Helper()
-	p, err := filepath.Abs("./gsr.properties")
-	if err != nil {
-		t.Fatalf("scenario harness: cannot resolve ./gsr.properties: %v", err)
-	}
-	return p
 }
 
 // scenarioCtx returns a context with a generous-but-bounded timeout

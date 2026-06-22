@@ -11,6 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/dynamicpb"
+
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/clients"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/clients/sarama"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/clients/segmentio"
@@ -114,13 +117,8 @@ func adapterFor(t *testing.T, name string, bootstrap string) clients.Adapter {
 // common.GSRConfigPathKey and threads it verbatim into the GsrEncoder
 // constructor (see common/configuration.go validateAndSetGsrConfig).
 // That's the seam scenarios use to override `compression`, `region`,
-// `schemaAutoRegistrationEnabled`, etc. Earlier drafts of this file
-// stuffed those overrides under a `gsrConfigOverrides` key that
-// NewConfiguration ignores — silently degenerating comp=NONE and
-// comp=ZLIB subtests to whatever single value lived in
-// gsr.properties. The fix is to pass the overrides through the
-// recognized key.
-func configFor(t *testing.T, s roundTripScenario, gsrPath string) *common.Configuration {
+// `schemaAutoRegistrationEnabled`, etc.
+func configFor(t *testing.T, s roundTripScenario) *common.Configuration {
 	t.Helper()
 	gsrMap := map[string]string{
 		"region":                        defaultAWSRegion,
@@ -128,11 +126,6 @@ func configFor(t *testing.T, s roundTripScenario, gsrPath string) *common.Config
 		"compression":                   s.compression,
 		"schemaAutoRegistrationEnabled": "true",
 	}
-	// gsrPath is retained as documentation that the on-disk
-	// gsr.properties is the production seam; tests bypass it via the
-	// recognized in-memory map so each scenario can pin its own
-	// compression knob.
-	_ = gsrPath
 	configMap := map[string]interface{}{
 		common.GSRConfigPathKey: gsrMap,
 	}
@@ -159,21 +152,74 @@ func configFor(t *testing.T, s roundTripScenario, gsrPath string) *common.Config
 // protobuf integration suites so this set is comparable.
 func payloadFor(t *testing.T, s roundTripScenario) interface{} {
 	t.Helper()
+	const avroSchema = `{"type":"record","name":"TestUser","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"}]}`
+	const jsonSchema = `{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}},"required":["id","name"]}`
 	switch s.format {
-	case fmtAvroGeneric, fmtAvroSpecific:
+	case fmtAvroGeneric:
+		// Generic Avro: payload is a map keyed by field name — hamba/
+		// avro's map-driven path, distinct from struct tag-mapping.
 		return &avro.AvroRecord{
-			Schema: `{"type":"record","name":"TestUser","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"}]}`,
+			Schema: avroSchema,
+			Data:   map[string]any{"id": "phase4-id", "name": "phase4-user"},
+		}
+	case fmtAvroSpecific:
+		// Specific Avro: payload is a Go struct with `avro:` tags —
+		// hamba's reflection-driven path.
+		return &avro.AvroRecord{
+			Schema: avroSchema,
 			Data: struct {
 				ID   string `avro:"id"`
 				Name string `avro:"name"`
 			}{ID: "phase4-id", Name: "phase4-user"},
 		}
-	case fmtJSONJDWS, fmtJSONPOJO:
-		schema := `{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}},"required":["id","name"]}`
+	case fmtJSONJDWS:
+		// JsonDataWithSchema wrapper: caller supplies the JSON schema
+		// + body separately. (The current Go JSON serializer ONLY
+		// accepts this wrapper; the POJO-direct path is a §2.2 gap
+		// tracked separately. See fmtJSONPOJO below.)
 		body, _ := json.Marshal(map[string]string{"id": "phase4-id", "name": "phase4-user"})
-		return &gsrjson.JsonDataWithSchema{Schema: schema, Payload: string(body)}
-	case fmtProtobufStatic, fmtProtobufDynamic:
+		return &gsrjson.JsonDataWithSchema{Schema: jsonSchema, Payload: string(body)}
+	case fmtJSONPOJO:
+		// POJO-style: a struct-shaped JSON body. The Go JSON serializer
+		// only accepts JsonDataWithSchema today (a §2.2 stub gap), so
+		// we round-trip a struct THROUGH the wrapper. The distinct
+		// shape — struct-with-tags rather than map[string]string —
+		// catches body-shape regressions even though the wire-format
+		// code path is shared with fmtJSONJDWS until the POJO-direct
+		// serializer lands.
+		type pojo struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		}
+		body, _ := json.Marshal(pojo{ID: "phase4-id", Name: "phase4-user"})
+		return &gsrjson.JsonDataWithSchema{Schema: jsonSchema, Payload: string(body)}
+	case fmtProtobufStatic:
+		// Static: concrete *testpb.TestMessage — pb-generated type
+		// driving the proto.Marshal fast path.
 		return &testpb.TestMessage{Id: "phase4-id", Name: "phase4-user", Age: 30, Email: "p4@example.com"}
+	case fmtProtobufDynamic:
+		// Dynamic: build a dynamicpb.Message from the static type's
+		// descriptor and populate it via reflection. This exercises
+		// the dynamicpb codec path that's distinct from the
+		// generated-type fast path.
+		md := (&testpb.TestMessage{}).ProtoReflect().Descriptor()
+		dyn := dynamicpb.NewMessage(md)
+		fields := md.Fields()
+		setStringField := func(name, val string) {
+			f := fields.ByName(protoreflect.Name(name))
+			require.NotNil(t, f, "protobuf-dynamic: missing field %q in descriptor", name)
+			dyn.Set(f, protoreflect.ValueOfString(val))
+		}
+		setInt32Field := func(name string, val int32) {
+			f := fields.ByName(protoreflect.Name(name))
+			require.NotNil(t, f, "protobuf-dynamic: missing field %q in descriptor", name)
+			dyn.Set(f, protoreflect.ValueOfInt32(val))
+		}
+		setStringField("id", "phase4-id")
+		setStringField("name", "phase4-user")
+		setInt32Field("age", 30)
+		setStringField("email", "p4@example.com")
+		return dyn
 	}
 	t.Fatalf("payloadFor: unhandled format %q", s.format)
 	return nil
@@ -216,7 +262,6 @@ func validateRoundTrip(t *testing.T, original, deserialized interface{}) {
 func TestRoundTrip_Phase4Matrix(t *testing.T) {
 	requireAWSIntegration(t)
 
-	gsrPath := gsrPropertiesPath(t)
 	broker := kafkaharness.Start(context.Background(), t)
 
 	for _, sc := range allRoundTripScenarios() {
@@ -225,7 +270,7 @@ func TestRoundTrip_Phase4Matrix(t *testing.T) {
 			t.Parallel()
 			adapter := adapterFor(t, sc.clientName, broker.Bootstrap)
 
-			cfg := configFor(t, sc, gsrPath)
+			cfg := configFor(t, sc)
 			ser, err := serializer.NewSerializer(cfg)
 			require.NoError(t, err)
 			t.Cleanup(func() { _ = ser.Close() })

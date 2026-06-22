@@ -45,6 +45,20 @@ func TestConcurrency_SharedInstancesDoNotRace(t *testing.T) {
 	const goroutines = 16
 	const perGoroutine = 8
 
+	// Rotate from a small pool of schema names so multiple goroutines
+	// hit the SAME cache key concurrently. An earlier draft generated
+	// a unique scenarioRegistrySuffix() per call, which produced 128
+	// distinct cache keys — the cache fast-path under concurrent
+	// readers was never exercised. The pool size (4) is comfortably
+	// smaller than goroutines*perGoroutine so the cache-hit branch
+	// runs many times across the test.
+	pool := []string{
+		"shared-pool-a-" + scenarioRegistrySuffix(),
+		"shared-pool-b-" + scenarioRegistrySuffix(),
+		"shared-pool-c-" + scenarioRegistrySuffix(),
+		"shared-pool-d-" + scenarioRegistrySuffix(),
+	}
+
 	var wg sync.WaitGroup
 	errs := make(chan error, goroutines*perGoroutine)
 	for g := 0; g < goroutines; g++ {
@@ -52,7 +66,7 @@ func TestConcurrency_SharedInstancesDoNotRace(t *testing.T) {
 		go func(g int) {
 			defer wg.Done()
 			for i := 0; i < perGoroutine; i++ {
-				schemaName := "shared-" + scenarioRegistrySuffix()
+				schemaName := pool[(g*perGoroutine+i)%len(pool)]
 				schema := &gsrcore.Schema{
 					SchemaDefinition: avroSchemaLifecycle,
 					SchemaName:       schemaName,
@@ -75,6 +89,13 @@ func TestConcurrency_SharedInstancesDoNotRace(t *testing.T) {
 	for err := range errs {
 		require.NoError(t, err)
 	}
+
+	// With 4 pool entries and singleflight, CreateSchema should fire
+	// at most once per pool entry — proves the cache fast-path is
+	// actually exercised under concurrency.
+	require.LessOrEqual(t, f.Count("CreateSchema"), len(pool),
+		"singleflight + cache must collapse concurrent first-encodes per pool entry; saw %d CreateSchema calls for %d distinct names",
+		f.Count("CreateSchema"), len(pool))
 }
 
 // §5.3 item 31 — concurrent first-encode of the same schema only

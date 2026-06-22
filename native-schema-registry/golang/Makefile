@@ -99,6 +99,18 @@ else
 	@echo "Integration test report: $(BUILD_DIR)/integration-test-output.txt"
 endif
 
+# test-integ-confluent adds the `confluent` build tag so the
+# confluent-kafka-go adapter (CGO + librdkafka) and its leg of the
+# §5.3 matrix are exercised. Separated from test-integ because
+# librdkafka isn't on every dev host; plan §7 lists sarama + confluent
+# as the two officially supported clients, so confluent coverage runs
+# in the merge gate, not the default `make test-integ` developer flow.
+.PHONY: test-integ-confluent
+test-integ-confluent: setup-dirs generate-protos
+	@echo "Running integration tests with confluent tag (AWS_INTEGRATION=1, timeout $(INTEG_TIMEOUT))..."
+	cd integration-tests && AWS_INTEGRATION=1 $(GO) test -tags 'integration confluent' -count=1 -timeout $(INTEG_TIMEOUT) ./... 2>&1 | tee ../$(BUILD_DIR)/integration-test-confluent-output.txt
+	@echo "Confluent integration test report: $(BUILD_DIR)/integration-test-confluent-output.txt"
+
 .PHONY: test-all
 test-all: test test-integ
 

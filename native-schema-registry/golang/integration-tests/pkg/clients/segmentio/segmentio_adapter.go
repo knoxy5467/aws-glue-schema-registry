@@ -10,8 +10,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
+	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/clients"
@@ -49,10 +49,14 @@ func (a *Adapter) Produce(ctx context.Context, topic string, key, value []byte) 
 // Consume reads one message via a Reader with a per-call random group
 // so consume re-runs against the same topic don't share state.
 func (a *Adapter) Consume(ctx context.Context, topic string) ([]byte, error) {
+	// uuid.NewString gives a collision-free GroupID even under t.Parallel
+	// on coarse-clock platforms; UnixNano collides on the same
+	// nanosecond bucket and two consumers sharing a group would split
+	// the topic's single partition, leaving one reader hanging.
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: a.brokers,
 		Topic:   topic,
-		GroupID: fmt.Sprintf("segmentio-adapter-%d", time.Now().UnixNano()),
+		GroupID: "segmentio-adapter-" + uuid.NewString(),
 	})
 	defer r.Close()
 

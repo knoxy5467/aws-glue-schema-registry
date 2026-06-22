@@ -42,9 +42,13 @@ type Fake struct {
 	// versions maps schemaVersionId -> stored schema.
 	versions map[string]*storedSchema
 
-	// CallCounts is a public counter map keyed by Glue API method
-	// name. Tests assert on these for the §5.3 cache / singleflight
-	// scenarios ("only one CreateSchema for N concurrent encodes").
+	// CallCounts is a counter map keyed by Glue API method name.
+	// Prefer Count(name) / Snapshot() over reading this map directly:
+	// writes go under f.mu, so a direct mid-flight read would race
+	// (the field is exported only so legacy tests that read it after
+	// wg.Wait() keep compiling — those reads are safe via the
+	// happens-before edge wg.Wait gives, but the raw map invites
+	// future misuse).
 	CallCounts map[string]int
 
 	// ForceCreateError, when non-nil, makes CreateSchema return this
@@ -78,6 +82,27 @@ func New() *Fake {
 
 func (f *Fake) bump(name string) {
 	f.CallCounts[name]++
+}
+
+// Count returns the call count for the given Glue API method under
+// the mutex. Use this from tests that may read mid-flight; direct
+// access to f.CallCounts is safe only after a happens-before edge
+// (e.g. wg.Wait).
+func (f *Fake) Count(name string) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.CallCounts[name]
+}
+
+// Snapshot returns a copy of CallCounts taken under the mutex.
+func (f *Fake) Snapshot() map[string]int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := make(map[string]int, len(f.CallCounts))
+	for k, v := range f.CallCounts {
+		out[k] = v
+	}
+	return out
 }
 
 // definitionKey returns the in-memory lookup key for
@@ -191,6 +216,14 @@ func (f *Fake) CreateSchema(ctx context.Context, in *glue.CreateSchemaInput, _ .
 }
 
 // RegisterSchemaVersion implements gsrcore.GlueClient.
+//
+// Real Glue derives DataFormat from the parent schema (registered via
+// CreateSchema); Register doesn't carry it on the input. To match that
+// behavior the fake inherits DataFormat from any prior storedSchema
+// under (registry, name). Without this inheritance, the decoder side
+// would receive DataFormat="" on the AlreadyExists fall-through path
+// and silently skip protobuf message-index stripping (decoder.go:75),
+// corrupting the decoded bytes.
 func (f *Fake) RegisterSchemaVersion(ctx context.Context, in *glue.RegisterSchemaVersionInput, _ ...func(*glue.Options)) (*glue.RegisterSchemaVersionOutput, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -212,10 +245,25 @@ func (f *Fake) RegisterSchemaVersion(ctx context.Context, in *glue.RegisterSchem
 		def = *in.SchemaDefinition
 	}
 	f.definitions[definitionKey(registry, name, def)] = versionID
-	// We don't have a DataFormat in RegisterSchemaVersionInput — Glue
-	// derives it from the schema. Tests that care should call
-	// CreateSchema first.
-	f.versions[versionID] = &storedSchema{registryName: registry, schemaName: name, schemaDefinition: def}
+
+	// Inherit DataFormat from any prior storedSchema for this
+	// (registry, name) — mirrors real Glue. If no prior schema exists
+	// the format stays zero-value, matching real Glue's behavior of
+	// rejecting RegisterSchemaVersion against an unknown schema name.
+	var inheritedFormat types.DataFormat
+	for _, prior := range f.versions {
+		if prior.registryName == registry && prior.schemaName == name && prior.dataFormat != "" {
+			inheritedFormat = prior.dataFormat
+			break
+		}
+	}
+	f.versions[versionID] = &storedSchema{
+		registryName:     registry,
+		schemaName:       name,
+		schemaDefinition: def,
+		dataFormat:       inheritedFormat,
+	}
+
 	v := int64(2)
 	return &glue.RegisterSchemaVersionOutput{
 		SchemaVersionId: aws.String(versionID),

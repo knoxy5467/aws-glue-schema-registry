@@ -196,18 +196,19 @@ func TestNegative_NonUTF8Path(t *testing.T) {
 	// JSON parsing rather than be caught at the wire-format layer.
 	payload = append(payload, 0xff, 0xfe, 0xfd, 0xfc)
 
+	// The core decoder is currently format-agnostic and returns raw
+	// payload bytes; format-layer UTF-8 rejection lives in the JSON
+	// deserializer (pkg/gsrserde-go/deserializer/json/). Lock down
+	// THIS layer's contract — bytes flow through verbatim — with an
+	// unconditional require.NoError + require.Equal. Earlier draft
+	// wrapped the assertion in `if err == nil`, which made the test a
+	// no-op if Decode ever started returning an error (the assertion
+	// never ran). Phase 4 review flagged that as the exact false-green
+	// pattern the §5.3 row 27 was supposed to catch.
 	got, err := dec.Decode(payload)
-	if err == nil {
-		// The core decoder is currently format-agnostic and returns
-		// raw payload bytes; format-layer rejection of non-UTF-8 is
-		// the JSON deserializer's job (pkg/gsrserde-go/deserializer/json/).
-		// Lock down the bytes flowed through verbatim so a future
-		// regression here is at least visible.
-		require.Equal(t, []byte{0xff, 0xfe, 0xfd, 0xfc}, got,
-			"core decoder is expected to return raw payload bytes; format-layer UTF-8 validation is the JSON deserializer's responsibility")
-		t.Log("§5.3 item 27 lower-half (core decoder bytes-through) verified. " +
-			"Format-layer UTF-8 rejection is covered in pkg/gsrserde-go/deserializer/json/json_malformed_test.go.")
-	}
+	require.NoError(t, err, "core decoder is format-agnostic and must return raw payload bytes here")
+	require.Equal(t, []byte{0xff, 0xfe, 0xfd, 0xfc}, got,
+		"core decoder must return the non-UTF-8 bytes verbatim; UTF-8 rejection is the JSON deserializer's job")
 }
 
 // §5.3 item 28 — truncated payload (< 18 bytes) → typed error.
