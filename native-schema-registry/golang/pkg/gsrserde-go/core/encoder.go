@@ -2,8 +2,8 @@ package gsrserde
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/service/glue"
@@ -218,7 +218,15 @@ func (s *GsrEncoder) fetchSchemaVersionID(schemaDefinition, schemaName, dataForm
 	schemaVersionId, version, err := s.createSchema(schemaName, dataFormat, schemaDefinition)
 	if err != nil {
 		// If schema already exists (race with another producer), register a new version.
-		if strings.Contains(err.Error(), "AlreadyExistsException") || strings.Contains(err.Error(), "already exists") {
+		// Phase 4.5 bug 3 fix: match the typed SDK error rather than its
+		// string form. strings.Contains was brittle to SDK formatting changes
+		// (ErrorCodeOverride, middleware wrapping, localized messages) and
+		// could mis-trigger on unrelated errors whose message happened to
+		// contain "already exists" (e.g. validation messages from
+		// *types.InvalidInputException). errors.As walks the wrap chain and
+		// matches only the genuine typed Glue error.
+		var alreadyExists *types.AlreadyExistsException
+		if errors.As(err, &alreadyExists) {
 			id, ver, regErr := s.registerSchemaVersion(schemaDefinition, schemaName, dataFormat)
 			if regErr != nil {
 				return nil, regErr
