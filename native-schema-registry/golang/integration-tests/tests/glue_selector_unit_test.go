@@ -70,7 +70,7 @@ func TestSelector_GSRGlueUnknown_Fatals(t *testing.T) {
 
 	captured := newCapturingT(t)
 	func() {
-		defer func() { _ = recover() }()
+		defer recoverCapturingFatal(t)
 		newGlueHandle(captured)
 	}()
 	if !captured.failed {
@@ -88,7 +88,7 @@ func TestScenarioGate_BothFlagsFatals(t *testing.T) {
 	t.Setenv("GSR_GLUE", "fake")
 	captured := newCapturingT(t)
 	func() {
-		defer func() { _ = recover() }()
+		defer recoverCapturingFatal(t)
 		scenarioGate(captured, true, true)
 	}()
 	if !captured.failed {
@@ -103,7 +103,7 @@ func TestScenarioGate_RequiresRealSkipsOnFake(t *testing.T) {
 	t.Setenv("GSR_GLUE", "fake")
 	captured := newCapturingT(t)
 	func() {
-		defer func() { _ = recover() }()
+		defer recoverCapturingFatal(t)
 		scenarioGate(captured, true, false)
 	}()
 	if !captured.skipped {
@@ -118,7 +118,7 @@ func TestScenarioGate_RequiresFakeSkipsOnReal(t *testing.T) {
 	t.Setenv("GSR_GLUE", "real")
 	captured := newCapturingT(t)
 	func() {
-		defer func() { _ = recover() }()
+		defer recoverCapturingFatal(t)
 		scenarioGate(captured, false, true)
 	}()
 	if !captured.skipped {

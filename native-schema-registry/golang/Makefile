@@ -136,9 +136,10 @@ test-integ-real: setup-dirs generate-protos
 	@sleep 5
 	cd integration-tests && GSR_GLUE=real AWS_INTEGRATION=1 $(GO) test -tags integration -count=1 -timeout $(REAL_INTEG_TIMEOUT) ./... 2>&1 | tee ../$(BUILD_DIR)/integration-test-real-output.txt
 	@echo ""
-	@echo "Run complete. Verify no leaked resources:"
-	@echo "  aws glue list-registries --region $(REAL_REGION) | grep gsr-go-it-"
-	@echo "  (should print nothing)"
+	@echo "Run complete. Verify no leaked SCHEMAS in default-registry:"
+	@echo "  aws glue list-schemas --registry-id RegistryName=default-registry --region $(REAL_REGION) \\"
+	@echo "    --query 'Schemas[?starts_with(SchemaName, \`gsr-go-it-\`)].SchemaName' --output text"
+	@echo "  (should print nothing; see integration-tests/REAL-AWS-RUNBOOK.md for manual cleanup)"
 
 # test-integ-confluent adds the `confluent` build tag so the
 # confluent-kafka-go adapter (CGO + librdkafka) and its leg of the

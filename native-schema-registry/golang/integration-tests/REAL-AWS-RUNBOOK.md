@@ -25,22 +25,23 @@ the path end-to-end against the actual service.
 3. **IAM permissions.** The role/user must have at minimum:
 
    ```
-   glue:CreateRegistry             (only if you don't pre-provision
-                                   the `default-registry`)
-   glue:DeleteRegistry
    glue:CreateSchema
    glue:RegisterSchemaVersion
    glue:GetSchemaByDefinition
    glue:GetSchemaVersion
    glue:DeleteSchema
+   glue:ListSchemas                (for the post-run leak-check below)
    glue:PutSchemaVersionMetadata
    glue:QuerySchemaVersionMetadata
    glue:GetTags
    ```
 
-   `glue:ListRegistries` is needed for the post-run cleanup
-   verification step below. All operations scoped to the region in
-   step 2.
+   All operations scoped to the region in step 2. Note: the suite
+   does NOT call `glue:CreateRegistry` or `glue:DeleteRegistry` —
+   every test schema lives inside the pre-existing `default-registry`
+   (see step 4) and only the schemas are torn down by
+   `realglue.Cleanup`. The earlier draft of this runbook listed
+   those permissions; they are NOT required.
 
 4. **`default-registry` exists.** The suite uses Glue's
    `default-registry` for every schema. If your account does not
@@ -100,22 +101,33 @@ the call count — re-estimate when the matrix grows.
 ## Post-run cleanup verification
 
 The selector wires `realglue.Cleanup.Run` into `t.Cleanup`, so the
-suite deletes every registry / schema it created in reverse insertion
-order — even on `t.Fail`. To sanity-check that nothing leaked:
+suite deletes every schema it created in reverse insertion order —
+even on `t.Fail`. The suite does NOT create or delete registries;
+every test schema lives inside the pre-existing `default-registry`.
+
+To sanity-check that nothing leaked, list SCHEMAS in the registry
+the suite uses and grep for the runbook prefix:
 
 ```
-aws glue list-registries --region <r> | grep gsr-go-it-
+aws glue list-schemas \
+  --registry-id RegistryName=default-registry \
+  --region <r> \
+  --query 'Schemas[?starts_with(SchemaName, `gsr-go-it-`)].SchemaName' \
+  --output text
 ```
 
-The expected output is **empty**. Any line printed is a leak. If you
-see leaks, delete them by hand:
+The expected output is **empty**. Any name printed is a leaked
+schema. Delete it by hand:
 
 ```
-aws glue delete-registry --registry-id RegistryName=<leaked-name> --region <r>
+aws glue delete-schema \
+  --schema-id RegistryName=default-registry,SchemaName=<leaked-name> \
+  --region <r>
 ```
 
-(Schemas inside a registry are deleted as part of `delete-registry`;
-you don't need a separate `delete-schema` pass for leak cleanup.)
+Do NOT run `delete-registry` against `default-registry` — that
+registry is shared infrastructure and the suite expects it to
+exist on every run.
 
 ## Troubleshooting
 

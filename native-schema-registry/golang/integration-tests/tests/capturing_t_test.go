@@ -68,3 +68,26 @@ func (c *capturingT) Logf(format string, args ...any) {
 }
 
 func (c *capturingT) Cleanup(_ func()) {} // no-op; tests assert directly on state
+
+// recoverCapturingFatal is the safe partner to capturingT.Fatalf /
+// Skipf / Fatal / Skip. It recovers ONLY the capturingFatalSentinel
+// panic so a genuine bug (nil-deref, runtime error) inside the
+// function under test still crashes the test instead of being
+// silently swallowed.
+//
+// Use as:  defer recoverCapturingFatal(t)
+//
+// Code-review finding #4 (Phase 4.7): the earlier
+// `defer func() { _ = recover() }()` form would have green-lit a
+// real panic as long as captured.failed had been set first.
+func recoverCapturingFatal(t testing.TB) {
+	r := recover()
+	if r == nil {
+		return
+	}
+	if _, ok := r.(capturingFatalSentinel); ok {
+		return
+	}
+	t.Helper()
+	t.Fatalf("recoverCapturingFatal: unexpected panic %T: %v", r, r)
+}

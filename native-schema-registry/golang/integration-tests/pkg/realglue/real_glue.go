@@ -89,6 +89,14 @@ func New(ctx context.Context, opts ...Option) (*Real, error) {
 		opt(o)
 	}
 
+	// Code-review finding #13 (Phase 4.7): WithProfile is meaningful only
+	// when New resolves credentials via LoadDefaultConfig. If the caller
+	// also passes WithAWSConfig, the profile would be silently ignored.
+	// Erroring is preferable to surprising downstream debugging.
+	if o.awsConfig != nil && o.profile != "" {
+		return nil, fmt.Errorf("realglue: WithProfile is incompatible with WithAWSConfig (the injected config carries its own credentials)")
+	}
+
 	// Region precedence (uniform across the injected-config and
 	// LoadDefaultConfig branches):
 	//   1. WithRegion option (explicit override)

@@ -4,9 +4,11 @@ package integration_tests
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/glue/types"
+	smithy "github.com/aws/smithy-go"
 	"github.com/stretchr/testify/require"
 
 	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
@@ -276,6 +278,32 @@ func TestCompatibility_IncompatibleRejected_Real(t *testing.T) {
 		DataFormat:       "AVRO",
 	})
 	require.Error(t, err, "real Glue must reject incompatible v2 under BACKWARD compatibility")
+
+	// Code-review finding #3 (Phase 4.7): plain require.Error here
+	// passes on ANY error — a transient ThrottlingException or
+	// IAM-denied would falsely satisfy the test and we'd ship a
+	// regression where the encoder silently dropped server-side
+	// compatibility enforcement. Tighten: the error must either be a
+	// typed Glue InvalidInputException OR a smithy.APIError whose
+	// code/message names compatibility / invalid input. ThrottlingException
+	// (Code = "ThrottlingException") would NOT satisfy this — it would
+	// fail the test, which is the right behavior under throttling
+	// because we cannot prove anything about compatibility under a
+	// throttled call.
+	var inv *types.InvalidInputException
+	if errors.As(err, &inv) {
+		return // valid; this is the explicit Glue type for compat rejection
+	}
+	var apiErr smithy.APIError
+	require.True(t, errors.As(err, &apiErr),
+		"compatibility-rejection error must wrap a typed Glue / smithy error (got %T: %v)", err, err)
+	require.NotEqual(t, "ThrottlingException", apiErr.ErrorCode(),
+		"ThrottlingException is not a valid compatibility-rejection — re-run after throttling clears")
+	lowerMsg := strings.ToLower(apiErr.ErrorMessage())
+	require.True(t,
+		strings.Contains(lowerMsg, "compat") || strings.Contains(lowerMsg, "invalid"),
+		"compatibility-rejection error message must mention compatibility or invalid input (got code=%q msg=%q)",
+		apiErr.ErrorCode(), apiErr.ErrorMessage())
 }
 
 func ptr[T any](v T) *T { return &v }
