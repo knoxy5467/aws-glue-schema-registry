@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -15,8 +16,6 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/clients"
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/clients/sarama"
-	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/clients/segmentio"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/kafkaharness"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/testpb"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/avro"
@@ -47,15 +46,30 @@ type roundTripScenario struct {
 	clientName  string // adapter name; resolved at runtime so tests stay parallel-safe
 }
 
-// extraClientNames + extraAdapterCtors are registration hooks for
-// build-tagged adapters (confluent today; franz-go in a future
-// phase). The plain `//go:build integration` build only carries
-// sarama + segmentio; `integration && confluent` adds confluent via
-// round_trip_confluent_test.go's init().
-var (
-	extraClientNames  []string
-	extraAdapterCtors = map[string]func(t *testing.T, bootstrap string) clients.Adapter{}
-)
+// adapterCtors is the single source of truth for which Kafka clients
+// the §5.3 round-trip matrix exercises. Each adapter package
+// registers itself via init() in a *_register_test.go file:
+//
+//   - tests/round_trip_sarama_register_test.go
+//   - tests/round_trip_segmentio_register_test.go
+//   - tests/round_trip_confluent_test.go (build-tag gated)
+//
+// Adding franz-go (a future plan §4 table item) is one new file
+// under tests/ — no switch to edit, no separate "extra" mechanism,
+// and the matrix size automatically tracks len(adapterCtors). Order
+// is deterministic via sorted keys so subtest names stay stable.
+var adapterCtors = map[string]func(t *testing.T, bootstrap string) clients.Adapter{}
+
+// registerAdapter is called from each adapter's *_register_test.go
+// init(). Panics on duplicate registration so a copy-paste error
+// surfaces at the first `go test` invocation rather than silently
+// overwriting an entry.
+func registerAdapter(name string, ctor func(t *testing.T, bootstrap string) clients.Adapter) {
+	if _, exists := adapterCtors[name]; exists {
+		panic("registerAdapter: duplicate registration for " + name)
+	}
+	adapterCtors[name] = ctor
+}
 
 // allRoundTripScenarios enumerates the format × compression × Kafka-
 // client matrix the plan calls for. Auto-register is implicit (true)
@@ -67,7 +81,14 @@ func allRoundTripScenarios() []roundTripScenario {
 		fmtProtobufStatic, fmtProtobufDynamic,
 	}
 	compressions := []string{"NONE", "ZLIB"}
-	clientsList := append([]string{"sarama", "segmentio"}, extraClientNames...)
+
+	// Sort adapter names so the matrix produces deterministic t.Run
+	// keys regardless of init() ordering.
+	clientsList := make([]string, 0, len(adapterCtors))
+	for name := range adapterCtors {
+		clientsList = append(clientsList, name)
+	}
+	sort.Strings(clientsList)
 
 	out := make([]roundTripScenario, 0, len(formats)*len(compressions)*len(clientsList))
 	for _, f := range formats {
@@ -85,29 +106,24 @@ func (s roundTripScenario) scenarioName() string {
 	return fmt.Sprintf("fmt=%s/comp=%s/client=%s", s.format, s.compression, s.clientName)
 }
 
-// adapterFor builds the requested adapter against the testcontainers
-// broker. Returns the adapter; Close() runs via t.Cleanup. Build-tag
-// gated adapters (confluent) register through extraAdapterCtors so
-// adding one doesn't require a switch edit here.
+// adapterFor looks up the requested adapter in the registry and
+// builds it. t.Cleanup is the constructor's responsibility.
 func adapterFor(t *testing.T, name string, bootstrap string) clients.Adapter {
 	t.Helper()
-	switch name {
-	case "sarama":
-		a, err := sarama.New([]string{bootstrap})
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = a.Close() })
-		return a
-	case "segmentio":
-		a, err := segmentio.New([]string{bootstrap})
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = a.Close() })
-		return a
+	ctor, ok := adapterCtors[name]
+	if !ok {
+		t.Fatalf("adapterFor: unknown client %q (registered: %v)", name, sortedKeys(adapterCtors))
 	}
-	if ctor, ok := extraAdapterCtors[name]; ok {
-		return ctor(t, bootstrap)
+	return ctor(t, bootstrap)
+}
+
+func sortedKeys(m map[string]func(t *testing.T, bootstrap string) clients.Adapter) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
 	}
-	t.Fatalf("adapterFor: unknown client %q", name)
-	return nil
+	sort.Strings(out)
+	return out
 }
 
 // configFor returns a serializer/deserializer configuration for the

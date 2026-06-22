@@ -5,7 +5,6 @@ package integration_tests
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -507,25 +506,20 @@ func (s *MultiThreadedIntegrationSuite) waitForTopicReady(ctx context.Context, t
 	}
 }
 
-// generateTestTopicName generates a unique topic name for testing
+// generateTestTopicName uses the shared newRandomTopicName helper.
+// Earlier draft used `multithreaded-gsr-integration-test-<4 hex>`
+// without including t.Name() — under -count=N stress two iterations
+// could collide on the 32-bit suffix space. The shared helper
+// includes t.Name() so collisions need both the suffix AND the test
+// name to match.
 func (s *MultiThreadedIntegrationSuite) generateTestTopicName() string {
-	randomBytes := make([]byte, 4)
-	rand.Read(randomBytes)
-	return fmt.Sprintf("multithreaded-gsr-integration-test-%x", randomBytes)
+	return newRandomTopicName(s.T(), "multithreaded-gsr-integration-test")
 }
 
-// getKafkaBroker returns the Kafka broker address. Preference order
-// matches BaseIntegrationSuite.getKafkaBroker: testcontainers harness
-// first (Phase 4 default), KAFKA_BROKER env second (docker-compose
-// fallback), defaultKafkaBroker last.
+// getKafkaBroker delegates to resolveKafkaBroker so all three suites
+// share one source of truth for broker precedence.
 func (s *MultiThreadedIntegrationSuite) getKafkaBroker() string {
-	if s.broker != nil && s.broker.Bootstrap != "" {
-		return s.broker.Bootstrap
-	}
-	if broker := os.Getenv("KAFKA_BROKER"); broker != "" {
-		return broker
-	}
-	return defaultKafkaBroker
+	return resolveKafkaBroker(s.broker)
 }
 
 // shouldSkipIntegrationTests checks if integration tests should be skipped.

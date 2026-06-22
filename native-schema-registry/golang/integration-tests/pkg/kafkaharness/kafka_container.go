@@ -16,6 +16,7 @@ package kafkaharness
 
 import (
 	"context"
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -23,6 +24,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go/modules/kafka"
 )
+
+var errNoBrokers = errors.New("kafkaharness: Brokers() returned no addresses")
 
 // Default Confluent KRaft image used by testcontainers-go's Kafka module.
 // Pinned so test runs stay reproducible across machines.
@@ -45,9 +48,10 @@ type Broker struct {
 // returns that address without launching a container — this keeps the
 // docker-compose path usable for CI environments that pre-provision Kafka.
 //
-// Start is safe to call from SetupSuite or from a single TestMain. Don't
-// call it per-subtest unless the test genuinely needs broker isolation —
-// each container takes ~5-10s to come up.
+// Prefer StartShared (called from TestMain) over Start (called from each
+// SetupSuite). Start is kept for tests that genuinely need broker
+// isolation, but the default Phase 4 + 5 flow uses a single
+// package-level container — see TestMain in tests/main_test.go.
 func Start(ctx context.Context, t testing.TB) *Broker {
 	t.Helper()
 
@@ -56,6 +60,49 @@ func Start(ctx context.Context, t testing.TB) *Broker {
 		return &Broker{Bootstrap: override}
 	}
 
+	broker, stop, err := startContainer(ctx)
+	require.NoError(t, err, "kafkaharness: failed to start Kafka testcontainer")
+	t.Cleanup(func() {
+		if err := stop(); err != nil {
+			t.Logf("kafkaharness: container teardown returned error (non-fatal): %v", err)
+		}
+	})
+	return broker
+}
+
+// StartShared is the TestMain-friendly variant. It does the same work
+// as Start but returns a stop func instead of registering t.Cleanup,
+// because TestMain doesn't have a testing.TB. KAFKA_BROKER short-
+// circuit applies the same way.
+//
+// Typical usage from a package-level TestMain:
+//
+//	func TestMain(m *testing.M) {
+//	    broker, stop, err := kafkaharness.StartShared(context.Background())
+//	    if err != nil {
+//	        log.Fatalf("kafkaharness: start: %v", err)
+//	    }
+//	    defer stop()
+//	    if broker.Bootstrap != "" {
+//	        os.Setenv("KAFKA_BROKER", broker.Bootstrap)
+//	    }
+//	    os.Exit(m.Run())
+//	}
+//
+// Subsequent Start calls from SetupSuite see KAFKA_BROKER and reuse
+// the same broker rather than spinning up a fresh container per
+// suite.
+func StartShared(ctx context.Context) (*Broker, func() error, error) {
+	if override := os.Getenv("KAFKA_BROKER"); override != "" {
+		return &Broker{Bootstrap: override}, func() error { return nil }, nil
+	}
+	return startContainer(ctx)
+}
+
+// startContainer is the testing.TB-free workhorse shared by Start and
+// StartShared. Returns the broker and a stop closure that terminates
+// the container with a 30s fresh-context timeout.
+func startContainer(ctx context.Context) (*Broker, func() error, error) {
 	startCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 
@@ -63,21 +110,22 @@ func Start(ctx context.Context, t testing.TB) *Broker {
 		defaultKafkaImage,
 		kafka.WithClusterID("phase4-integration-cluster"),
 	)
-	require.NoError(t, err, "kafkaharness: failed to start Kafka testcontainer")
+	if err != nil {
+		return nil, nil, err
+	}
 
 	brokers, err := container.Brokers(startCtx)
-	require.NoError(t, err, "kafkaharness: failed to read broker addresses")
-	require.NotEmpty(t, brokers, "kafkaharness: Brokers() returned no addresses")
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(brokers) == 0 {
+		return nil, nil, errNoBrokers
+	}
 
-	t.Cleanup(func() {
-		// Use a fresh context — the parent context may already be cancelled
-		// by the time Cleanup runs.
+	stop := func() error {
 		stopCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		if err := container.Terminate(stopCtx); err != nil {
-			t.Logf("kafkaharness: container teardown returned error (non-fatal): %v", err)
-		}
-	})
-
-	return &Broker{Bootstrap: brokers[0], Container: container}
+		return container.Terminate(stopCtx)
+	}
+	return &Broker{Bootstrap: brokers[0], Container: container}, stop, nil
 }

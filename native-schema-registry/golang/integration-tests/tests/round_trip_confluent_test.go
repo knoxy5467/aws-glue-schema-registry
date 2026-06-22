@@ -11,23 +11,16 @@ import (
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/clients/confluent"
 )
 
-// confluentClientName is added to the §5.3 matrix's client axis only
-// when the `confluent` build tag is set. The default build (just
-// //go:build integration) keeps the matrix at {sarama, segmentio} so
-// the suite stays runnable on hosts without librdkafka. The
-// matching constructor lives in newConfluentAdapter below; adapterFor
-// in round_trip_test.go dispatches by name and looks up this entry.
-const confluentClientName = "confluent"
-
-func newConfluentAdapter(t *testing.T, bootstrap string) clients.Adapter {
-	t.Helper()
-	a, err := confluent.New([]string{bootstrap})
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = a.Close() })
-	return a
-}
-
+// confluent registration. Behind `//go:build integration && confluent`
+// so the matrix only carries the confluent client when librdkafka is
+// available; otherwise this file isn't compiled in and the matrix
+// silently omits the confluent leg.
 func init() {
-	extraClientNames = append(extraClientNames, confluentClientName)
-	extraAdapterCtors[confluentClientName] = newConfluentAdapter
+	registerAdapter("confluent", func(t *testing.T, bootstrap string) clients.Adapter {
+		t.Helper()
+		a, err := confluent.New([]string{bootstrap})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = a.Close() })
+		return a
+	})
 }

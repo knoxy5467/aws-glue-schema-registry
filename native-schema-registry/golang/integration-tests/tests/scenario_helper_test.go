@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/kafkaharness"
 )
 
 // Phase 4 — §5.3 scenario harness.
@@ -42,21 +44,46 @@ func requireAWSIntegration(t *testing.T) {
 }
 
 // scenarioTopicName returns a topic name unique to this test plus an
-// 8-hex-char random suffix. Same shape as the legacy
-// generateTestTopicName but tied to a *testing.T instead of a suite
-// receiver.
-//
-// Kafka topic names must match `[a-zA-Z0-9._-]+`. t.Name() can carry
-// '/', ' ', and — for table-driven subtests with `key=value` names
-// — '=', plus arbitrary punctuation. Map every non-conforming
-// character to '-' so the matrix's t.Run names ('fmt=avro/comp=NONE')
-// produce broker-acceptable topics rather than silently failing every
-// subtest with InvalidTopicException.
+// 8-hex-char random suffix. Thin wrapper around newRandomTopicName
+// that pins the "phase4-" prefix used by the §5.3 matrix scenarios.
 func scenarioTopicName(t *testing.T) string {
+	t.Helper()
+	return newRandomTopicName(t, "phase4")
+}
+
+// newRandomTopicName is the single canonical topic-name generator
+// shared across BaseIntegrationSuite, MultiThreadedIntegrationSuite,
+// and the §5.3 scenario harness. Output shape:
+//
+//	<prefix>-<sanitize(t.Name())>-<4 random hex bytes>
+//
+// Kafka topic names must match `[a-zA-Z0-9._-]+`. sanitizeKafkaTopicSegment
+// maps every non-conforming char in t.Name() (subtest '/', spaces,
+// '=' from table-driven `key=value` names, etc.) to '-' so the
+// broker accepts the result. The 4 random bytes give 32-bit
+// collision space — enough that two parallel suites in the same
+// `go test -count=N` invocation don't share topic names.
+func newRandomTopicName(t testing.TB, prefix string) string {
 	t.Helper()
 	buf := make([]byte, 4)
 	_, _ = rand.Read(buf)
-	return fmt.Sprintf("phase4-%s-%x", sanitizeKafkaTopicSegment(t.Name()), buf)
+	return fmt.Sprintf("%s-%s-%x", prefix, sanitizeKafkaTopicSegment(t.Name()), buf)
+}
+
+// resolveKafkaBroker returns the bootstrap address, in preference
+// order: (1) the kafkaharness-spawned broker passed in (may be nil),
+// (2) the KAFKA_BROKER env var, (3) defaultKafkaBroker. Lifted out
+// of BaseIntegrationSuite.getKafkaBroker and
+// MultiThreadedIntegrationSuite.getKafkaBroker so the precedence
+// rules live in exactly one place.
+func resolveKafkaBroker(broker *kafkaharness.Broker) string {
+	if broker != nil && broker.Bootstrap != "" {
+		return broker.Bootstrap
+	}
+	if env := os.Getenv("KAFKA_BROKER"); env != "" {
+		return env
+	}
+	return defaultKafkaBroker
 }
 
 // sanitizeKafkaTopicSegment maps any character outside Kafka's topic

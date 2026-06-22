@@ -5,11 +5,9 @@ package integration_tests
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -308,28 +306,17 @@ func (s *BaseIntegrationSuite) deleteKafkaTopic(ctx context.Context, topicName s
 	}
 }
 
-// generateTestTopicName generates a unique topic name for testing
+// generateTestTopicName generates a unique topic name via the shared
+// newRandomTopicName helper, prefixed for legacy compatibility.
 func (s *BaseIntegrationSuite) generateTestTopicName() string {
-	randomBytes := make([]byte, 4)
-	rand.Read(randomBytes)
-	prefix := fmt.Sprintf("%s-golang-integration-test-suite", s.T().Name() )
-	prefix = strings.ReplaceAll(prefix, "/", "-")
-	return fmt.Sprintf("%s-%x", prefix, randomBytes)
+	return newRandomTopicName(s.T(), "golang-integration-test-suite")
 }
 
-// getKafkaBroker returns the Kafka broker address. Preference order:
-//  1. The address the testcontainers-go harness brought up (Phase 4 default).
-//  2. KAFKA_BROKER env var (kept for the docker-compose fallback path).
-//  3. defaultKafkaBroker, for callers that talk to a pre-existing broker
-//     without env config (e.g. local debugging against `docker compose up`).
+// getKafkaBroker returns the Kafka broker address via the shared
+// resolveKafkaBroker helper. See scenario_helper_test.go for the
+// canonical preference order.
 func (s *BaseIntegrationSuite) getKafkaBroker() string {
-	if s.broker != nil && s.broker.Bootstrap != "" {
-		return s.broker.Bootstrap
-	}
-	if broker := os.Getenv("KAFKA_BROKER"); broker != "" {
-		return broker
-	}
-	return defaultKafkaBroker
+	return resolveKafkaBroker(s.broker)
 }
 
 // getAWSRegion returns the AWS region for GSR
