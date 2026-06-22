@@ -95,6 +95,11 @@ func TestSerializer_GetSchemaVersionIdByDefinition_GetSchemaUnavailable(t *testi
 		client:       mockClient,
 		registryName: "test-registry",
 		schemaCache:  cache,
+		// Phase 4.5 bug 1: the encoder now honors auto-register; this
+		// test exercises the "GetSchemaByDefinition returns non-Available
+		// status → fall through to CreateSchema" branch, which requires
+		// auto-register to be enabled.
+		schemaAutoRegistrationEnabled: true,
 	}
 
 	existingVersionID := testUUIDString

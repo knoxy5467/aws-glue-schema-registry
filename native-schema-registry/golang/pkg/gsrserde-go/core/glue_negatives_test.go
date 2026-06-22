@@ -157,30 +157,25 @@ func TestEncoder_EntityNotFound_AutoRegisterTrue_FallsThroughToCreateSchema(t *t
 	mockClient.AssertCalled(t, "CreateSchema", mock.Anything, mock.Anything)
 }
 
-// TestEncoder_EntityNotFound_AutoRegisterFalse_StillFallsThrough is the
-// companion to the above: documents that today the encoder ignores the
-// SchemaAutoRegistrationEnabled flag and falls through regardless. When the
-// flag is honored (Phase 1.x follow-up), this test will need to be
-// updated to assert ErrSchemaAutoRegistrationDisabled surfaces instead.
-// Marked with a TODO so the next caller can find it.
-func TestEncoder_EntityNotFound_AutoRegisterFalse_StillFallsThrough(t *testing.T) {
+// TestEncoder_EntityNotFound_AutoRegisterFalse_SurfacesSentinel asserts
+// Phase 4.5 bug 1's contract: when SchemaAutoRegistrationEnabled=false
+// and GetSchemaByDefinition returns EntityNotFoundException, the
+// encoder returns ErrSchemaAutoRegistrationDisabled WITHOUT calling
+// CreateSchema. (Renamed from *_StillFallsThrough — that was the
+// inverted assertion documenting the pre-fix bug behavior.)
+func TestEncoder_EntityNotFound_AutoRegisterFalse_SurfacesSentinel(t *testing.T) {
 	enc, mockClient := newEncoderWithMock(t, false)
 
-	notFound := newEntityNotFoundError()
-	createdVersionID := testUUIDString
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).
-		Return((*glue.GetSchemaByDefinitionOutput)(nil), notFound)
-	mockClient.On("CreateSchema", mock.Anything, mock.Anything).
-		Return(&glue.CreateSchemaOutput{
-			SchemaVersionId:     &createdVersionID,
-			LatestSchemaVersion: ptrInt64(1),
-		}, nil)
+		Return((*glue.GetSchemaByDefinitionOutput)(nil), newEntityNotFoundError())
+	// CreateSchema deliberately not wired — mock panics if invoked.
 
-	// TODO(phase 1.x): when SchemaAutoRegistrationEnabled is honored,
-	// invert this assertion to expect ErrSchemaAutoRegistrationDisabled.
-	id, _, err := enc.getSchemaVersionIdByDefinition("def-noauto", "schema-noauto", "JSON")
-	require.NoError(t, err)
-	assert.Equal(t, createdVersionID, id)
+	_, _, err := enc.getSchemaVersionIdByDefinition("def-noauto", "schema-noauto", "JSON")
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrSchemaAutoRegistrationDisabled),
+		"auto-register=false + unknown schema must surface ErrSchemaAutoRegistrationDisabled (got %T: %v)", err, err)
+
+	mockClient.AssertNotCalled(t, "CreateSchema", mock.Anything, mock.Anything)
 }
 
 // TestEncoder_CompatibilityRejection_SurfacesTypedError asserts §5.6

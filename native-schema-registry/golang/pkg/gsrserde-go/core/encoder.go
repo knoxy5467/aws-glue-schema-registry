@@ -235,6 +235,17 @@ func (s *GsrEncoder) fetchSchemaVersionID(schemaDefinition, schemaName, dataForm
 		}
 	}
 
+	// Phase 4.5 bug 1 fix: honor SchemaAutoRegistrationEnabled before
+	// attempting the auto-register write. Previously this flag was
+	// stored on GsrEncoder but never read — producers explicitly
+	// opting OUT of registry mutation (e.g. compliance / approval-gate
+	// pipelines) silently got the opposite behavior. Returning
+	// ErrSchemaAutoRegistrationDisabled (already declared in errors.go)
+	// preserves the typed-error contract via errors.Is.
+	if !s.schemaAutoRegistrationEnabled {
+		return nil, fmt.Errorf("%w: schema %q not registered", ErrSchemaAutoRegistrationDisabled, schemaName)
+	}
+
 	schemaVersionId, version, err := s.createSchema(schemaName, dataFormat, schemaDefinition)
 	if err != nil {
 		// If schema already exists (race with another producer), register a new version.

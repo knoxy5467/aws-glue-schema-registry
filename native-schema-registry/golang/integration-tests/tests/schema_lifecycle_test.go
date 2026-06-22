@@ -3,6 +3,7 @@
 package integration_tests
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -78,22 +79,16 @@ func TestLifecycle_AutoRegisterDisabled_UnknownSchemaErrors(t *testing.T) {
 		DataFormat:       "AVRO",
 	}
 	_, err = enc.Encode([]byte("payload"), "lifecycle-14", schema)
-	// CURRENT BEHAVIOR (Phase 4 audit, 2026-06-21): the production
-	// encoder does NOT enforce SchemaAutoRegistrationEnabled — it
-	// always falls through from GetSchemaByDefinition → CreateSchema
-	// regardless of the flag (encoder.go fetchSchemaVersionID). The
-	// plan's §2.2 "Stubbed or partial" list flags this as a missing
-	// feature. This test pins the current behavior so a future fix
-	// — gating the CreateSchema call on the flag — turns this
-	// assertion red and the comments here red-flag the change.
-	//
-	// TODO(post-phase-4): once the encoder enforces the flag, change
-	// to:
-	//   require.Error(t, err, "auto-register=false + unknown schema must error")
-	//   require.Equal(t, 0, f.CallCounts["CreateSchema"])
-	require.NoError(t, err, "CURRENT BEHAVIOR: encoder ignores SchemaAutoRegistrationEnabled (see TODO above)")
-	require.Equal(t, 1, f.CallCounts["CreateSchema"],
-		"CURRENT BEHAVIOR: encoder falls through to CreateSchema; flip to 0 once flag is enforced")
+
+	// Phase 4.5 bug 1 fix: the encoder honors
+	// SchemaAutoRegistrationEnabled now. §5.3 item 14's contract is
+	// "auto-register disabled + unknown schema → returns the
+	// documented error type without calling CreateSchema."
+	require.Error(t, err, "auto-register=false + unknown schema must error")
+	require.True(t, errors.Is(err, gsrcore.ErrSchemaAutoRegistrationDisabled),
+		"surfaced error must wrap ErrSchemaAutoRegistrationDisabled (got %T: %v)", err, err)
+	require.Equal(t, 0, f.CallCounts["CreateSchema"],
+		"CreateSchema must NOT be called when auto-register is disabled")
 }
 
 // §5.3 item 15 — pre-registered schema id is used when set explicitly.
