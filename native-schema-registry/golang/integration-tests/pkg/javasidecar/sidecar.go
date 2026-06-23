@@ -428,6 +428,48 @@ type DecodeResponse struct {
 	DataFormat       string
 }
 
+// KafkaProduceRequest is the input to POST /kafka-produce: the sidecar
+// registers the schema with REAL AWS Glue, frames the payload, and
+// produces ONE record to the named Kafka topic.
+type KafkaProduceRequest struct {
+	Format      string
+	Schema      string
+	SchemaName  string
+	Payload     []byte
+	Compression string
+	Bootstrap   string
+	Topic       string
+	Region      string // optional; sidecar falls back to AWS_REGION / us-east-2
+}
+
+// KafkaProduceResponse reports what the sidecar produced.
+type KafkaProduceResponse struct {
+	SchemaVersionID string
+	Bytes           []byte // the framed bytes shipped to Kafka
+	Offset          int64
+	Partition       int32
+}
+
+// KafkaConsumeRequest is the input to POST /kafka-consume: the sidecar
+// polls Kafka for one record, parses the GSR header, and resolves the
+// UUID against REAL AWS Glue.
+type KafkaConsumeRequest struct {
+	Bootstrap string
+	Topic     string
+	GroupID   string // optional; sidecar generates a random one if empty
+	Region    string // optional
+	TimeoutMs int    // optional; sidecar defaults to 30000
+}
+
+// KafkaConsumeResponse reports what the sidecar consumed.
+type KafkaConsumeResponse struct {
+	Payload          []byte
+	SchemaVersionID  string
+	SchemaDefinition string
+	DataFormat       string
+	SchemaArn        string
+}
+
 // Encode posts the request to the sidecar's /encode endpoint and returns
 // the framed GSR bytes.
 func (s *Sidecar) Encode(ctx context.Context, req EncodeRequest) ([]byte, error) {
@@ -454,6 +496,88 @@ func (s *Sidecar) Encode(ctx context.Context, req EncodeRequest) ([]byte, error)
 		return nil, fmt.Errorf("javasidecar: decode response bytes: %w", err)
 	}
 	return out, nil
+}
+
+// KafkaProduce drives the Java GSR producer path: the sidecar registers
+// the schema in real Glue, frames the payload with the GSR header, and
+// produces one record to Kafka. Returns the UUID assigned by Glue (or
+// fetched from cache if the schema already existed) and the framed bytes.
+func (s *Sidecar) KafkaProduce(ctx context.Context, req KafkaProduceRequest) (*KafkaProduceResponse, error) {
+	compression, err := compressionOrDefault(req.Compression)
+	if err != nil {
+		return nil, err
+	}
+	body := map[string]any{
+		"format":      req.Format,
+		"schema":      req.Schema,
+		"schemaName":  req.SchemaName,
+		"payload":     base64.StdEncoding.EncodeToString(req.Payload),
+		"compression": compression,
+		"bootstrap":   req.Bootstrap,
+		"topic":       req.Topic,
+	}
+	if req.Region != "" {
+		body["region"] = req.Region
+	}
+	var raw struct {
+		SchemaVersionID string `json:"schemaVersionId"`
+		Bytes           string `json:"bytes"`
+		Offset          int64  `json:"offset"`
+		Partition       int32  `json:"partition"`
+	}
+	if err := s.postJSON(ctx, "/kafka-produce", body, &raw); err != nil {
+		return nil, err
+	}
+	framed, err := base64.StdEncoding.DecodeString(raw.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("javasidecar: decode produced bytes: %w", err)
+	}
+	return &KafkaProduceResponse{
+		SchemaVersionID: raw.SchemaVersionID,
+		Bytes:           framed,
+		Offset:          raw.Offset,
+		Partition:       raw.Partition,
+	}, nil
+}
+
+// KafkaConsume drives the Java GSR consumer path: poll Kafka for one
+// record, parse the GSR header, resolve the UUID via real Glue, return
+// the decompressed payload + schema metadata.
+func (s *Sidecar) KafkaConsume(ctx context.Context, req KafkaConsumeRequest) (*KafkaConsumeResponse, error) {
+	body := map[string]any{
+		"bootstrap": req.Bootstrap,
+		"topic":     req.Topic,
+	}
+	if req.GroupID != "" {
+		body["groupId"] = req.GroupID
+	}
+	if req.Region != "" {
+		body["region"] = req.Region
+	}
+	if req.TimeoutMs > 0 {
+		body["timeoutMs"] = req.TimeoutMs
+	}
+	var raw struct {
+		Payload          string `json:"payload"`
+		SchemaVersionID  string `json:"schemaVersionId"`
+		SchemaDefinition string `json:"schemaDefinition"`
+		DataFormat       string `json:"dataFormat"`
+		SchemaArn        string `json:"schemaArn"`
+	}
+	if err := s.postJSON(ctx, "/kafka-consume", body, &raw); err != nil {
+		return nil, err
+	}
+	payload, err := base64.StdEncoding.DecodeString(raw.Payload)
+	if err != nil {
+		return nil, fmt.Errorf("javasidecar: decode consumed payload: %w", err)
+	}
+	return &KafkaConsumeResponse{
+		Payload:          payload,
+		SchemaVersionID:  raw.SchemaVersionID,
+		SchemaDefinition: raw.SchemaDefinition,
+		DataFormat:       raw.DataFormat,
+		SchemaArn:        raw.SchemaArn,
+	}, nil
 }
 
 // Decode posts the framed bytes to the sidecar's /decode endpoint.
