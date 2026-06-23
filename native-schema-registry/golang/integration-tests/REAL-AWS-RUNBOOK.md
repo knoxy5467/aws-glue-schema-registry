@@ -85,28 +85,39 @@ skips under `GSR_GLUE=real`. Today the `GSR_GLUE=real` path
 exercises roughly:
 
 - **6** wire-format direct scenarios (no Glue at all).
-- **2** compatibility round-trips that hit real Glue end-to-end:
-  - `TestCompatibility_BackwardV1ToV2` — registers v1 then a
-    backward-compatible v2 (≈ 2 × `CreateSchema/RegisterSchemaVersion`
-    + 2 × `GetSchemaByDefinition` + 2 × `GetSchemaVersion`).
-  - `TestCompatibility_ForwardV2ToV1` — registers v2 then v1 under
-    `Compatibility=FORWARD` (same shape).
+- **2** compatibility round-trips that hit real Glue end-to-end.
+  Per round-trip, the on-the-wire call shape (because iter 2 ALWAYS
+  hits `AlreadyExistsException` on real Glue and the encoder falls
+  through to `RegisterSchemaVersion`) is:
+  - iter 1: `GetSchemaByDefinition` (miss) + `CreateSchema` +
+    `GetSchemaVersion` = 3 calls.
+  - iter 2: `GetSchemaByDefinition` (miss for the new definition) +
+    `CreateSchema` (rejected AlreadyExists) + `RegisterSchemaVersion`
+    + `GetSchemaVersion` = 4 calls.
+  - Per round-trip: 7 calls. ×2 round-trips = **14 calls**.
+  Tests: `TestCompatibility_BackwardV1ToV2` (v1, v2 under BACKWARD),
+  `TestCompatibility_ForwardV2ToV1` (v2, v1 under FORWARD).
 - **1** `RequiresRealGlue=true` companion
-  (`TestCompatibility_IncompatibleRejected_Real`) — registers v1,
-  attempts an incompatible v2 the server must reject (≈ 1 successful
-  CreateSchema + 1 rejected attempt).
+  (`TestCompatibility_IncompatibleRejected_Real`): iter 1 = 3 calls
+  (same as above), iter 2 = 2 calls (GetSchemaByDefinition miss +
+  CreateSchema rejection — no Register fall-through because the
+  server enforced the rejection). ≈ **5 calls**.
 - **1** negative decode that reaches Glue
   (`TestNegative_UnknownVersionUUID` → 1 `GetSchemaVersion`).
+- Cleanup pass via `realglue.Cleanup.Run` at teardown: one
+  `DeleteSchema` per tracked schema. ≈ **3 calls** (BackwardV1ToV2,
+  ForwardV2ToV1, IncompatibleRejected_Real all `TrackSchema`).
 
-Total fresh Glue control-plane calls per `make test-integ-real` run:
-**roughly 15-20**.
+Total Glue control-plane calls per `make test-integ-real` run:
+**roughly 23**. (Phase 4.7's earlier "<50" was an order-of-magnitude
+ceiling; this breakdown is the per-test reality.)
 
-Phase 4.8 nit #8: this estimate is tighter than Phase 4.7's earlier
-"<50" figure because the gate review reclassified
-`MalformedDecodePayload`, `NonUTF8Path`, and `TruncatedPayload` as
-`requiresFake=true` (they never reached the real GlueClient anyway).
-Re-estimate when the §5.3 matrix grows or when new `requiresReal`
-scenarios are added.
+Phase 4.8 nit #8 / review-of-review #3: the previous per-test
+enumeration omitted the iter-2 AlreadyExistsException fall-through
+that real Glue ALWAYS sees, and undercounted accordingly. Updated
+to track the actual call shape so a user auditing CloudTrail after
+a clean run knows what to expect. Re-estimate when the §5.3 matrix
+grows or when new `requiresReal` scenarios are added.
 
 At Glue Schema Registry public pricing (free for the first ~1M
 ops/month at the time of writing) this is well inside the free

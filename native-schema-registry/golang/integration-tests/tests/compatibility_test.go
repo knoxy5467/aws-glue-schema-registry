@@ -34,6 +34,63 @@ const (
 	schemaV3 = `{"type":"record","name":"User","fields":[{"name":"id","type":"string"},{"name":"email","type":["null","string"],"default":null},{"name":"age","type":["null","int"],"default":null}]}`
 )
 
+// compatibilityRoundTrip runs the same fresh-encoder-per-iteration
+// loop used by items 18 / 19 / 20 / 21. For each schema definition
+// in defs, it builds a NEW encoder (so the per-name cache keyed by
+// `schemaName:dataFormat` does not short-circuit later iterations
+// into reusing v1's version-id) and asserts encode/decode succeed.
+//
+// IMPORTANT — what this DOES and does NOT prove:
+//   - It DOES prove that every definition in defs serializes through
+//     the wire-format and round-trips through the GlueClient under
+//     this Compatibility= setting.
+//   - It DOES exercise the per-name cache-defeat property — but only
+//     STRUCTURALLY (fresh encoders). Whether the cache actually had
+//     to be bypassed cannot be asserted backend-agnostically; items 19
+//     and 21 add a fakeglue Snapshot-based total-count assertion to
+//     close that gap.
+//   - It does NOT prove server-side compatibility enforcement. On
+//     real Glue, iter 2's CreateSchema hits AlreadyExistsException
+//     and the encoder falls through to RegisterSchemaVersion, which
+//     carries no Compatibility field — so a regression that dropped
+//     `Compatibility` from the CreateSchemaInput would still let
+//     this test pass (iter 1 would create the schema with the server
+//     default of NONE, iter 2's v2 would register cleanly via the
+//     fall-through). Server-side BACKWARD enforcement is proven
+//     exclusively by TestCompatibility_IncompatibleRejected_Real,
+//     which pushes a deliberately incompatible v2.
+//
+// Phase 4.8 review finding #8: extracted from items 18/19/20/21 to
+// keep the four tests in lock-step if the round-trip envelope (e.g.,
+// wire-format prefix assertions) ever tightens.
+func compatibilityRoundTrip(t *testing.T, h *glueHandle, schemaName, compatMode string, defs []string) {
+	t.Helper()
+	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
+		RegistryName: "default-registry",
+	})
+	require.NoError(t, err)
+
+	for i, def := range defs {
+		enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
+			RegistryName:                  "default-registry",
+			Compatibility:                 compatMode,
+			SchemaAutoRegistrationEnabled: true,
+		})
+		require.NoError(t, err)
+
+		encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
+			SchemaDefinition: def,
+			SchemaName:       schemaName,
+			DataFormat:       "AVRO",
+		})
+		require.NoError(t, err, "iteration %d (Compatibility=%s) encode", i+1, compatMode)
+
+		decoded, err := dec.Decode(encoded)
+		require.NoError(t, err, "iteration %d decode", i+1)
+		require.Equal(t, []byte("payload"), decoded)
+	}
+}
+
 // §5.3 item 18 — BACKWARD evolution v1→v2: producer publishes v1,
 // consumer with v2 reads successfully.
 //
@@ -44,59 +101,25 @@ const (
 // schema. That bytes-flow is what this test pins — it runs against
 // either backend.
 //
-// Phase 4.8 nit #5: earlier version only registered v1, so the
-// "Compatibility=BACKWARD" config value was never proven to flow
-// into the CreateSchema request. Now we ALSO register a
-// backward-compatible v2 (adds a nullable field with default) and
-// confirm both versions round-trip — on real Glue this exercises
-// the server's BACKWARD compatibility check; on fake it just locks
-// the wire-format flow for both definitions.
+// What this test does NOT prove: server-side BACKWARD enforcement.
+// See compatibilityRoundTrip's docstring and
+// TestCompatibility_IncompatibleRejected_Real for the canonical
+// server-side enforcement test.
 func TestCompatibility_BackwardV1ToV2(t *testing.T) {
 	t.Parallel()
 	h := newGlueHandle(t)
-	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
-		RegistryName: "default-registry",
-	})
-	require.NoError(t, err)
-
 	schemaName := randomGlueName(t, "compat-18")
 	if h.Cleanup != nil {
 		h.Cleanup.TrackSchema("default-registry", schemaName)
 	}
-
-	// v1 then v2. Fresh encoder per version to defeat the per-name
-	// cache (same pattern as items 19 / 21).
-	for i, def := range []string{schemaV1, schemaV2} {
-		enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
-			RegistryName:                  "default-registry",
-			Compatibility:                 "BACKWARD",
-			SchemaAutoRegistrationEnabled: true,
-		})
-		require.NoError(t, err)
-
-		encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
-			SchemaDefinition: def,
-			SchemaName:       schemaName,
-			DataFormat:       "AVRO",
-		})
-		require.NoError(t, err, "v%d encode (Compatibility=BACKWARD) must succeed; "+
-			"a regression dropping Compatibility from CreateSchema would surface as a "+
-			"server-side rejection of v2 here", i+1)
-
-		decoded, err := dec.Decode(encoded)
-		require.NoError(t, err, "v%d decode", i+1)
-		require.Equal(t, []byte("payload"), decoded)
-	}
+	compatibilityRoundTrip(t, h, schemaName, "BACKWARD", []string{schemaV1, schemaV2})
 }
 
-// §5.3 item 19 — BACKWARD_ALL across three versions. The encoder's
-// cache is keyed by `schemaName:dataFormat` (encoder.go:154), so a
-// single encoder instance reused across iterations would short-circuit
-// on the cached version-id for iterations 2 and 3 — fakeglue would
-// never see v2/v3 and the BACKWARD_ALL contract would not actually
-// be exercised. Build a fresh encoder per iteration to defeat the
-// cache, and assert CallCounts["CreateSchema"] tracks the iteration
-// count so any regression in v2/v3 registration surfaces here.
+// §5.3 item 19 — BACKWARD_ALL across three versions. Builds on
+// compatibilityRoundTrip and adds the fakeglue Snapshot-based
+// total-count assertion that ACTUALLY proves the cache-defeat
+// pattern (item 18 / 20 cannot make this assertion because they're
+// backend-agnostic).
 //
 // Phase 4.7: requiresFake=true. The Snapshot()-based total assertion
 // uses fakeglue introspection.
@@ -104,36 +127,17 @@ func TestCompatibility_BackwardAll_ThreeVersions(t *testing.T) {
 	t.Parallel()
 	scenarioGate(t, false, true)
 	h := newGlueHandle(t)
-	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
-		RegistryName: "default-registry",
-	})
-	require.NoError(t, err)
 
 	schemaName := randomGlueName(t, "compat-19")
-	for i, def := range []string{schemaV1, schemaV2, schemaV3} {
-		enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
-			RegistryName:                  "default-registry",
-			Compatibility:                 "BACKWARD_ALL",
-			SchemaAutoRegistrationEnabled: true,
-		})
-		require.NoError(t, err)
-
-		encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
-			SchemaDefinition: def,
-			SchemaName:       schemaName,
-			DataFormat:       "AVRO",
-		})
-		require.NoError(t, err, "iteration %d (definition %d)", i, i+1)
-		decoded, err := dec.Decode(encoded)
-		require.NoError(t, err, "iteration %d decode", i)
-		require.Equal(t, []byte("payload"), decoded)
-	}
+	compatibilityRoundTrip(t, h, schemaName, "BACKWARD_ALL", []string{schemaV1, schemaV2, schemaV3})
 
 	// Each fresh encoder + distinct definition forces a new Glue
 	// resolution: iter 1 CreateSchema, iters 2-3 RegisterSchemaVersion
 	// (fakeglue's CreateSchema-on-existing returns a fresh UUID; real
 	// Glue would 409 and the encoder would fall through to Register).
-	// Total CreateSchema+RegisterSchemaVersion should equal 3.
+	// Total CreateSchema+RegisterSchemaVersion should equal 3 — this
+	// is the assertion that proves the cache-defeat structurally
+	// worked (vs. the encoder silently short-circuiting on v2/v3).
 	total := h.Fake.Snapshot()["CreateSchema"] + h.Fake.Snapshot()["RegisterSchemaVersion"]
 	require.Equal(t, 3, total,
 		"BACKWARD_ALL across three versions must reach Glue three times (CreateSchema or RegisterSchemaVersion); saw %d", total)
@@ -142,81 +146,33 @@ func TestCompatibility_BackwardAll_ThreeVersions(t *testing.T) {
 // §5.3 item 20 — FORWARD evolution v2→v1. Producer publishes v2,
 // consumer reads with v1 schema. Same wire-flow contract as item 18
 // (v2's bytes carry v2's version-id; consumer fetches v2's schema).
-// Backend-agnostic.
-//
-// Phase 4.8 nit #5: same shape as item 18 — register v2 then v1
-// under Compatibility=FORWARD so the config value is actually
-// proven against the server. v1 is forward-compatible from v2 (v2
-// adds a nullable field; reading v2 bytes with a v1 reader-schema
-// drops the field).
+// Backend-agnostic. v1 is forward-compatible from v2: v2 adds a
+// nullable field, so reading v2 bytes with a v1 reader-schema
+// drops the field. See compatibilityRoundTrip's docstring for the
+// "what this does NOT prove" boundary.
 func TestCompatibility_ForwardV2ToV1(t *testing.T) {
 	t.Parallel()
 	h := newGlueHandle(t)
-	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
-		RegistryName: "default-registry",
-	})
-	require.NoError(t, err)
-
 	schemaName := randomGlueName(t, "compat-20")
 	if h.Cleanup != nil {
 		h.Cleanup.TrackSchema("default-registry", schemaName)
 	}
-
-	// v2 then v1. FORWARD with v1 second proves the server accepts
-	// "the new version is the OLDER one" — the canonical FORWARD case.
-	for i, def := range []string{schemaV2, schemaV1} {
-		enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
-			RegistryName:                  "default-registry",
-			Compatibility:                 "FORWARD",
-			SchemaAutoRegistrationEnabled: true,
-		})
-		require.NoError(t, err)
-
-		encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
-			SchemaDefinition: def,
-			SchemaName:       schemaName,
-			DataFormat:       "AVRO",
-		})
-		require.NoError(t, err, "iteration %d under Compatibility=FORWARD must succeed", i+1)
-		decoded, err := dec.Decode(encoded)
-		require.NoError(t, err)
-		require.Equal(t, []byte("payload"), decoded)
-	}
+	compatibilityRoundTrip(t, h, schemaName, "FORWARD", []string{schemaV2, schemaV1})
 }
 
-// §5.3 item 21 — FULL evolution both directions. Same cache-defeat
-// pattern as item 19: fresh encoder per iteration so the cache
-// doesn't silently elide the second Glue resolution.
+// §5.3 item 21 — FULL evolution both directions. Builds on
+// compatibilityRoundTrip and adds the fakeglue Snapshot-based
+// total-count assertion to prove the cache-defeat structurally
+// worked (same shape as item 19).
 //
-// Phase 4.7: requiresFake=true. Same Snapshot()-based assertion.
+// Phase 4.7: requiresFake=true.
 func TestCompatibility_FullBothDirections(t *testing.T) {
 	t.Parallel()
 	scenarioGate(t, false, true)
 	h := newGlueHandle(t)
-	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
-		RegistryName: "default-registry",
-	})
-	require.NoError(t, err)
 
 	schemaName := randomGlueName(t, "compat-21")
-	for i, def := range []string{schemaV1, schemaV2} {
-		enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
-			RegistryName:                  "default-registry",
-			Compatibility:                 "FULL",
-			SchemaAutoRegistrationEnabled: true,
-		})
-		require.NoError(t, err)
-
-		encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
-			SchemaDefinition: def,
-			SchemaName:       schemaName,
-			DataFormat:       "AVRO",
-		})
-		require.NoError(t, err, "iteration %d (definition %d)", i, i+1)
-		decoded, err := dec.Decode(encoded)
-		require.NoError(t, err, "iteration %d decode", i)
-		require.Equal(t, []byte("payload"), decoded)
-	}
+	compatibilityRoundTrip(t, h, schemaName, "FULL", []string{schemaV1, schemaV2})
 
 	total := h.Fake.Snapshot()["CreateSchema"] + h.Fake.Snapshot()["RegisterSchemaVersion"]
 	require.Equal(t, 2, total,

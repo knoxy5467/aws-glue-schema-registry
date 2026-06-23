@@ -122,7 +122,7 @@ func scenarioGate(t testing.TB, requiresReal, requiresFake bool) {
 		t.Skipf("scenario requires real Glue; GSR_GLUE=%q", mode)
 	}
 	if requiresFake && mode != glueModeFake {
-		t.Skipf("scenario requires fakeglue affordances (Force* / CallCounts); GSR_GLUE=%q", mode)
+		t.Skipf("scenario requires fakeglue affordances (Force* / Count); GSR_GLUE=%q", mode)
 	}
 }
 
@@ -140,8 +140,10 @@ func scenarioGate(t testing.TB, requiresReal, requiresFake bool) {
 // stronger guarantee the comment implied.
 //
 // The "gsr-go-it-" prefix is significant: REAL-AWS-RUNBOOK.md's
-// post-run leak check (`aws glue list-schemas | grep gsr-go-it-`)
-// uses that exact prefix.
+// post-run leak check runs `aws glue list-schemas
+// --registry-id RegistryName=default-registry --query
+// 'Schemas[?starts_with(SchemaName, ` + "`gsr-go-it-`" + `)].SchemaName'`
+// and matches on that exact prefix.
 func randomGlueName(t testing.TB, base string) string {
 	t.Helper()
 	var buf [8]byte

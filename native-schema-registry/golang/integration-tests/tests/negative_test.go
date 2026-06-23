@@ -164,12 +164,20 @@ func TestNegative_EntityNotFoundFallsThroughToCreate(t *testing.T) {
 func TestNegative_MalformedDecodePayload(t *testing.T) {
 	t.Parallel()
 	// Phase 4.8 nit #6: gate requiresFake=true. The decoder does
-	// reach the GlueClient here (GetSchemaVersion lookup of the
-	// unknown UUID), but the assertion is just "any non-nil error";
-	// running this against real Glue pays the LoadDefaultConfig +
-	// Credentials.Retrieve probe cost for zero added coverage over
-	// the fake. The companion TestNegative_UnknownVersionUUID below
-	// already covers the same Glue path in backend-agnostic mode.
+	// reach the GlueClient here (GetSchemaVersion lookup of an
+	// unknown UUID), and the two backends return DIFFERENT typed
+	// errors for THIS payload (real Glue rejects the all-zero UUID
+	// as InvalidInputException; fakeglue's empty-map miss is
+	// EntityNotFoundException). The assertion is "any non-nil
+	// error", so the typed-error difference is not covered either
+	// way, but be aware that gating this on fake DOES drop the
+	// all-zero-UUID InvalidInputException path from real-mode runs.
+	// TestNegative_UnknownVersionUUID below uses a non-zero UUID
+	// and covers the EntityNotFound path on either backend; the
+	// InvalidInputException path for all-zero UUIDs is not covered
+	// in real mode after this gate. Trade-off accepted because the
+	// assertion was already loose; tracked here so the next person
+	// auditing real-mode coverage knows what they're looking at.
 	scenarioGate(t, false, true)
 	h := newGlueHandle(t)
 	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
@@ -212,7 +220,7 @@ func TestNegative_NonUTF8Path(t *testing.T) {
 	// decoder cache directly via PrimeSchemaCache and never reaches
 	// the underlying GlueClient, newGlueHandle still pays the
 	// LoadDefaultConfig + Credentials.Retrieve cost in real mode.
-	// gscenarioGate(t, false, true) so the real-mode run skips it
+	// scenarioGate(t, false, true) so the real-mode run skips it
 	// without paying that cost — there is no real-mode value to be
 	// gained since GlueClient is never called.
 	scenarioGate(t, false, true)
