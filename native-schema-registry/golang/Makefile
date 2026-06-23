@@ -255,6 +255,107 @@ clean-dockerized:
 	cd integration-tests && docker compose -f docker-compose.dockerized.yml down --remove-orphans || true
 	docker rmi golang-gsr-tests:dockerized || true
 
+# Phase 4.6 — Java <-> Go interop sidecar (plan §5.5).
+#
+# java-sidecar-build packages the fat JAR via Maven and tags the Docker image
+# locally so testcontainers-go can pick it up in container mode. The Maven
+# binary is expected at $(JAVA_MVN); points at the repo-local install path
+# documented in integration-tests/java-interop/README.md, so a fresh checkout
+# doesn't need a system-wide Maven.
+JAVA_INTEROP_DIR     := integration-tests/java-interop
+JAVA_INTEROP_JAR     := $(JAVA_INTEROP_DIR)/target/java-interop-sidecar.jar
+JAVA_SIDECAR_IMAGE   := gsr-go-it-java-sidecar:latest
+JAVA_MVN             ?= $(HOME)/.local/opt/apache-maven-3.9.9/bin/mvn
+
+.PHONY: java-sidecar-build
+java-sidecar-build:
+	@if [ ! -x "$(JAVA_MVN)" ]; then \
+		echo "ERROR: Maven not found at $(JAVA_MVN)"; \
+		echo "  Set JAVA_MVN=<path-to-mvn> or follow integration-tests/java-interop/README.md to install Maven 3.9+."; \
+		exit 1; \
+	fi
+	@echo "Building Java interop sidecar JAR..."
+	$(JAVA_MVN) -B -DskipTests -f $(JAVA_INTEROP_DIR)/pom.xml package
+	@echo "Building Docker image $(JAVA_SIDECAR_IMAGE)..."
+	docker build -t $(JAVA_SIDECAR_IMAGE) $(JAVA_INTEROP_DIR)
+	@echo "Java sidecar JAR: $(JAVA_INTEROP_JAR)"
+	@echo "Java sidecar image: $(JAVA_SIDECAR_IMAGE)"
+
+# test-integ-interop runs only the Phase 4.6 interop_*_test.go cells in
+# local mode. Requires a JDK on PATH; falls back to a skip if absent.
+.PHONY: test-integ-interop
+test-integ-interop:
+	@echo "Running interop tests (GSR_INTEROP_MODE=local)..."
+	cd integration-tests && GSR_INTEROP_MODE=local $(GO) test -tags integration -count=1 -timeout=10m -run=Interop ./... 2>&1 | tee ../$(BUILD_DIR)/integration-test-interop-local.txt
+
+# test-integ-interop-container is the same suite in container mode.
+# Requires the Docker image built by java-sidecar-build.
+.PHONY: test-integ-interop-container
+test-integ-interop-container:
+	@echo "Running interop tests (GSR_INTEROP_MODE=container)..."
+	cd integration-tests && GSR_INTEROP_MODE=container $(GO) test -tags integration -count=1 -timeout=15m -run=Interop ./... 2>&1 | tee ../$(BUILD_DIR)/integration-test-interop-container.txt
+
+# ---- Phase 6 benchmarks ----------------------------------------------------
+#
+# bench-go         Smoke-runs the Go benchmark matrix and writes the output
+#                  under perf/baselines/go/ at the repo root.
+# bench-go-full    Same, but with -count=5 -benchtime=2s for benchstat-quality
+#                  numbers. Takes ~10 min.
+# bench-java       Builds target/benchmarks.jar (Phase 6 JMH module) and runs
+#                  the smoke matrix into perf/baselines/java/.
+# bench-java-full  Same, with the JMH @Warmup / @Measurement / @Fork defaults
+#                  (3+5×1s, fork 2). Takes ~10 min.
+# bench-compare    Pairwise benchstat over the two most recent Go core
+#                  baselines, plus a banner reminder to refresh the Java side.
+#
+# All targets shell out to the scripts in $(PERF_SCRIPTS) so the regeneration
+# logic lives in one place (the README under perf/ documents the same
+# invocations).
+PERF_ROOT     := ../../perf
+PERF_SCRIPTS  := $(PERF_ROOT)/scripts
+BENCHSTAT     ?= $(HOME)/go/bin/benchstat
+
+.PHONY: bench-go
+bench-go:
+	$(PERF_SCRIPTS)/run-go-bench.sh smoke
+
+.PHONY: bench-go-full
+bench-go-full:
+	$(PERF_SCRIPTS)/run-go-bench.sh --full
+
+.PHONY: bench-java
+bench-java:
+	$(PERF_SCRIPTS)/run-java-bench.sh smoke
+
+.PHONY: bench-java-full
+bench-java-full:
+	$(PERF_SCRIPTS)/run-java-bench.sh --full
+
+# bench-compare: feed the two most recent core baselines under
+# perf/baselines/go/ to benchstat. Two timestamped files are required —
+# the very first bench-go run only has one, so the target prints a
+# friendly hint and exits 0 in that case.
+.PHONY: bench-compare
+bench-compare:
+	@if [ ! -x "$(BENCHSTAT)" ]; then \
+		echo "ERROR: benchstat not found at $(BENCHSTAT)"; \
+		echo "  Install with: $(GO) install golang.org/x/perf/cmd/benchstat@latest"; \
+		exit 1; \
+	fi
+	@latest_two=$$(ls -1t $(PERF_ROOT)/baselines/go/core-2*.txt 2>/dev/null | head -2); \
+	count=$$(echo "$$latest_two" | wc -l); \
+	if [ "$$count" -lt 2 ]; then \
+		echo "Only $$count timestamped Go baseline file(s) — run 'make bench-go' at least twice before benchstat has a delta to report."; \
+		exit 0; \
+	fi; \
+	echo "==> benchstat $$latest_two"; \
+	$(BENCHSTAT) $$latest_two
+	@echo ""
+	@echo "Java JMH does not have a benchstat-equivalent ranker yet. To refresh"
+	@echo "the Java side of the perf/README.md comparison table:"
+	@echo "  make bench-java         # smoke (single fork, ~1 min)"
+	@echo "  make bench-java-full    # default JMH config (~10 min, defensible)"
+
 .PHONY: help
 help:
 	@echo "Available targets:"
@@ -263,6 +364,14 @@ help:
 	@echo "  test-integ                  Run §5.3 integration tests (AWS_INTEGRATION=1, fakeglue, testcontainers-go Kafka, $(INTEG_TIMEOUT) timeout)"
 	@echo "  test-integ-real             Run §5.3 integration tests against REAL AWS Glue (GSR_GLUE=real, bills AWS, $(REAL_INTEG_TIMEOUT) timeout)"
 	@echo "  test-integ-dockerized       Run integration tests inside an Alpine container (CI parity, mounts ~/.aws ro)"
+	@echo "  java-sidecar-build          Build Phase 4.6 Java interop sidecar JAR + Docker image"
+	@echo "  test-integ-interop          Run interop_*_test.go in GSR_INTEROP_MODE=local"
+	@echo "  test-integ-interop-container Run interop_*_test.go in GSR_INTEROP_MODE=container"
+	@echo "  bench-go                    Phase 6 Go benchmark smoke (writes perf/baselines/go/)"
+	@echo "  bench-go-full               Phase 6 Go benchmark count=5 benchtime=2s (~10 min)"
+	@echo "  bench-java                  Phase 6 JMH benchmark smoke (writes perf/baselines/java/)"
+	@echo "  bench-java-full             Phase 6 JMH benchmark default config (~10 min)"
+	@echo "  bench-compare               Pairwise benchstat over the two most recent Go baselines"
 	@echo "  test-all                    Run all tests (unit, component, and integration)"
 	@echo "  cover-test                  Run unit + component tests with coverage"
 	@echo "  cover-test-integ            Run integration tests with coverage"
