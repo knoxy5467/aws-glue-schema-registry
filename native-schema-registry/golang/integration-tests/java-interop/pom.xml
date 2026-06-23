@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Phase 4.6 Java-Go interop sidecar.
+
+  A standalone fat JAR that exposes /encode and /decode HTTP endpoints
+  driven by the real aws-glue-schema-registry Java library
+  (schema-registry-common + schema-registry-serde, both pinned to 1.1.25).
+
+  The sidecar exercises ONLY the GSR wire-format layer
+  (SerializationDataEncoder + GlueSchemaRegistryDeserializerDataParser).
+  It NEVER calls AWS Glue: format-specific record serialization lives
+  on the Go test side, and the schema-by-UUID lookup uses an in-memory
+  map populated by /encode requests.
+
+  Build:
+    mvn -f integration-tests/java-interop/pom.xml -DskipTests package
+  produces target/java-interop-sidecar.jar.
+
+  Run:
+    java -jar target/java-interop-sidecar.jar (port arg)
+  prints "PORT: (n)" on the first stdout line, then serves until SIGTERM.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.amazonaws.services.schemaregistry.interop</groupId>
+    <artifactId>java-interop-sidecar</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>GSR Go Client Java Interop Sidecar</name>
+    <description>
+        Test-only sidecar that drives the real Java GSR library's wire-format
+        encode/decode helpers from a small HTTP surface, so the Go client's
+        wire format can be cross-checked live without a CGO bridge or a
+        Java-side AWS Glue call.
+    </description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <!--
+          Pinned upstream Java GSR version.
+          Matches the surrounding repo's parent pom (<version>...</version>
+          on schema-registry-parent in /pom.xml). Bumping this in lockstep
+          with the surrounding repo is intentional: the interop harness must
+          run against the same Java library the rest of the multi-module
+          project is built and shipped with — otherwise the harness silently
+          tests against a stale Java reference.
+
+          Note: child pom <parent> blocks (common/pom.xml etc.) sometimes lag
+          a release; the source of truth is /pom.xml schema-registry-parent.
+        -->
+        <gsr.version>1.1.27</gsr.version>
+        <jackson.version>2.17.2</jackson.version>
+        <!--
+          slf4j-nop must use the same major as the slf4j-api version GSR
+          transitively pulls in (currently 1.7.x). Mismatched majors yield
+          the noisy "Failed to load class StaticLoggerBinder" warning on
+          stdout/stderr at JVM startup.
+        -->
+        <slf4j.version>1.7.30</slf4j.version>
+    </properties>
+
+    <dependencies>
+        <!-- The real GSR Java library — what the sidecar is here to exercise. -->
+        <dependency>
+            <groupId>software.amazon.glue</groupId>
+            <artifactId>schema-registry-common</artifactId>
+            <version>${gsr.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.glue</groupId>
+            <artifactId>schema-registry-serde</artifactId>
+            <version>${gsr.version}</version>
+        </dependency>
+        <!-- JSON for the tiny HTTP surface. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <!-- Quiet SLF4J: GSR pulls slf4j-api; bind a no-op impl in the fat JAR. -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-nop</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>java-interop-sidecar</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <minimizeJar>false</minimizeJar>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.amazonaws.services.schemaregistry.interop.SidecarMain</mainClass>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
