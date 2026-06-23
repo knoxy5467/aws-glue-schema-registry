@@ -155,22 +155,47 @@ public final class RecordCodec {
 
     /**
      * Pulls the `package` declaration out of a .proto source string. Returns
-     * empty string when the file has no package line.
+     * empty string when the file has no package line. Tolerates trailing
+     * inline comments (// ...) and arbitrary whitespace between `package` and
+     * the name. Block comments (/* ... *\/) and string literals are out of
+     * scope — .proto files don't carry those at the file level.
      */
     private static String extractProtoPackage(String schemaDef) {
-        for (String line : schemaDef.split("\n")) {
+        for (String rawLine : schemaDef.split("\n")) {
+            String line = rawLine;
+            int comment = line.indexOf("//");
+            if (comment >= 0) {
+                line = line.substring(0, comment);
+            }
             String trimmed = line.trim();
-            if (trimmed.startsWith("package ") && trimmed.endsWith(";")) {
-                return trimmed.substring("package ".length(), trimmed.length() - 1).trim();
+            if (!trimmed.startsWith("package")) {
+                continue;
+            }
+            // Require whitespace or non-identifier char after `package`.
+            if (trimmed.length() <= "package".length()
+                    || Character.isJavaIdentifierPart(trimmed.charAt("package".length()))) {
+                continue;
+            }
+            String rest = trimmed.substring("package".length()).trim();
+            if (rest.endsWith(";")) {
+                rest = rest.substring(0, rest.length() - 1).trim();
+            }
+            if (!rest.isEmpty()) {
+                return rest;
             }
         }
         return "";
     }
 
     /**
-     * Resolves a full message name (possibly "package.Name") against a
+     * Resolves a full message name (possibly ".package.Name") against a
      * FileDescriptor by scanning top-level + nested message types. Returns
      * null when not found.
+     *
+     * Only exact full-name matches are accepted. A short-name fallback was
+     * intentionally removed: it silently picked the wrong descriptor when
+     * the schema had multiple messages sharing a simple name (e.g. nested
+     * types or two top-level messages in different packages).
      */
     private static Descriptors.Descriptor findMessageDescriptor(Descriptors.FileDescriptor fileDesc, String fullName) {
         // Strip leading dot if present.
@@ -179,13 +204,6 @@ public final class RecordCodec {
             Descriptors.Descriptor found = matchOrSearch(d, want);
             if (found != null) {
                 return found;
-            }
-        }
-        // Fall back to short-name match (last dotted component).
-        String shortName = want.contains(".") ? want.substring(want.lastIndexOf('.') + 1) : want;
-        for (Descriptors.Descriptor d : fileDesc.getMessageTypes()) {
-            if (d.getName().equals(shortName)) {
-                return d;
             }
         }
         return null;

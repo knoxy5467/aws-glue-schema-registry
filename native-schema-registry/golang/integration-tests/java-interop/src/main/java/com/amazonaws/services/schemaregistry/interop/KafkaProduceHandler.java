@@ -99,6 +99,11 @@ public final class KafkaProduceHandler implements HttpHandler {
 
             GlueSchemaRegistryKafkaSerializer kafkaSerializer = new GlueSchemaRegistryKafkaSerializer(gsrConfigs);
             byte[] framed = kafkaSerializer.serialize(topic, javaRecord);
+            if (framed == null) {
+                throw new IllegalStateException(
+                        "GlueSchemaRegistryKafkaSerializer.serialize returned null for non-null record"
+                        + " (format=" + format + ", topic=" + topic + ")");
+            }
 
             // Plain bytes producer — Kafka is just transport here.
             Properties props = new Properties();

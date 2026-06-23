@@ -155,14 +155,19 @@ for tests that exercise the decode path in isolation.
 
 ### `POST /kafka-produce`
 
-Bills AWS. Request:
+Bills AWS. Drives the FULL Kafka customer API:
+`GlueSchemaRegistryKafkaSerializer.serialize(topic, record)` — the same
+library entry point a real Java Kafka producer would use. Format-specific
+serialization (Avro / JSON / protobuf message-index prefix) runs here.
+
+Request:
 
 ```json
 {
   "format":      "AVRO" | "JSON" | "PROTOBUF",
   "schema":      "<schema definition string>",
   "schemaName":  "<schema name>",
-  "payload":     "<base64 of pre-encoded record bytes>",
+  "record":      { /* per-format envelope; see below */ },
   "compression": "NONE" | "ZLIB",
   "bootstrap":   "<kafka bootstrap servers>",
   "topic":       "<kafka topic name>",
@@ -170,29 +175,68 @@ Bills AWS. Request:
 }
 ```
 
-The handler calls `SchemaByDefinitionFetcher.getORRegisterSchemaVersionId(...)`
-against real Glue (auto-registration is on), frames the payload with
-`SerializationDataEncoder`, and produces ONE record to the named topic.
-Response: `{schemaVersionId, bytes, offset, partition}`.
+Per-format `record` envelope:
+
+```json
+// AVRO — reconstructed into a GenericRecord using Schema.Parser
+{ "fields": { "<name>": <value>, ... } }
+
+// JSON — reconstructed into JsonDataWithSchema
+{ "schema": "<jsonSchema>", "payload": "<jsonDoc>" }
+
+// PROTOBUF — reconstructed into a DynamicMessage built from the
+// runtime-parsed FileDescriptor (FileDescriptorUtils.protoFileToFileDescriptor)
+// and populated via JsonFormat.parser().merge(fieldsJson, builder).
+{ "messageTypeFullName": "<test.TestMessage>", "fieldsJson": "<json>" }
+```
+
+The handler reconstructs the typed Java record, hands it to
+`GlueSchemaRegistryKafkaSerializer.serialize(...)` which registers the
+schema with real Glue (auto-registration is on by default in the
+sidecar's config), then produces ONE record via a plain
+`KafkaProducer<byte[], byte[]>`.
+
+Response: `{schemaVersionId, bytes, offset, partition}`. `schemaVersionId`
+is recovered by parsing the GSR header out of `bytes` since the Kafka
+Serializer interface doesn't expose the UUID directly.
 
 ### `POST /kafka-consume`
 
-Bills AWS. Request:
+Bills AWS. Drives `GlueSchemaRegistryKafkaDeserializer.deserialize(topic,
+bytes)` — the symmetric public Kafka-customer entry point.
+
+Request:
 
 ```json
 {
   "bootstrap": "<kafka bootstrap servers>",
   "topic":     "<kafka topic name>",
+  "format":    "AVRO" | "JSON" | "PROTOBUF",
   "groupId":   "<optional consumer group>",
   "region":    "<aws region, optional>",
   "timeoutMs": 30000
 }
 ```
 
-The handler polls the topic for one record, parses the GSR header with
-`GlueSchemaRegistryDeserializerDataParser`, then calls
-`AWSSchemaRegistryClient.getSchemaVersionResponse(UUID)` against real
-Glue. Response: `{payload, schemaVersionId, schemaDefinition, dataFormat, schemaArn}`.
+The handler polls one record via plain `KafkaConsumer<byte[], byte[]>`,
+hands the bytes to `GlueSchemaRegistryKafkaDeserializer.deserialize(...)`
+which fetches the schema definition from real Glue and produces a typed
+record (`GenericRecord` / `JsonDataWithSchema` / `DynamicMessage`). The
+record is then re-serialized into the same per-format JSON envelope shape
+documented under `/kafka-produce` so the Go test can assert
+field-by-field equality.
+
+Response:
+
+```json
+{
+  "schemaVersionId":  "<UUID>",
+  "dataFormat":       "AVRO" | "JSON" | "PROTOBUF",
+  "schemaDefinition": "<def fetched from Glue>",
+  "schemaArn":        "<arn>",
+  "record":           { /* per-format envelope; see /kafka-produce */ }
+}
+```
 
 ### `GET /health`
 
