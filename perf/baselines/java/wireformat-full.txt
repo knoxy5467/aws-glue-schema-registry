@@ -16,34 +16,34 @@
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-7.298 ops/us
-# Warmup Iteration   2: 18.633 ops/us
-# Warmup Iteration   3: 19.131 ops/us
-Iteration   1: 18.770 ops/us
-Iteration   2: 19.095 ops/us
-Iteration   3: 19.218 ops/us
-Iteration   4: 19.133 ops/us
-Iteration   5: 19.209 ops/us
+6.820 ops/us
+# Warmup Iteration   2: 18.288 ops/us
+# Warmup Iteration   3: 18.911 ops/us
+Iteration   1: 18.815 ops/us
+Iteration   2: 18.988 ops/us
+Iteration   3: 18.077 ops/us
+Iteration   4: 18.964 ops/us
+Iteration   5: 18.878 ops/us
 
-# Run progress: 2.08% complete, ETA 00:06:32
+# Run progress: 2.08% complete, ETA 00:06:30
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-7.286 ops/us
-# Warmup Iteration   2: 18.664 ops/us
-# Warmup Iteration   3: 19.110 ops/us
-Iteration   1: 19.070 ops/us
-Iteration   2: 19.172 ops/us
-Iteration   3: 19.286 ops/us
-Iteration   4: 19.127 ops/us
-Iteration   5: 18.145 ops/us
+7.369 ops/us
+# Warmup Iteration   2: 18.654 ops/us
+# Warmup Iteration   3: 19.064 ops/us
+Iteration   1: 19.159 ops/us
+Iteration   2: 19.165 ops/us
+Iteration   3: 19.215 ops/us
+Iteration   4: 19.191 ops/us
+Iteration   5: 19.216 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  19.023 ±(99.9%) 0.511 ops/us [Average]
-  (min, avg, max) = (18.145, 19.023, 19.286), stdev = 0.338
-  CI (99.9%): [18.511, 19.534] (assumes normal distribution)
+  18.967 ±(99.9%) 0.522 ops/us [Average]
+  (min, avg, max) = (18.077, 18.967, 19.216), stdev = 0.345
+  CI (99.9%): [18.445, 19.489] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -59,39 +59,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 10240)
 
-# Run progress: 4.17% complete, ETA 00:06:23
+# Run progress: 4.17% complete, ETA 00:06:22
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.170 ops/us
-# Warmup Iteration   2: 0.367 ops/us
-# Warmup Iteration   3: 0.367 ops/us
-Iteration   1: 0.371 ops/us
-Iteration   2: 0.371 ops/us
-Iteration   3: 0.369 ops/us
+0.172 ops/us
+# Warmup Iteration   2: 0.364 ops/us
+# Warmup Iteration   3: 0.365 ops/us
+Iteration   1: 0.364 ops/us
+Iteration   2: 0.370 ops/us
+Iteration   3: 0.368 ops/us
 Iteration   4: 0.369 ops/us
-Iteration   5: 0.362 ops/us
+Iteration   5: 0.368 ops/us
 
-# Run progress: 6.25% complete, ETA 00:06:15
+# Run progress: 6.25% complete, ETA 00:06:14
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
 0.164 ops/us
-# Warmup Iteration   2: 0.361 ops/us
-# Warmup Iteration   3: 0.359 ops/us
-Iteration   1: 0.361 ops/us
-Iteration   2: 0.367 ops/us
+# Warmup Iteration   2: 0.362 ops/us
+# Warmup Iteration   3: 0.360 ops/us
+Iteration   1: 0.364 ops/us
+Iteration   2: 0.363 ops/us
 Iteration   3: 0.363 ops/us
-Iteration   4: 0.370 ops/us
-Iteration   5: 0.371 ops/us
+Iteration   4: 0.357 ops/us
+Iteration   5: 0.366 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.367 ±(99.9%) 0.006 ops/us [Average]
-  (min, avg, max) = (0.361, 0.367, 0.371), stdev = 0.004
-  CI (99.9%): [0.361, 0.373] (assumes normal distribution)
+  0.365 ±(99.9%) 0.006 ops/us [Average]
+  (min, avg, max) = (0.357, 0.365, 0.370), stdev = 0.004
+  CI (99.9%): [0.359, 0.371] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -107,7 +107,7 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 1048576)
 
-# Run progress: 8.33% complete, ETA 00:06:07
+# Run progress: 8.33% complete, ETA 00:06:06
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
@@ -121,7 +121,7 @@ Iteration   3: 0.003 ops/us
 Iteration   4: 0.003 ops/us
 Iteration   5: 0.003 ops/us
 
-# Run progress: 10.42% complete, ETA 00:05:59
+# Run progress: 10.42% complete, ETA 00:05:57
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
@@ -155,39 +155,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 100)
 
-# Run progress: 12.50% complete, ETA 00:05:51
+# Run progress: 12.50% complete, ETA 00:05:49
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.398 ops/us
-# Warmup Iteration   2: 1.053 ops/us
-# Warmup Iteration   3: 1.047 ops/us
-Iteration   1: 1.054 ops/us
-Iteration   2: 1.063 ops/us
-Iteration   3: 1.060 ops/us
-Iteration   4: 1.058 ops/us
-Iteration   5: 1.062 ops/us
+4.843 ops/us
+# Warmup Iteration   2: 13.134 ops/us
+# Warmup Iteration   3: 13.131 ops/us
+Iteration   1: 13.122 ops/us
+Iteration   2: 13.183 ops/us
+Iteration   3: 13.236 ops/us
+Iteration   4: 13.113 ops/us
+Iteration   5: 13.180 ops/us
 
-# Run progress: 14.58% complete, ETA 00:05:43
+# Run progress: 14.58% complete, ETA 00:05:41
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.393 ops/us
-# Warmup Iteration   2: 1.045 ops/us
-# Warmup Iteration   3: 1.049 ops/us
-Iteration   1: 1.054 ops/us
-Iteration   2: 1.058 ops/us
-Iteration   3: 1.058 ops/us
-Iteration   4: 1.051 ops/us
-Iteration   5: 1.051 ops/us
+4.958 ops/us
+# Warmup Iteration   2: 12.074 ops/us
+# Warmup Iteration   3: 12.786 ops/us
+Iteration   1: 12.966 ops/us
+Iteration   2: 13.153 ops/us
+Iteration   3: 13.170 ops/us
+Iteration   4: 13.175 ops/us
+Iteration   5: 13.007 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  1.057 ±(99.9%) 0.007 ops/us [Average]
-  (min, avg, max) = (1.051, 1.057, 1.063), stdev = 0.004
-  CI (99.9%): [1.050, 1.063] (assumes normal distribution)
+  13.130 ±(99.9%) 0.126 ops/us [Average]
+  (min, avg, max) = (12.966, 13.130, 13.236), stdev = 0.084
+  CI (99.9%): [13.004, 13.257] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -203,39 +203,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 10240)
 
-# Run progress: 16.67% complete, ETA 00:05:35
+# Run progress: 16.67% complete, ETA 00:05:33
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.047 ops/us
-# Warmup Iteration   2: 0.122 ops/us
-# Warmup Iteration   3: 0.122 ops/us
-Iteration   1: 0.122 ops/us
-Iteration   2: 0.123 ops/us
-Iteration   3: 0.123 ops/us
-Iteration   4: 0.122 ops/us
-Iteration   5: 0.121 ops/us
+0.103 ops/us
+# Warmup Iteration   2: 0.232 ops/us
+# Warmup Iteration   3: 0.233 ops/us
+Iteration   1: 0.235 ops/us
+Iteration   2: 0.235 ops/us
+Iteration   3: 0.235 ops/us
+Iteration   4: 0.234 ops/us
+Iteration   5: 0.234 ops/us
 
-# Run progress: 18.75% complete, ETA 00:05:26
+# Run progress: 18.75% complete, ETA 00:05:25
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.049 ops/us
-# Warmup Iteration   2: 0.123 ops/us
-# Warmup Iteration   3: 0.124 ops/us
-Iteration   1: 0.124 ops/us
-Iteration   2: 0.124 ops/us
-Iteration   3: 0.125 ops/us
-Iteration   4: 0.125 ops/us
-Iteration   5: 0.125 ops/us
+0.102 ops/us
+# Warmup Iteration   2: 0.229 ops/us
+# Warmup Iteration   3: 0.232 ops/us
+Iteration   1: 0.232 ops/us
+Iteration   2: 0.230 ops/us
+Iteration   3: 0.234 ops/us
+Iteration   4: 0.234 ops/us
+Iteration   5: 0.232 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.123 ±(99.9%) 0.002 ops/us [Average]
-  (min, avg, max) = (0.121, 0.123, 0.125), stdev = 0.001
-  CI (99.9%): [0.121, 0.125] (assumes normal distribution)
+  0.234 ±(99.9%) 0.002 ops/us [Average]
+  (min, avg, max) = (0.230, 0.234, 0.235), stdev = 0.001
+  CI (99.9%): [0.231, 0.236] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -251,39 +251,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 1048576)
 
-# Run progress: 20.83% complete, ETA 00:05:18
+# Run progress: 20.83% complete, ETA 00:05:17
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
 0.001 ops/us
-# Warmup Iteration   2: 0.001 ops/us
-# Warmup Iteration   3: 0.001 ops/us
-Iteration   1: 0.001 ops/us
-Iteration   2: 0.001 ops/us
-Iteration   3: 0.001 ops/us
-Iteration   4: 0.001 ops/us
-Iteration   5: 0.001 ops/us
+# Warmup Iteration   2: 0.002 ops/us
+# Warmup Iteration   3: 0.002 ops/us
+Iteration   1: 0.002 ops/us
+Iteration   2: 0.002 ops/us
+Iteration   3: 0.002 ops/us
+Iteration   4: 0.002 ops/us
+Iteration   5: 0.002 ops/us
 
-# Run progress: 22.92% complete, ETA 00:05:10
+# Run progress: 22.92% complete, ETA 00:05:08
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
 0.001 ops/us
-# Warmup Iteration   2: 0.001 ops/us
-# Warmup Iteration   3: 0.001 ops/us
-Iteration   1: 0.001 ops/us
-Iteration   2: 0.001 ops/us
-Iteration   3: 0.001 ops/us
-Iteration   4: 0.001 ops/us
-Iteration   5: 0.001 ops/us
+# Warmup Iteration   2: 0.002 ops/us
+# Warmup Iteration   3: 0.002 ops/us
+Iteration   1: 0.002 ops/us
+Iteration   2: 0.002 ops/us
+Iteration   3: 0.002 ops/us
+Iteration   4: 0.002 ops/us
+Iteration   5: 0.002 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.001 ±(99.9%) 0.001 ops/us [Average]
-  (min, avg, max) = (0.001, 0.001, 0.001), stdev = 0.001
-  CI (99.9%): [0.001, 0.001] (assumes normal distribution)
+  0.002 ±(99.9%) 0.001 ops/us [Average]
+  (min, avg, max) = (0.002, 0.002, 0.002), stdev = 0.001
+  CI (99.9%): [0.002, 0.002] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -299,39 +299,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 100)
 
-# Run progress: 25.00% complete, ETA 00:05:01
+# Run progress: 25.00% complete, ETA 00:05:00
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.101 ops/us
-# Warmup Iteration   2: 0.105 ops/us
-# Warmup Iteration   3: 0.103 ops/us
-Iteration   1: 0.104 ops/us
-Iteration   2: 0.104 ops/us
-Iteration   3: 0.104 ops/us
-Iteration   4: 0.105 ops/us
-Iteration   5: 0.114 ops/us
+0.119 ops/us
+# Warmup Iteration   2: 0.118 ops/us
+# Warmup Iteration   3: 0.116 ops/us
+Iteration   1: 0.117 ops/us
+Iteration   2: 0.117 ops/us
+Iteration   3: 0.118 ops/us
+Iteration   4: 0.126 ops/us
+Iteration   5: 0.134 ops/us
 
-# Run progress: 27.08% complete, ETA 00:04:53
+# Run progress: 27.08% complete, ETA 00:04:52
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.103 ops/us
-# Warmup Iteration   2: 0.107 ops/us
-# Warmup Iteration   3: 0.102 ops/us
-Iteration   1: 0.101 ops/us
-Iteration   2: 0.104 ops/us
-Iteration   3: 0.104 ops/us
-Iteration   4: 0.104 ops/us
-Iteration   5: 0.109 ops/us
+0.121 ops/us
+# Warmup Iteration   2: 0.119 ops/us
+# Warmup Iteration   3: 0.113 ops/us
+Iteration   1: 0.115 ops/us
+Iteration   2: 0.116 ops/us
+Iteration   3: 0.117 ops/us
+Iteration   4: 0.125 ops/us
+Iteration   5: 0.130 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.105 ±(99.9%) 0.006 ops/us [Average]
-  (min, avg, max) = (0.101, 0.105, 0.114), stdev = 0.004
-  CI (99.9%): [0.100, 0.111] (assumes normal distribution)
+  0.121 ±(99.9%) 0.010 ops/us [Average]
+  (min, avg, max) = (0.115, 0.121, 0.134), stdev = 0.007
+  CI (99.9%): [0.111, 0.132] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -347,39 +347,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 10240)
 
-# Run progress: 29.17% complete, ETA 00:04:44
+# Run progress: 29.17% complete, ETA 00:04:43
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.005 ops/us
+0.004 ops/us
 # Warmup Iteration   2: 0.005 ops/us
-# Warmup Iteration   3: 0.005 ops/us
-Iteration   1: 0.005 ops/us
-Iteration   2: 0.005 ops/us
-Iteration   3: 0.006 ops/us
-Iteration   4: 0.006 ops/us
-Iteration   5: 0.006 ops/us
+# Warmup Iteration   3: 0.004 ops/us
+Iteration   1: 0.004 ops/us
+Iteration   2: 0.004 ops/us
+Iteration   3: 0.004 ops/us
+Iteration   4: 0.004 ops/us
+Iteration   5: 0.004 ops/us
 
-# Run progress: 31.25% complete, ETA 00:04:36
+# Run progress: 31.25% complete, ETA 00:04:35
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.005 ops/us
+0.004 ops/us
 # Warmup Iteration   2: 0.005 ops/us
-# Warmup Iteration   3: 0.005 ops/us
-Iteration   1: 0.005 ops/us
-Iteration   2: 0.005 ops/us
-Iteration   3: 0.006 ops/us
-Iteration   4: 0.006 ops/us
-Iteration   5: 0.006 ops/us
+# Warmup Iteration   3: 0.004 ops/us
+Iteration   1: 0.004 ops/us
+Iteration   2: 0.004 ops/us
+Iteration   3: 0.004 ops/us
+Iteration   4: 0.004 ops/us
+Iteration   5: 0.004 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.005 ±(99.9%) 0.001 ops/us [Average]
-  (min, avg, max) = (0.005, 0.005, 0.006), stdev = 0.001
-  CI (99.9%): [0.005, 0.006] (assumes normal distribution)
+  0.004 ±(99.9%) 0.001 ops/us [Average]
+  (min, avg, max) = (0.004, 0.004, 0.004), stdev = 0.001
+  CI (99.9%): [0.004, 0.004] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -395,7 +395,7 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 1048576)
 
-# Run progress: 33.33% complete, ETA 00:04:27
+# Run progress: 33.33% complete, ETA 00:04:26
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
@@ -446,34 +446,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.077 ops/us
-# Warmup Iteration   2: 0.076 ops/us
-# Warmup Iteration   3: 0.087 ops/us
-Iteration   1: 0.103 ops/us
-Iteration   2: 0.102 ops/us
-Iteration   3: 0.103 ops/us
-Iteration   4: 0.103 ops/us
-Iteration   5: 0.104 ops/us
+0.117 ops/us
+# Warmup Iteration   2: 0.117 ops/us
+# Warmup Iteration   3: 0.116 ops/us
+Iteration   1: 0.115 ops/us
+Iteration   2: 0.117 ops/us
+Iteration   3: 0.117 ops/us
+Iteration   4: 0.130 ops/us
+Iteration   5: 0.132 ops/us
 
-# Run progress: 39.58% complete, ETA 00:04:03
+# Run progress: 39.58% complete, ETA 00:04:02
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.078 ops/us
-# Warmup Iteration   2: 0.078 ops/us
-# Warmup Iteration   3: 0.089 ops/us
-Iteration   1: 0.106 ops/us
-Iteration   2: 0.104 ops/us
-Iteration   3: 0.105 ops/us
-Iteration   4: 0.106 ops/us
-Iteration   5: 0.106 ops/us
+0.116 ops/us
+# Warmup Iteration   2: 0.118 ops/us
+# Warmup Iteration   3: 0.113 ops/us
+Iteration   1: 0.103 ops/us
+Iteration   2: 0.117 ops/us
+Iteration   3: 0.114 ops/us
+Iteration   4: 0.127 ops/us
+Iteration   5: 0.132 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.104 ±(99.9%) 0.002 ops/us [Average]
-  (min, avg, max) = (0.102, 0.104, 0.106), stdev = 0.001
-  CI (99.9%): [0.102, 0.106] (assumes normal distribution)
+  0.120 ±(99.9%) 0.014 ops/us [Average]
+  (min, avg, max) = (0.103, 0.120, 0.132), stdev = 0.010
+  CI (99.9%): [0.106, 0.135] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -494,34 +494,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.005 ops/us
+0.004 ops/us
 # Warmup Iteration   2: 0.004 ops/us
 # Warmup Iteration   3: 0.004 ops/us
-Iteration   1: 0.005 ops/us
-Iteration   2: 0.005 ops/us
-Iteration   3: 0.005 ops/us
-Iteration   4: 0.005 ops/us
-Iteration   5: 0.005 ops/us
+Iteration   1: 0.004 ops/us
+Iteration   2: 0.004 ops/us
+Iteration   3: 0.004 ops/us
+Iteration   4: 0.004 ops/us
+Iteration   5: 0.004 ops/us
 
 # Run progress: 43.75% complete, ETA 00:03:46
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.005 ops/us
+0.004 ops/us
 # Warmup Iteration   2: 0.004 ops/us
 # Warmup Iteration   3: 0.004 ops/us
-Iteration   1: 0.005 ops/us
-Iteration   2: 0.005 ops/us
-Iteration   3: 0.005 ops/us
-Iteration   4: 0.005 ops/us
-Iteration   5: 0.005 ops/us
+Iteration   1: 0.004 ops/us
+Iteration   2: 0.004 ops/us
+Iteration   3: 0.004 ops/us
+Iteration   4: 0.004 ops/us
+Iteration   5: 0.004 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.005 ±(99.9%) 0.001 ops/us [Average]
-  (min, avg, max) = (0.005, 0.005, 0.005), stdev = 0.001
-  CI (99.9%): [0.005, 0.006] (assumes normal distribution)
+  0.004 ±(99.9%) 0.001 ops/us [Average]
+  (min, avg, max) = (0.004, 0.004, 0.004), stdev = 0.001
+  CI (99.9%): [0.004, 0.004] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -537,7 +537,7 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 1048576)
 
-# Run progress: 45.83% complete, ETA 00:03:38
+# Run progress: 45.83% complete, ETA 00:03:37
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
@@ -551,7 +551,7 @@ Iteration   3: ≈ 10⁻⁵ ops/us
 Iteration   4: ≈ 10⁻⁵ ops/us
 Iteration   5: ≈ 10⁻⁵ ops/us
 
-# Run progress: 47.92% complete, ETA 00:03:30
+# Run progress: 47.92% complete, ETA 00:03:29
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
@@ -588,34 +588,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.144 us/op
+0.145 us/op
 # Warmup Iteration   2: 0.053 us/op
-# Warmup Iteration   3: 0.053 us/op
+# Warmup Iteration   3: 0.054 us/op
 Iteration   1: 0.052 us/op
 Iteration   2: 0.052 us/op
 Iteration   3: 0.052 us/op
 Iteration   4: 0.052 us/op
 Iteration   5: 0.052 us/op
 
-# Run progress: 52.08% complete, ETA 00:03:13
+# Run progress: 52.08% complete, ETA 00:03:12
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.143 us/op
-# Warmup Iteration   2: 0.053 us/op
-# Warmup Iteration   3: 0.052 us/op
-Iteration   1: 0.052 us/op
-Iteration   2: 0.052 us/op
-Iteration   3: 0.052 us/op
+0.180 us/op
+# Warmup Iteration   2: 0.054 us/op
+# Warmup Iteration   3: 0.054 us/op
+Iteration   1: 0.054 us/op
+Iteration   2: 0.054 us/op
+Iteration   3: 0.054 us/op
 Iteration   4: 0.054 us/op
 Iteration   5: 0.054 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.053 ±(99.9%) 0.001 us/op [Average]
+  0.053 ±(99.9%) 0.002 us/op [Average]
   (min, avg, max) = (0.052, 0.053, 0.054), stdev = 0.001
-  CI (99.9%): [0.051, 0.054] (assumes normal distribution)
+  CI (99.9%): [0.051, 0.055] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -636,34 +636,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-6.150 us/op
-# Warmup Iteration   2: 2.772 us/op
-# Warmup Iteration   3: 2.770 us/op
-Iteration   1: 2.761 us/op
-Iteration   2: 2.752 us/op
-Iteration   3: 2.751 us/op
-Iteration   4: 2.749 us/op
-Iteration   5: 2.751 us/op
+5.996 us/op
+# Warmup Iteration   2: 2.784 us/op
+# Warmup Iteration   3: 2.744 us/op
+Iteration   1: 2.725 us/op
+Iteration   2: 2.729 us/op
+Iteration   3: 2.749 us/op
+Iteration   4: 2.739 us/op
+Iteration   5: 2.699 us/op
 
-# Run progress: 56.25% complete, ETA 00:02:56
+# Run progress: 56.25% complete, ETA 00:02:55
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-5.880 us/op
-# Warmup Iteration   2: 2.732 us/op
-# Warmup Iteration   3: 2.725 us/op
-Iteration   1: 2.720 us/op
-Iteration   2: 2.715 us/op
-Iteration   3: 2.721 us/op
-Iteration   4: 2.740 us/op
-Iteration   5: 2.719 us/op
+5.919 us/op
+# Warmup Iteration   2: 2.751 us/op
+# Warmup Iteration   3: 2.731 us/op
+Iteration   1: 2.724 us/op
+Iteration   2: 2.767 us/op
+Iteration   3: 2.707 us/op
+Iteration   4: 2.784 us/op
+Iteration   5: 2.743 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  2.738 ±(99.9%) 0.026 us/op [Average]
-  (min, avg, max) = (2.715, 2.738, 2.761), stdev = 0.017
-  CI (99.9%): [2.712, 2.764] (assumes normal distribution)
+  2.737 ±(99.9%) 0.039 us/op [Average]
+  (min, avg, max) = (2.699, 2.737, 2.784), stdev = 0.026
+  CI (99.9%): [2.698, 2.775] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -679,39 +679,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 1048576)
 
-# Run progress: 58.33% complete, ETA 00:02:48
+# Run progress: 58.33% complete, ETA 00:02:47
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-593.791 us/op
-# Warmup Iteration   2: 377.655 us/op
-# Warmup Iteration   3: 372.823 us/op
-Iteration   1: 377.769 us/op
-Iteration   2: 377.374 us/op
-Iteration   3: 375.687 us/op
-Iteration   4: 376.660 us/op
-Iteration   5: 378.032 us/op
+605.960 us/op
+# Warmup Iteration   2: 380.154 us/op
+# Warmup Iteration   3: 380.212 us/op
+Iteration   1: 379.975 us/op
+Iteration   2: 376.650 us/op
+Iteration   3: 376.661 us/op
+Iteration   4: 377.278 us/op
+Iteration   5: 375.866 us/op
 
 # Run progress: 60.42% complete, ETA 00:02:39
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-604.946 us/op
-# Warmup Iteration   2: 380.714 us/op
-# Warmup Iteration   3: 376.485 us/op
-Iteration   1: 373.529 us/op
-Iteration   2: 376.672 us/op
-Iteration   3: 372.557 us/op
-Iteration   4: 373.321 us/op
-Iteration   5: 375.449 us/op
+609.066 us/op
+# Warmup Iteration   2: 380.227 us/op
+# Warmup Iteration   3: 377.966 us/op
+Iteration   1: 374.951 us/op
+Iteration   2: 373.745 us/op
+Iteration   3: 372.142 us/op
+Iteration   4: 373.461 us/op
+Iteration   5: 375.068 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  375.705 ±(99.9%) 2.969 us/op [Average]
-  (min, avg, max) = (372.557, 375.705, 378.032), stdev = 1.963
-  CI (99.9%): [372.737, 378.674] (assumes normal distribution)
+  375.580 ±(99.9%) 3.378 us/op [Average]
+  (min, avg, max) = (372.142, 375.580, 379.975), stdev = 2.234
+  CI (99.9%): [372.202, 378.958] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -727,39 +727,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 100)
 
-# Run progress: 62.50% complete, ETA 00:02:31
+# Run progress: 62.50% complete, ETA 00:02:30
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-2.489 us/op
-# Warmup Iteration   2: 0.953 us/op
-# Warmup Iteration   3: 0.951 us/op
-Iteration   1: 0.956 us/op
-Iteration   2: 0.947 us/op
-Iteration   3: 0.958 us/op
-Iteration   4: 0.962 us/op
-Iteration   5: 0.955 us/op
+0.205 us/op
+# Warmup Iteration   2: 0.075 us/op
+# Warmup Iteration   3: 0.075 us/op
+Iteration   1: 0.076 us/op
+Iteration   2: 0.077 us/op
+Iteration   3: 0.077 us/op
+Iteration   4: 0.075 us/op
+Iteration   5: 0.076 us/op
 
 # Run progress: 64.58% complete, ETA 00:02:22
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-2.564 us/op
-# Warmup Iteration   2: 0.951 us/op
-# Warmup Iteration   3: 0.952 us/op
-Iteration   1: 0.953 us/op
-Iteration   2: 0.962 us/op
-Iteration   3: 0.946 us/op
-Iteration   4: 0.949 us/op
-Iteration   5: 0.954 us/op
+0.217 us/op
+# Warmup Iteration   2: 0.079 us/op
+# Warmup Iteration   3: 0.076 us/op
+Iteration   1: 0.076 us/op
+Iteration   2: 0.076 us/op
+Iteration   3: 0.075 us/op
+Iteration   4: 0.080 us/op
+Iteration   5: 0.077 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.954 ±(99.9%) 0.008 us/op [Average]
-  (min, avg, max) = (0.946, 0.954, 0.962), stdev = 0.006
-  CI (99.9%): [0.946, 0.962] (assumes normal distribution)
+  0.076 ±(99.9%) 0.002 us/op [Average]
+  (min, avg, max) = (0.075, 0.076, 0.080), stdev = 0.002
+  CI (99.9%): [0.074, 0.079] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -775,39 +775,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 10240)
 
-# Run progress: 66.67% complete, ETA 00:02:14
+# Run progress: 66.67% complete, ETA 00:02:13
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-20.485 us/op
-# Warmup Iteration   2: 8.211 us/op
-# Warmup Iteration   3: 8.167 us/op
-Iteration   1: 8.059 us/op
-Iteration   2: 8.056 us/op
-Iteration   3: 8.171 us/op
-Iteration   4: 8.081 us/op
-Iteration   5: 8.072 us/op
+9.451 us/op
+# Warmup Iteration   2: 4.319 us/op
+# Warmup Iteration   3: 4.316 us/op
+Iteration   1: 4.366 us/op
+Iteration   2: 4.288 us/op
+Iteration   3: 4.328 us/op
+Iteration   4: 4.279 us/op
+Iteration   5: 4.326 us/op
 
 # Run progress: 68.75% complete, ETA 00:02:05
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-20.840 us/op
-# Warmup Iteration   2: 8.176 us/op
-# Warmup Iteration   3: 8.161 us/op
-Iteration   1: 8.205 us/op
-Iteration   2: 8.117 us/op
-Iteration   3: 8.101 us/op
-Iteration   4: 8.110 us/op
-Iteration   5: 8.020 us/op
+9.627 us/op
+# Warmup Iteration   2: 4.381 us/op
+# Warmup Iteration   3: 4.376 us/op
+Iteration   1: 4.293 us/op
+Iteration   2: 4.330 us/op
+Iteration   3: 4.305 us/op
+Iteration   4: 4.353 us/op
+Iteration   5: 4.371 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  8.099 ±(99.9%) 0.084 us/op [Average]
-  (min, avg, max) = (8.020, 8.099, 8.205), stdev = 0.055
-  CI (99.9%): [8.015, 8.183] (assumes normal distribution)
+  4.324 ±(99.9%) 0.049 us/op [Average]
+  (min, avg, max) = (4.279, 4.324, 4.371), stdev = 0.033
+  CI (99.9%): [4.275, 4.373] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -828,34 +828,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1415.980 us/op
-# Warmup Iteration   2: 985.956 us/op
-# Warmup Iteration   3: 974.747 us/op
-Iteration   1: 980.003 us/op
-Iteration   2: 968.299 us/op
-Iteration   3: 969.226 us/op
-Iteration   4: 956.014 us/op
-Iteration   5: 983.514 us/op
+945.239 us/op
+# Warmup Iteration   2: 647.241 us/op
+# Warmup Iteration   3: 623.669 us/op
+Iteration   1: 620.486 us/op
+Iteration   2: 613.343 us/op
+Iteration   3: 613.696 us/op
+Iteration   4: 613.301 us/op
+Iteration   5: 612.627 us/op
 
-# Run progress: 72.92% complete, ETA 00:01:49
+# Run progress: 72.92% complete, ETA 00:01:48
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1405.381 us/op
-# Warmup Iteration   2: 973.581 us/op
-# Warmup Iteration   3: 960.381 us/op
-Iteration   1: 962.078 us/op
-Iteration   2: 957.108 us/op
-Iteration   3: 950.253 us/op
-Iteration   4: 942.497 us/op
-Iteration   5: 943.133 us/op
+927.258 us/op
+# Warmup Iteration   2: 632.873 us/op
+# Warmup Iteration   3: 630.854 us/op
+Iteration   1: 613.714 us/op
+Iteration   2: 611.384 us/op
+Iteration   3: 621.156 us/op
+Iteration   4: 619.066 us/op
+Iteration   5: 620.373 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  961.213 ±(99.9%) 21.421 us/op [Average]
-  (min, avg, max) = (942.497, 961.213, 983.514), stdev = 14.169
-  CI (99.9%): [939.792, 982.634] (assumes normal distribution)
+  615.914 ±(99.9%) 5.806 us/op [Average]
+  (min, avg, max) = (611.384, 615.914, 621.156), stdev = 3.840
+  CI (99.9%): [610.109, 621.720] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -876,34 +876,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-9.614 us/op
-# Warmup Iteration   2: 9.787 us/op
-# Warmup Iteration   3: 11.812 us/op
-Iteration   1: 9.966 us/op
-Iteration   2: 9.769 us/op
-Iteration   3: 10.168 us/op
-Iteration   4: 9.638 us/op
-Iteration   5: 9.288 us/op
+8.645 us/op
+# Warmup Iteration   2: 8.311 us/op
+# Warmup Iteration   3: 8.677 us/op
+Iteration   1: 8.607 us/op
+Iteration   2: 8.863 us/op
+Iteration   3: 8.821 us/op
+Iteration   4: 8.118 us/op
+Iteration   5: 7.593 us/op
 
 # Run progress: 77.08% complete, ETA 00:01:32
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-9.615 us/op
-# Warmup Iteration   2: 9.244 us/op
-# Warmup Iteration   3: 9.750 us/op
-Iteration   1: 9.702 us/op
-Iteration   2: 9.689 us/op
-Iteration   3: 9.843 us/op
-Iteration   4: 9.658 us/op
-Iteration   5: 8.944 us/op
+9.229 us/op
+# Warmup Iteration   2: 8.499 us/op
+# Warmup Iteration   3: 9.040 us/op
+Iteration   1: 9.416 us/op
+Iteration   2: 9.098 us/op
+Iteration   3: 9.866 us/op
+Iteration   4: 9.924 us/op
+Iteration   5: 8.956 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  9.667 ±(99.9%) 0.517 us/op [Average]
-  (min, avg, max) = (8.944, 9.667, 10.168), stdev = 0.342
-  CI (99.9%): [9.150, 10.183] (assumes normal distribution)
+  8.926 ±(99.9%) 1.092 us/op [Average]
+  (min, avg, max) = (7.593, 8.926, 9.924), stdev = 0.722
+  CI (99.9%): [7.834, 10.018] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -924,34 +924,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-189.983 us/op
-# Warmup Iteration   2: 201.995 us/op
-# Warmup Iteration   3: 202.762 us/op
-Iteration   1: 203.065 us/op
-Iteration   2: 195.490 us/op
-Iteration   3: 176.760 us/op
-Iteration   4: 176.334 us/op
-Iteration   5: 176.307 us/op
+247.930 us/op
+# Warmup Iteration   2: 223.892 us/op
+# Warmup Iteration   3: 230.921 us/op
+Iteration   1: 244.370 us/op
+Iteration   2: 237.285 us/op
+Iteration   3: 242.679 us/op
+Iteration   4: 237.095 us/op
+Iteration   5: 237.316 us/op
 
 # Run progress: 81.25% complete, ETA 00:01:15
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-192.629 us/op
-# Warmup Iteration   2: 204.227 us/op
-# Warmup Iteration   3: 213.266 us/op
-Iteration   1: 204.934 us/op
-Iteration   2: 198.750 us/op
-Iteration   3: 179.007 us/op
-Iteration   4: 189.126 us/op
-Iteration   5: 180.247 us/op
+242.334 us/op
+# Warmup Iteration   2: 224.289 us/op
+# Warmup Iteration   3: 231.233 us/op
+Iteration   1: 236.571 us/op
+Iteration   2: 236.155 us/op
+Iteration   3: 238.821 us/op
+Iteration   4: 237.085 us/op
+Iteration   5: 237.048 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  188.002 ±(99.9%) 17.651 us/op [Average]
-  (min, avg, max) = (176.307, 188.002, 204.934), stdev = 11.675
-  CI (99.9%): [170.351, 205.653] (assumes normal distribution)
+  238.442 ±(99.9%) 4.222 us/op [Average]
+  (min, avg, max) = (236.155, 238.442, 244.370), stdev = 2.792
+  CI (99.9%): [234.221, 242.664] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -967,39 +967,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
 # Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 1048576)
 
-# Run progress: 83.33% complete, ETA 00:01:07
+# Run progress: 83.33% complete, ETA 00:01:06
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-36772.652 us/op
-# Warmup Iteration   2: 36560.192 us/op
-# Warmup Iteration   3: 36520.331 us/op
-Iteration   1: 34432.854 us/op
-Iteration   2: 34395.100 us/op
-Iteration   3: 34470.708 us/op
-Iteration   4: 34636.016 us/op
-Iteration   5: 34644.657 us/op
+52738.828 us/op
+# Warmup Iteration   2: 52643.927 us/op
+# Warmup Iteration   3: 53034.570 us/op
+Iteration   1: 52735.255 us/op
+Iteration   2: 53155.308 us/op
+Iteration   3: 52914.652 us/op
+Iteration   4: 54581.985 us/op
+Iteration   5: 54072.518 us/op
 
 # Run progress: 85.42% complete, ETA 00:00:58
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-36985.051 us/op
-# Warmup Iteration   2: 36548.988 us/op
-# Warmup Iteration   3: 36871.326 us/op
-Iteration   1: 34710.828 us/op
-Iteration   2: 34685.483 us/op
-Iteration   3: 34820.167 us/op
-Iteration   4: 35280.713 us/op
-Iteration   5: 34522.356 us/op
+53335.068 us/op
+# Warmup Iteration   2: 52544.594 us/op
+# Warmup Iteration   3: 52590.042 us/op
+Iteration   1: 52578.087 us/op
+Iteration   2: 52806.200 us/op
+Iteration   3: 52453.982 us/op
+Iteration   4: 52736.319 us/op
+Iteration   5: 52727.344 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  34659.888 ±(99.9%) 387.594 us/op [Average]
-  (min, avg, max) = (34395.100, 34659.888, 35280.713), stdev = 256.369
-  CI (99.9%): [34272.295, 35047.482] (assumes normal distribution)
+  53076.165 ±(99.9%) 1051.563 us/op [Average]
+  (min, avg, max) = (52453.982, 53076.165, 54581.985), stdev = 695.544
+  CI (99.9%): [52024.602, 54127.728] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1020,34 +1020,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-13.124 us/op
-# Warmup Iteration   2: 13.497 us/op
-# Warmup Iteration   3: 11.997 us/op
-Iteration   1: 9.779 us/op
-Iteration   2: 9.837 us/op
-Iteration   3: 9.873 us/op
-Iteration   4: 9.925 us/op
-Iteration   5: 10.180 us/op
+8.653 us/op
+# Warmup Iteration   2: 8.396 us/op
+# Warmup Iteration   3: 8.747 us/op
+Iteration   1: 9.380 us/op
+Iteration   2: 8.813 us/op
+Iteration   3: 8.809 us/op
+Iteration   4: 7.687 us/op
+Iteration   5: 7.711 us/op
 
-# Run progress: 89.58% complete, ETA 00:00:42
+# Run progress: 89.58% complete, ETA 00:00:41
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-13.215 us/op
-# Warmup Iteration   2: 13.284 us/op
-# Warmup Iteration   3: 11.615 us/op
-Iteration   1: 10.002 us/op
-Iteration   2: 11.342 us/op
-Iteration   3: 10.779 us/op
-Iteration   4: 11.037 us/op
-Iteration   5: 10.868 us/op
+8.901 us/op
+# Warmup Iteration   2: 8.761 us/op
+# Warmup Iteration   3: 9.065 us/op
+Iteration   1: 9.032 us/op
+Iteration   2: 8.784 us/op
+Iteration   3: 9.022 us/op
+Iteration   4: 7.968 us/op
+Iteration   5: 7.607 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  10.362 ±(99.9%) 0.881 us/op [Average]
-  (min, avg, max) = (9.779, 10.362, 11.342), stdev = 0.583
-  CI (99.9%): [9.481, 11.243] (assumes normal distribution)
+  8.481 ±(99.9%) 1.003 us/op [Average]
+  (min, avg, max) = (7.607, 8.481, 9.380), stdev = 0.664
+  CI (99.9%): [7.478, 9.485] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1068,34 +1068,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-222.074 us/op
-# Warmup Iteration   2: 234.804 us/op
-# Warmup Iteration   3: 244.724 us/op
-Iteration   1: 228.520 us/op
-Iteration   2: 188.463 us/op
-Iteration   3: 185.260 us/op
-Iteration   4: 186.415 us/op
-Iteration   5: 185.484 us/op
+246.477 us/op
+# Warmup Iteration   2: 231.687 us/op
+# Warmup Iteration   3: 244.297 us/op
+Iteration   1: 242.456 us/op
+Iteration   2: 253.014 us/op
+Iteration   3: 244.786 us/op
+Iteration   4: 247.579 us/op
+Iteration   5: 244.043 us/op
 
 # Run progress: 93.75% complete, ETA 00:00:25
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-219.266 us/op
-# Warmup Iteration   2: 236.633 us/op
-# Warmup Iteration   3: 231.783 us/op
-Iteration   1: 201.293 us/op
-Iteration   2: 184.561 us/op
-Iteration   3: 184.305 us/op
-Iteration   4: 186.493 us/op
-Iteration   5: 183.902 us/op
+237.489 us/op
+# Warmup Iteration   2: 230.388 us/op
+# Warmup Iteration   3: 246.358 us/op
+Iteration   1: 241.243 us/op
+Iteration   2: 244.956 us/op
+Iteration   3: 241.518 us/op
+Iteration   4: 256.180 us/op
+Iteration   5: 251.646 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  191.470 ±(99.9%) 21.138 us/op [Average]
-  (min, avg, max) = (183.902, 191.470, 228.520), stdev = 13.981
-  CI (99.9%): [170.332, 212.608] (assumes normal distribution)
+  246.742 ±(99.9%) 7.862 us/op [Average]
+  (min, avg, max) = (241.243, 246.742, 256.180), stdev = 5.200
+  CI (99.9%): [238.880, 254.603] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1116,37 +1116,37 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-39298.147 us/op
-# Warmup Iteration   2: 39535.872 us/op
-# Warmup Iteration   3: 37263.966 us/op
-Iteration   1: 37534.460 us/op
-Iteration   2: 35071.287 us/op
-Iteration   3: 35187.098 us/op
-Iteration   4: 36812.011 us/op
-Iteration   5: 36340.151 us/op
+53941.134 us/op
+# Warmup Iteration   2: 53454.392 us/op
+# Warmup Iteration   3: 53335.277 us/op
+Iteration   1: 54624.192 us/op
+Iteration   2: 53246.959 us/op
+Iteration   3: 53286.831 us/op
+Iteration   4: 53353.945 us/op
+Iteration   5: 52883.594 us/op
 
 # Run progress: 97.92% complete, ETA 00:00:08
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-38971.476 us/op
-# Warmup Iteration   2: 39204.920 us/op
-# Warmup Iteration   3: 36694.260 us/op
-Iteration   1: 36293.632 us/op
-Iteration   2: 34915.511 us/op
-Iteration   3: 35335.551 us/op
-Iteration   4: 36537.423 us/op
-Iteration   5: 35988.375 us/op
+54017.629 us/op
+# Warmup Iteration   2: 53454.844 us/op
+# Warmup Iteration   3: 53063.793 us/op
+Iteration   1: 53609.368 us/op
+Iteration   2: 54477.695 us/op
+Iteration   3: 52741.418 us/op
+Iteration   4: 52998.008 us/op
+Iteration   5: 51237.734 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  36001.550 ±(99.9%) 1299.153 us/op [Average]
-  (min, avg, max) = (34915.511, 36001.550, 37534.460), stdev = 859.310
-  CI (99.9%): [34702.396, 37300.703] (assumes normal distribution)
+  53245.974 ±(99.9%) 1429.167 us/op [Average]
+  (min, avg, max) = (51237.734, 53245.974, 54624.192), stdev = 945.305
+  CI (99.9%): [51816.808, 54675.141] (assumes normal distribution)
 
 
-# Run complete. Total time: 00:06:43
+# Run complete. Total time: 00:06:42
 
 REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
 why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
@@ -1161,30 +1161,30 @@ different JVMs are already problematic, the performance difference caused by dif
 modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
 
 Benchmark                 (compression)        (format)  (payloadSize)   Mode  Cnt      Score      Error   Units
-EncodeDecodeBench.encode           NONE       WIRE_ONLY            100  thrpt   10     19.023 ±    0.511  ops/us
-EncodeDecodeBench.encode           NONE       WIRE_ONLY          10240  thrpt   10      0.367 ±    0.006  ops/us
+EncodeDecodeBench.encode           NONE       WIRE_ONLY            100  thrpt   10     18.967 ±    0.522  ops/us
+EncodeDecodeBench.encode           NONE       WIRE_ONLY          10240  thrpt   10      0.365 ±    0.006  ops/us
 EncodeDecodeBench.encode           NONE       WIRE_ONLY        1048576  thrpt   10      0.003 ±    0.001  ops/us
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX            100  thrpt   10      1.057 ±    0.007  ops/us
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX          10240  thrpt   10      0.123 ±    0.002  ops/us
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX        1048576  thrpt   10      0.001 ±    0.001  ops/us
-EncodeDecodeBench.encode           ZLIB       WIRE_ONLY            100  thrpt   10      0.105 ±    0.006  ops/us
-EncodeDecodeBench.encode           ZLIB       WIRE_ONLY          10240  thrpt   10      0.005 ±    0.001  ops/us
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX            100  thrpt   10     13.130 ±    0.126  ops/us
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX          10240  thrpt   10      0.234 ±    0.002  ops/us
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX        1048576  thrpt   10      0.002 ±    0.001  ops/us
+EncodeDecodeBench.encode           ZLIB       WIRE_ONLY            100  thrpt   10      0.121 ±    0.010  ops/us
+EncodeDecodeBench.encode           ZLIB       WIRE_ONLY          10240  thrpt   10      0.004 ±    0.001  ops/us
 EncodeDecodeBench.encode           ZLIB       WIRE_ONLY        1048576  thrpt   10     ≈ 10⁻⁵             ops/us
-EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX            100  thrpt   10      0.104 ±    0.002  ops/us
-EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX          10240  thrpt   10      0.005 ±    0.001  ops/us
+EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX            100  thrpt   10      0.120 ±    0.014  ops/us
+EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX          10240  thrpt   10      0.004 ±    0.001  ops/us
 EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX        1048576  thrpt   10     ≈ 10⁻⁵             ops/us
-EncodeDecodeBench.encode           NONE       WIRE_ONLY            100   avgt   10      0.053 ±    0.001   us/op
-EncodeDecodeBench.encode           NONE       WIRE_ONLY          10240   avgt   10      2.738 ±    0.026   us/op
-EncodeDecodeBench.encode           NONE       WIRE_ONLY        1048576   avgt   10    375.705 ±    2.969   us/op
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX            100   avgt   10      0.954 ±    0.008   us/op
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX          10240   avgt   10      8.099 ±    0.084   us/op
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX        1048576   avgt   10    961.213 ±   21.421   us/op
-EncodeDecodeBench.encode           ZLIB       WIRE_ONLY            100   avgt   10      9.667 ±    0.517   us/op
-EncodeDecodeBench.encode           ZLIB       WIRE_ONLY          10240   avgt   10    188.002 ±   17.651   us/op
-EncodeDecodeBench.encode           ZLIB       WIRE_ONLY        1048576   avgt   10  34659.888 ±  387.594   us/op
-EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX            100   avgt   10     10.362 ±    0.881   us/op
-EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX          10240   avgt   10    191.470 ±   21.138   us/op
-EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX        1048576   avgt   10  36001.550 ± 1299.153   us/op
+EncodeDecodeBench.encode           NONE       WIRE_ONLY            100   avgt   10      0.053 ±    0.002   us/op
+EncodeDecodeBench.encode           NONE       WIRE_ONLY          10240   avgt   10      2.737 ±    0.039   us/op
+EncodeDecodeBench.encode           NONE       WIRE_ONLY        1048576   avgt   10    375.580 ±    3.378   us/op
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX            100   avgt   10      0.076 ±    0.002   us/op
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX          10240   avgt   10      4.324 ±    0.049   us/op
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX        1048576   avgt   10    615.914 ±    5.806   us/op
+EncodeDecodeBench.encode           ZLIB       WIRE_ONLY            100   avgt   10      8.926 ±    1.092   us/op
+EncodeDecodeBench.encode           ZLIB       WIRE_ONLY          10240   avgt   10    238.442 ±    4.222   us/op
+EncodeDecodeBench.encode           ZLIB       WIRE_ONLY        1048576   avgt   10  53076.165 ± 1051.563   us/op
+EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX            100   avgt   10      8.481 ±    1.003   us/op
+EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX          10240   avgt   10    246.742 ±    7.862   us/op
+EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX        1048576   avgt   10  53245.974 ± 1429.167   us/op
 # JMH version: 1.37
 # VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
@@ -1203,34 +1203,34 @@ EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX        1048576   avgt   
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-17.335 ops/us
-# Warmup Iteration   2: 48.877 ops/us
-# Warmup Iteration   3: 47.877 ops/us
-Iteration   1: 48.207 ops/us
-Iteration   2: 48.158 ops/us
-Iteration   3: 47.994 ops/us
-Iteration   4: 48.047 ops/us
-Iteration   5: 47.958 ops/us
+18.011 ops/us
+# Warmup Iteration   2: 48.844 ops/us
+# Warmup Iteration   3: 47.932 ops/us
+Iteration   1: 48.029 ops/us
+Iteration   2: 47.702 ops/us
+Iteration   3: 47.944 ops/us
+Iteration   4: 48.258 ops/us
+Iteration   5: 48.405 ops/us
 
-# Run progress: 2.08% complete, ETA 00:06:32
+# Run progress: 2.08% complete, ETA 00:06:31
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-17.057 ops/us
-# Warmup Iteration   2: 48.836 ops/us
-# Warmup Iteration   3: 47.424 ops/us
-Iteration   1: 47.664 ops/us
-Iteration   2: 47.712 ops/us
-Iteration   3: 47.684 ops/us
-Iteration   4: 47.342 ops/us
-Iteration   5: 47.510 ops/us
+18.480 ops/us
+# Warmup Iteration   2: 49.160 ops/us
+# Warmup Iteration   3: 48.200 ops/us
+Iteration   1: 47.491 ops/us
+Iteration   2: 46.197 ops/us
+Iteration   3: 47.673 ops/us
+Iteration   4: 47.629 ops/us
+Iteration   5: 48.199 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  47.828 ±(99.9%) 0.435 ops/us [Average]
-  (min, avg, max) = (47.342, 47.828, 48.207), stdev = 0.287
-  CI (99.9%): [47.393, 48.262] (assumes normal distribution)
+  47.753 ±(99.9%) 0.944 ops/us [Average]
+  (min, avg, max) = (46.197, 47.753, 48.405), stdev = 0.624
+  CI (99.9%): [46.809, 48.696] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1246,39 +1246,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
 # Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 10240)
 
-# Run progress: 4.17% complete, ETA 00:06:23
+# Run progress: 4.17% complete, ETA 00:06:24
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.268 ops/us
-# Warmup Iteration   2: 0.623 ops/us
+0.280 ops/us
+# Warmup Iteration   2: 0.628 ops/us
 # Warmup Iteration   3: 0.618 ops/us
-Iteration   1: 0.620 ops/us
-Iteration   2: 0.627 ops/us
-Iteration   3: 0.625 ops/us
-Iteration   4: 0.630 ops/us
-Iteration   5: 0.629 ops/us
+Iteration   1: 0.625 ops/us
+Iteration   2: 0.620 ops/us
+Iteration   3: 0.618 ops/us
+Iteration   4: 0.622 ops/us
+Iteration   5: 0.633 ops/us
 
-# Run progress: 6.25% complete, ETA 00:06:15
+# Run progress: 6.25% complete, ETA 00:06:16
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.270 ops/us
-# Warmup Iteration   2: 0.621 ops/us
-# Warmup Iteration   3: 0.611 ops/us
-Iteration   1: 0.611 ops/us
-Iteration   2: 0.613 ops/us
-Iteration   3: 0.611 ops/us
+0.290 ops/us
+# Warmup Iteration   2: 0.609 ops/us
+# Warmup Iteration   3: 0.610 ops/us
+Iteration   1: 0.613 ops/us
+Iteration   2: 0.602 ops/us
+Iteration   3: 0.603 ops/us
 Iteration   4: 0.613 ops/us
-Iteration   5: 0.611 ops/us
+Iteration   5: 0.614 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.619 ±(99.9%) 0.012 ops/us [Average]
-  (min, avg, max) = (0.611, 0.619, 0.630), stdev = 0.008
-  CI (99.9%): [0.607, 0.631] (assumes normal distribution)
+  0.616 ±(99.9%) 0.015 ops/us [Average]
+  (min, avg, max) = (0.602, 0.616, 0.633), stdev = 0.010
+  CI (99.9%): [0.602, 0.631] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1308,7 +1308,7 @@ Iteration   3: 0.004 ops/us
 Iteration   4: 0.004 ops/us
 Iteration   5: 0.004 ops/us
 
-# Run progress: 10.42% complete, ETA 00:05:58
+# Run progress: 10.42% complete, ETA 00:05:59
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
@@ -1347,34 +1347,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-17.996 ops/us
-# Warmup Iteration   2: 47.894 ops/us
-# Warmup Iteration   3: 47.108 ops/us
-Iteration   1: 46.665 ops/us
-Iteration   2: 47.608 ops/us
-Iteration   3: 47.590 ops/us
-Iteration   4: 47.660 ops/us
-Iteration   5: 47.662 ops/us
+17.906 ops/us
+# Warmup Iteration   2: 48.036 ops/us
+# Warmup Iteration   3: 46.272 ops/us
+Iteration   1: 47.213 ops/us
+Iteration   2: 47.373 ops/us
+Iteration   3: 47.720 ops/us
+Iteration   4: 48.068 ops/us
+Iteration   5: 47.804 ops/us
 
 # Run progress: 14.58% complete, ETA 00:05:42
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-18.016 ops/us
-# Warmup Iteration   2: 47.577 ops/us
-# Warmup Iteration   3: 46.660 ops/us
-Iteration   1: 46.671 ops/us
-Iteration   2: 45.742 ops/us
-Iteration   3: 46.936 ops/us
-Iteration   4: 47.025 ops/us
-Iteration   5: 46.775 ops/us
+19.042 ops/us
+# Warmup Iteration   2: 48.583 ops/us
+# Warmup Iteration   3: 47.513 ops/us
+Iteration   1: 46.737 ops/us
+Iteration   2: 46.881 ops/us
+Iteration   3: 46.082 ops/us
+Iteration   4: 47.003 ops/us
+Iteration   5: 46.970 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  47.033 ±(99.9%) 0.934 ops/us [Average]
-  (min, avg, max) = (45.742, 47.033, 47.662), stdev = 0.618
-  CI (99.9%): [46.099, 47.968] (assumes normal distribution)
+  47.185 ±(99.9%) 0.884 ops/us [Average]
+  (min, avg, max) = (46.082, 47.185, 48.068), stdev = 0.584
+  CI (99.9%): [46.301, 48.069] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1395,34 +1395,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.278 ops/us
-# Warmup Iteration   2: 0.614 ops/us
-# Warmup Iteration   3: 0.611 ops/us
-Iteration   1: 0.618 ops/us
-Iteration   2: 0.620 ops/us
-Iteration   3: 0.615 ops/us
-Iteration   4: 0.619 ops/us
-Iteration   5: 0.619 ops/us
+0.296 ops/us
+# Warmup Iteration   2: 0.624 ops/us
+# Warmup Iteration   3: 0.614 ops/us
+Iteration   1: 0.602 ops/us
+Iteration   2: 0.612 ops/us
+Iteration   3: 0.612 ops/us
+Iteration   4: 0.602 ops/us
+Iteration   5: 0.609 ops/us
 
 # Run progress: 18.75% complete, ETA 00:05:26
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.276 ops/us
-# Warmup Iteration   2: 0.615 ops/us
-# Warmup Iteration   3: 0.601 ops/us
-Iteration   1: 0.608 ops/us
-Iteration   2: 0.602 ops/us
-Iteration   3: 0.604 ops/us
-Iteration   4: 0.605 ops/us
-Iteration   5: 0.605 ops/us
+0.240 ops/us
+# Warmup Iteration   2: 0.591 ops/us
+# Warmup Iteration   3: 0.577 ops/us
+Iteration   1: 0.587 ops/us
+Iteration   2: 0.590 ops/us
+Iteration   3: 0.593 ops/us
+Iteration   4: 0.550 ops/us
+Iteration   5: 0.601 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.611 ±(99.9%) 0.011 ops/us [Average]
-  (min, avg, max) = (0.602, 0.611, 0.620), stdev = 0.007
-  CI (99.9%): [0.600, 0.623] (assumes normal distribution)
+  0.596 ±(99.9%) 0.028 ops/us [Average]
+  (min, avg, max) = (0.550, 0.596, 0.612), stdev = 0.018
+  CI (99.9%): [0.568, 0.624] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1438,7 +1438,7 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
 # Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 1048576)
 
-# Run progress: 20.83% complete, ETA 00:05:17
+# Run progress: 20.83% complete, ETA 00:05:18
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
@@ -1491,34 +1491,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.632 ops/us
-# Warmup Iteration   2: 1.059 ops/us
-# Warmup Iteration   3: 1.254 ops/us
-Iteration   1: 1.251 ops/us
-Iteration   2: 1.244 ops/us
-Iteration   3: 1.245 ops/us
-Iteration   4: 1.251 ops/us
-Iteration   5: 1.251 ops/us
+0.498 ops/us
+# Warmup Iteration   2: 0.524 ops/us
+# Warmup Iteration   3: 0.813 ops/us
+Iteration   1: 0.789 ops/us
+Iteration   2: 0.811 ops/us
+Iteration   3: 0.815 ops/us
+Iteration   4: 0.811 ops/us
+Iteration   5: 0.807 ops/us
 
-# Run progress: 27.08% complete, ETA 00:04:53
+# Run progress: 27.08% complete, ETA 00:04:52
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.662 ops/us
-# Warmup Iteration   2: 1.001 ops/us
-# Warmup Iteration   3: 1.180 ops/us
-Iteration   1: 1.190 ops/us
-Iteration   2: 1.194 ops/us
-Iteration   3: 1.181 ops/us
-Iteration   4: 1.169 ops/us
-Iteration   5: 1.123 ops/us
+0.512 ops/us
+# Warmup Iteration   2: 0.540 ops/us
+# Warmup Iteration   3: 0.794 ops/us
+Iteration   1: 0.794 ops/us
+Iteration   2: 0.796 ops/us
+Iteration   3: 0.793 ops/us
+Iteration   4: 0.794 ops/us
+Iteration   5: 0.788 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1.210 ±(99.9%) 0.068 ops/us [Average]
-  (min, avg, max) = (1.123, 1.210, 1.251), stdev = 0.045
-  CI (99.9%): [1.142, 1.278] (assumes normal distribution)
+  0.800 ±(99.9%) 0.015 ops/us [Average]
+  (min, avg, max) = (0.788, 0.800, 0.815), stdev = 0.010
+  CI (99.9%): [0.785, 0.815] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1539,34 +1539,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.045 ops/us
-# Warmup Iteration   2: 0.091 ops/us
-# Warmup Iteration   3: 0.094 ops/us
-Iteration   1: 0.093 ops/us
-Iteration   2: 0.095 ops/us
-Iteration   3: 0.093 ops/us
-Iteration   4: 0.094 ops/us
-Iteration   5: 0.093 ops/us
+0.013 ops/us
+# Warmup Iteration   2: 0.012 ops/us
+# Warmup Iteration   3: 0.013 ops/us
+Iteration   1: 0.016 ops/us
+Iteration   2: 0.016 ops/us
+Iteration   3: 0.016 ops/us
+Iteration   4: 0.016 ops/us
+Iteration   5: 0.016 ops/us
 
 # Run progress: 31.25% complete, ETA 00:04:36
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.045 ops/us
-# Warmup Iteration   2: 0.091 ops/us
-# Warmup Iteration   3: 0.085 ops/us
-Iteration   1: 0.094 ops/us
-Iteration   2: 0.094 ops/us
-Iteration   3: 0.094 ops/us
-Iteration   4: 0.094 ops/us
-Iteration   5: 0.095 ops/us
+0.013 ops/us
+# Warmup Iteration   2: 0.013 ops/us
+# Warmup Iteration   3: 0.014 ops/us
+Iteration   1: 0.016 ops/us
+Iteration   2: 0.016 ops/us
+Iteration   3: 0.016 ops/us
+Iteration   4: 0.016 ops/us
+Iteration   5: 0.016 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.094 ±(99.9%) 0.001 ops/us [Average]
-  (min, avg, max) = (0.093, 0.094, 0.095), stdev = 0.001
-  CI (99.9%): [0.093, 0.095] (assumes normal distribution)
+  0.016 ±(99.9%) 0.001 ops/us [Average]
+  (min, avg, max) = (0.016, 0.016, 0.016), stdev = 0.001
+  CI (99.9%): [0.016, 0.016] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1587,34 +1587,32 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.001 ops/us
-# Warmup Iteration   2: 0.001 ops/us
-# Warmup Iteration   3: 0.001 ops/us
-Iteration   1: 0.001 ops/us
-Iteration   2: 0.001 ops/us
-Iteration   3: 0.001 ops/us
-Iteration   4: 0.001 ops/us
-Iteration   5: 0.001 ops/us
+≈ 10⁻⁴ ops/us
+# Warmup Iteration   2: ≈ 10⁻⁴ ops/us
+# Warmup Iteration   3: ≈ 10⁻⁴ ops/us
+Iteration   1: ≈ 10⁻⁴ ops/us
+Iteration   2: ≈ 10⁻⁴ ops/us
+Iteration   3: ≈ 10⁻⁴ ops/us
+Iteration   4: ≈ 10⁻⁴ ops/us
+Iteration   5: ≈ 10⁻⁴ ops/us
 
 # Run progress: 35.42% complete, ETA 00:04:19
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.001 ops/us
-# Warmup Iteration   2: 0.001 ops/us
-# Warmup Iteration   3: 0.001 ops/us
-Iteration   1: 0.001 ops/us
-Iteration   2: 0.001 ops/us
-Iteration   3: 0.001 ops/us
-Iteration   4: 0.001 ops/us
-Iteration   5: 0.001 ops/us
+≈ 10⁻⁴ ops/us
+# Warmup Iteration   2: ≈ 10⁻⁴ ops/us
+# Warmup Iteration   3: ≈ 10⁻⁴ ops/us
+Iteration   1: ≈ 10⁻⁴ ops/us
+Iteration   2: ≈ 10⁻⁴ ops/us
+Iteration   3: ≈ 10⁻⁴ ops/us
+Iteration   4: ≈ 10⁻⁴ ops/us
+Iteration   5: ≈ 10⁻⁴ ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.001 ±(99.9%) 0.001 ops/us [Average]
-  (min, avg, max) = (0.001, 0.001, 0.001), stdev = 0.001
-  CI (99.9%): [0.001, 0.001] (assumes normal distribution)
+  ≈ 10⁻⁴ ops/us
 
 
 # JMH version: 1.37
@@ -1630,39 +1628,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
 # Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 100)
 
-# Run progress: 37.50% complete, ETA 00:04:10
+# Run progress: 37.50% complete, ETA 00:04:11
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.673 ops/us
-# Warmup Iteration   2: 1.064 ops/us
-# Warmup Iteration   3: 1.245 ops/us
-Iteration   1: 1.239 ops/us
-Iteration   2: 1.247 ops/us
-Iteration   3: 1.238 ops/us
-Iteration   4: 1.226 ops/us
-Iteration   5: 1.254 ops/us
+0.517 ops/us
+# Warmup Iteration   2: 0.527 ops/us
+# Warmup Iteration   3: 0.736 ops/us
+Iteration   1: 0.790 ops/us
+Iteration   2: 0.795 ops/us
+Iteration   3: 0.794 ops/us
+Iteration   4: 0.784 ops/us
+Iteration   5: 0.792 ops/us
 
 # Run progress: 39.58% complete, ETA 00:04:02
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.647 ops/us
-# Warmup Iteration   2: 1.030 ops/us
-# Warmup Iteration   3: 1.231 ops/us
-Iteration   1: 1.232 ops/us
-Iteration   2: 1.233 ops/us
-Iteration   3: 1.241 ops/us
-Iteration   4: 1.234 ops/us
-Iteration   5: 1.233 ops/us
+0.532 ops/us
+# Warmup Iteration   2: 0.604 ops/us
+# Warmup Iteration   3: 0.820 ops/us
+Iteration   1: 0.819 ops/us
+Iteration   2: 0.821 ops/us
+Iteration   3: 0.817 ops/us
+Iteration   4: 0.819 ops/us
+Iteration   5: 0.821 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1.238 ±(99.9%) 0.012 ops/us [Average]
-  (min, avg, max) = (1.226, 1.238, 1.254), stdev = 0.008
-  CI (99.9%): [1.226, 1.250] (assumes normal distribution)
+  0.805 ±(99.9%) 0.023 ops/us [Average]
+  (min, avg, max) = (0.784, 0.805, 0.821), stdev = 0.015
+  CI (99.9%): [0.782, 0.828] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1683,34 +1681,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.044 ops/us
-# Warmup Iteration   2: 0.088 ops/us
-# Warmup Iteration   3: 0.092 ops/us
-Iteration   1: 0.091 ops/us
-Iteration   2: 0.092 ops/us
-Iteration   3: 0.093 ops/us
-Iteration   4: 0.092 ops/us
-Iteration   5: 0.093 ops/us
+0.013 ops/us
+# Warmup Iteration   2: 0.012 ops/us
+# Warmup Iteration   3: 0.012 ops/us
+Iteration   1: 0.016 ops/us
+Iteration   2: 0.016 ops/us
+Iteration   3: 0.016 ops/us
+Iteration   4: 0.016 ops/us
+Iteration   5: 0.016 ops/us
 
 # Run progress: 43.75% complete, ETA 00:03:46
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.045 ops/us
-# Warmup Iteration   2: 0.088 ops/us
-# Warmup Iteration   3: 0.092 ops/us
-Iteration   1: 0.093 ops/us
-Iteration   2: 0.092 ops/us
-Iteration   3: 0.092 ops/us
-Iteration   4: 0.092 ops/us
-Iteration   5: 0.092 ops/us
+0.013 ops/us
+# Warmup Iteration   2: 0.012 ops/us
+# Warmup Iteration   3: 0.013 ops/us
+Iteration   1: 0.016 ops/us
+Iteration   2: 0.016 ops/us
+Iteration   3: 0.016 ops/us
+Iteration   4: 0.016 ops/us
+Iteration   5: 0.016 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.092 ±(99.9%) 0.001 ops/us [Average]
-  (min, avg, max) = (0.091, 0.092, 0.093), stdev = 0.001
-  CI (99.9%): [0.091, 0.093] (assumes normal distribution)
+  0.016 ±(99.9%) 0.001 ops/us [Average]
+  (min, avg, max) = (0.016, 0.016, 0.016), stdev = 0.001
+  CI (99.9%): [0.016, 0.016] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1731,34 +1729,32 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.001 ops/us
-# Warmup Iteration   2: 0.001 ops/us
-# Warmup Iteration   3: 0.001 ops/us
-Iteration   1: 0.001 ops/us
-Iteration   2: 0.001 ops/us
-Iteration   3: 0.001 ops/us
-Iteration   4: 0.001 ops/us
-Iteration   5: 0.001 ops/us
+≈ 10⁻⁴ ops/us
+# Warmup Iteration   2: ≈ 10⁻⁴ ops/us
+# Warmup Iteration   3: ≈ 10⁻⁴ ops/us
+Iteration   1: ≈ 10⁻⁴ ops/us
+Iteration   2: ≈ 10⁻⁴ ops/us
+Iteration   3: ≈ 10⁻⁴ ops/us
+Iteration   4: ≈ 10⁻⁴ ops/us
+Iteration   5: ≈ 10⁻⁴ ops/us
 
 # Run progress: 47.92% complete, ETA 00:03:29
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.001 ops/us
-# Warmup Iteration   2: 0.001 ops/us
-# Warmup Iteration   3: 0.001 ops/us
-Iteration   1: 0.001 ops/us
-Iteration   2: 0.001 ops/us
-Iteration   3: 0.001 ops/us
-Iteration   4: 0.001 ops/us
-Iteration   5: 0.001 ops/us
+≈ 10⁻⁴ ops/us
+# Warmup Iteration   2: ≈ 10⁻⁴ ops/us
+# Warmup Iteration   3: ≈ 10⁻⁴ ops/us
+Iteration   1: ≈ 10⁻⁴ ops/us
+Iteration   2: ≈ 10⁻⁴ ops/us
+Iteration   3: ≈ 10⁻⁴ ops/us
+Iteration   4: ≈ 10⁻⁴ ops/us
+Iteration   5: ≈ 10⁻⁴ ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.001 ±(99.9%) 0.001 ops/us [Average]
-  (min, avg, max) = (0.001, 0.001, 0.001), stdev = 0.001
-  CI (99.9%): [0.001, 0.001] (assumes normal distribution)
+  ≈ 10⁻⁴ ops/us
 
 
 # JMH version: 1.37
@@ -1779,34 +1775,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.109 us/op
-# Warmup Iteration   2: 0.022 us/op
-# Warmup Iteration   3: 0.021 us/op
-Iteration   1: 0.022 us/op
-Iteration   2: 0.022 us/op
-Iteration   3: 0.021 us/op
+0.060 us/op
+# Warmup Iteration   2: 0.020 us/op
+# Warmup Iteration   3: 0.022 us/op
+Iteration   1: 0.021 us/op
+Iteration   2: 0.021 us/op
+Iteration   3: 0.022 us/op
 Iteration   4: 0.021 us/op
-Iteration   5: 0.021 us/op
+Iteration   5: 0.023 us/op
 
 # Run progress: 52.08% complete, ETA 00:03:12
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.060 us/op
-# Warmup Iteration   2: 0.022 us/op
+0.058 us/op
+# Warmup Iteration   2: 0.021 us/op
 # Warmup Iteration   3: 0.022 us/op
-Iteration   1: 0.022 us/op
+Iteration   1: 0.021 us/op
 Iteration   2: 0.021 us/op
 Iteration   3: 0.021 us/op
-Iteration   4: 0.021 us/op
+Iteration   4: 0.022 us/op
 Iteration   5: 0.021 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
   0.021 ±(99.9%) 0.001 us/op [Average]
-  (min, avg, max) = (0.021, 0.021, 0.022), stdev = 0.001
-  CI (99.9%): [0.021, 0.022] (assumes normal distribution)
+  (min, avg, max) = (0.021, 0.021, 0.023), stdev = 0.001
+  CI (99.9%): [0.020, 0.023] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1827,34 +1823,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-3.785 us/op
-# Warmup Iteration   2: 1.627 us/op
-# Warmup Iteration   3: 1.662 us/op
-Iteration   1: 1.647 us/op
-Iteration   2: 1.643 us/op
-Iteration   3: 1.640 us/op
-Iteration   4: 1.628 us/op
-Iteration   5: 1.640 us/op
+3.816 us/op
+# Warmup Iteration   2: 1.599 us/op
+# Warmup Iteration   3: 1.621 us/op
+Iteration   1: 1.618 us/op
+Iteration   2: 1.625 us/op
+Iteration   3: 1.612 us/op
+Iteration   4: 1.651 us/op
+Iteration   5: 1.603 us/op
 
 # Run progress: 56.25% complete, ETA 00:02:55
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-3.812 us/op
-# Warmup Iteration   2: 1.815 us/op
-# Warmup Iteration   3: 1.625 us/op
-Iteration   1: 1.620 us/op
+3.720 us/op
+# Warmup Iteration   2: 1.628 us/op
+# Warmup Iteration   3: 1.660 us/op
+Iteration   1: 1.649 us/op
 Iteration   2: 1.612 us/op
-Iteration   3: 1.601 us/op
-Iteration   4: 1.595 us/op
-Iteration   5: 1.584 us/op
+Iteration   3: 1.614 us/op
+Iteration   4: 1.600 us/op
+Iteration   5: 1.613 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1.621 ±(99.9%) 0.033 us/op [Average]
-  (min, avg, max) = (1.584, 1.621, 1.647), stdev = 0.022
-  CI (99.9%): [1.587, 1.654] (assumes normal distribution)
+  1.620 ±(99.9%) 0.026 us/op [Average]
+  (min, avg, max) = (1.600, 1.620, 1.651), stdev = 0.017
+  CI (99.9%): [1.593, 1.646] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1875,34 +1871,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-310.428 us/op
-# Warmup Iteration   2: 237.957 us/op
-# Warmup Iteration   3: 236.085 us/op
-Iteration   1: 236.329 us/op
-Iteration   2: 234.357 us/op
-Iteration   3: 232.815 us/op
-Iteration   4: 233.410 us/op
-Iteration   5: 234.265 us/op
+305.523 us/op
+# Warmup Iteration   2: 238.653 us/op
+# Warmup Iteration   3: 236.492 us/op
+Iteration   1: 236.668 us/op
+Iteration   2: 236.845 us/op
+Iteration   3: 236.426 us/op
+Iteration   4: 236.401 us/op
+Iteration   5: 236.766 us/op
 
 # Run progress: 60.42% complete, ETA 00:02:39
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-301.690 us/op
-# Warmup Iteration   2: 237.421 us/op
-# Warmup Iteration   3: 237.967 us/op
-Iteration   1: 237.550 us/op
-Iteration   2: 237.689 us/op
-Iteration   3: 238.922 us/op
-Iteration   4: 238.911 us/op
-Iteration   5: 240.493 us/op
+303.673 us/op
+# Warmup Iteration   2: 232.373 us/op
+# Warmup Iteration   3: 228.126 us/op
+Iteration   1: 229.686 us/op
+Iteration   2: 228.313 us/op
+Iteration   3: 227.919 us/op
+Iteration   4: 227.432 us/op
+Iteration   5: 227.494 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  236.474 ±(99.9%) 3.996 us/op [Average]
-  (min, avg, max) = (232.815, 236.474, 240.493), stdev = 2.643
-  CI (99.9%): [232.478, 240.470] (assumes normal distribution)
+  232.395 ±(99.9%) 6.801 us/op [Average]
+  (min, avg, max) = (227.432, 232.395, 236.845), stdev = 4.499
+  CI (99.9%): [225.594, 239.196] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -1923,8 +1919,8 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.061 us/op
-# Warmup Iteration   2: 0.022 us/op
+0.057 us/op
+# Warmup Iteration   2: 0.021 us/op
 # Warmup Iteration   3: 0.021 us/op
 Iteration   1: 0.021 us/op
 Iteration   2: 0.021 us/op
@@ -1937,7 +1933,7 @@ Iteration   5: 0.021 us/op
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.061 us/op
+0.058 us/op
 # Warmup Iteration   2: 0.021 us/op
 # Warmup Iteration   3: 0.021 us/op
 Iteration   1: 0.021 us/op
@@ -1966,39 +1962,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
 # Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 10240)
 
-# Run progress: 66.67% complete, ETA 00:02:14
+# Run progress: 66.67% complete, ETA 00:02:13
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-3.755 us/op
-# Warmup Iteration   2: 1.642 us/op
-# Warmup Iteration   3: 1.666 us/op
-Iteration   1: 1.648 us/op
-Iteration   2: 1.636 us/op
-Iteration   3: 1.652 us/op
-Iteration   4: 1.634 us/op
-Iteration   5: 1.672 us/op
+3.644 us/op
+# Warmup Iteration   2: 1.648 us/op
+# Warmup Iteration   3: 1.680 us/op
+Iteration   1: 1.646 us/op
+Iteration   2: 1.642 us/op
+Iteration   3: 1.657 us/op
+Iteration   4: 1.704 us/op
+Iteration   5: 1.704 us/op
 
 # Run progress: 68.75% complete, ETA 00:02:05
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-3.748 us/op
-# Warmup Iteration   2: 1.631 us/op
-# Warmup Iteration   3: 1.659 us/op
-Iteration   1: 1.664 us/op
-Iteration   2: 1.648 us/op
-Iteration   3: 1.644 us/op
-Iteration   4: 1.662 us/op
-Iteration   5: 1.645 us/op
+3.690 us/op
+# Warmup Iteration   2: 1.638 us/op
+# Warmup Iteration   3: 1.658 us/op
+Iteration   1: 1.657 us/op
+Iteration   2: 1.649 us/op
+Iteration   3: 1.662 us/op
+Iteration   4: 1.649 us/op
+Iteration   5: 1.646 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1.650 ±(99.9%) 0.018 us/op [Average]
-  (min, avg, max) = (1.634, 1.650, 1.672), stdev = 0.012
-  CI (99.9%): [1.632, 1.669] (assumes normal distribution)
+  1.662 ±(99.9%) 0.035 us/op [Average]
+  (min, avg, max) = (1.642, 1.662, 1.704), stdev = 0.023
+  CI (99.9%): [1.627, 1.697] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -2019,34 +2015,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-303.238 us/op
-# Warmup Iteration   2: 239.786 us/op
-# Warmup Iteration   3: 237.630 us/op
-Iteration   1: 236.984 us/op
-Iteration   2: 237.380 us/op
-Iteration   3: 231.841 us/op
-Iteration   4: 233.916 us/op
-Iteration   5: 232.294 us/op
+306.784 us/op
+# Warmup Iteration   2: 241.327 us/op
+# Warmup Iteration   3: 240.408 us/op
+Iteration   1: 240.679 us/op
+Iteration   2: 239.129 us/op
+Iteration   3: 239.375 us/op
+Iteration   4: 239.002 us/op
+Iteration   5: 238.750 us/op
 
 # Run progress: 72.92% complete, ETA 00:01:48
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-299.866 us/op
-# Warmup Iteration   2: 237.720 us/op
-# Warmup Iteration   3: 235.463 us/op
-Iteration   1: 235.321 us/op
-Iteration   2: 237.606 us/op
-Iteration   3: 240.607 us/op
-Iteration   4: 237.028 us/op
-Iteration   5: 237.690 us/op
+314.530 us/op
+# Warmup Iteration   2: 240.164 us/op
+# Warmup Iteration   3: 237.818 us/op
+Iteration   1: 236.582 us/op
+Iteration   2: 236.906 us/op
+Iteration   3: 236.519 us/op
+Iteration   4: 236.592 us/op
+Iteration   5: 237.022 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  236.067 ±(99.9%) 4.106 us/op [Average]
-  (min, avg, max) = (231.841, 236.067, 240.607), stdev = 2.716
-  CI (99.9%): [231.961, 240.173] (assumes normal distribution)
+  238.055 ±(99.9%) 2.266 us/op [Average]
+  (min, avg, max) = (236.519, 238.055, 240.679), stdev = 1.499
+  CI (99.9%): [235.790, 240.321] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -2067,34 +2063,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1.492 us/op
-# Warmup Iteration   2: 0.957 us/op
-# Warmup Iteration   3: 0.813 us/op
-Iteration   1: 0.817 us/op
-Iteration   2: 0.818 us/op
-Iteration   3: 0.848 us/op
-Iteration   4: 0.816 us/op
-Iteration   5: 0.815 us/op
+1.874 us/op
+# Warmup Iteration   2: 1.709 us/op
+# Warmup Iteration   3: 1.250 us/op
+Iteration   1: 1.240 us/op
+Iteration   2: 1.237 us/op
+Iteration   3: 1.241 us/op
+Iteration   4: 1.251 us/op
+Iteration   5: 1.252 us/op
 
 # Run progress: 77.08% complete, ETA 00:01:32
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1.568 us/op
-# Warmup Iteration   2: 1.003 us/op
-# Warmup Iteration   3: 0.823 us/op
-Iteration   1: 0.810 us/op
-Iteration   2: 0.812 us/op
-Iteration   3: 0.817 us/op
-Iteration   4: 0.815 us/op
-Iteration   5: 0.828 us/op
+1.908 us/op
+# Warmup Iteration   2: 1.743 us/op
+# Warmup Iteration   3: 1.226 us/op
+Iteration   1: 1.236 us/op
+Iteration   2: 1.247 us/op
+Iteration   3: 1.253 us/op
+Iteration   4: 1.244 us/op
+Iteration   5: 1.232 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.820 ±(99.9%) 0.017 us/op [Average]
-  (min, avg, max) = (0.810, 0.820, 0.848), stdev = 0.011
-  CI (99.9%): [0.803, 0.836] (assumes normal distribution)
+  1.243 ±(99.9%) 0.011 us/op [Average]
+  (min, avg, max) = (1.232, 1.243, 1.253), stdev = 0.007
+  CI (99.9%): [1.232, 1.254] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -2115,34 +2111,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-22.783 us/op
-# Warmup Iteration   2: 12.147 us/op
-# Warmup Iteration   3: 11.676 us/op
-Iteration   1: 11.608 us/op
-Iteration   2: 10.514 us/op
-Iteration   3: 10.559 us/op
-Iteration   4: 10.509 us/op
-Iteration   5: 10.490 us/op
+74.298 us/op
+# Warmup Iteration   2: 79.728 us/op
+# Warmup Iteration   3: 73.832 us/op
+Iteration   1: 61.624 us/op
+Iteration   2: 62.035 us/op
+Iteration   3: 61.493 us/op
+Iteration   4: 61.500 us/op
+Iteration   5: 61.252 us/op
 
 # Run progress: 81.25% complete, ETA 00:01:15
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-22.705 us/op
-# Warmup Iteration   2: 11.349 us/op
-# Warmup Iteration   3: 10.647 us/op
-Iteration   1: 10.641 us/op
-Iteration   2: 10.673 us/op
-Iteration   3: 10.672 us/op
-Iteration   4: 10.708 us/op
-Iteration   5: 10.653 us/op
+74.014 us/op
+# Warmup Iteration   2: 79.229 us/op
+# Warmup Iteration   3: 73.232 us/op
+Iteration   1: 61.388 us/op
+Iteration   2: 63.216 us/op
+Iteration   3: 61.463 us/op
+Iteration   4: 61.514 us/op
+Iteration   5: 61.275 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  10.703 ±(99.9%) 0.495 us/op [Average]
-  (min, avg, max) = (10.490, 10.703, 11.608), stdev = 0.328
-  CI (99.9%): [10.207, 11.198] (assumes normal distribution)
+  61.676 ±(99.9%) 0.882 us/op [Average]
+  (min, avg, max) = (61.252, 61.676, 63.216), stdev = 0.583
+  CI (99.9%): [60.794, 62.558] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -2158,39 +2154,39 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
 # Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 1048576)
 
-# Run progress: 83.33% complete, ETA 00:01:07
+# Run progress: 83.33% complete, ETA 00:01:06
 # Fork: 1 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1659.729 us/op
-# Warmup Iteration   2: 1313.880 us/op
-# Warmup Iteration   3: 1290.688 us/op
-Iteration   1: 1267.721 us/op
-Iteration   2: 1183.981 us/op
-Iteration   3: 1197.119 us/op
-Iteration   4: 1190.133 us/op
-Iteration   5: 1195.561 us/op
+8341.782 us/op
+# Warmup Iteration   2: 7314.379 us/op
+# Warmup Iteration   3: 7041.766 us/op
+Iteration   1: 6841.293 us/op
+Iteration   2: 6735.770 us/op
+Iteration   3: 6653.905 us/op
+Iteration   4: 6589.681 us/op
+Iteration   5: 6592.243 us/op
 
 # Run progress: 85.42% complete, ETA 00:00:58
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1643.353 us/op
-# Warmup Iteration   2: 1274.775 us/op
-# Warmup Iteration   3: 1279.448 us/op
-Iteration   1: 1265.465 us/op
-Iteration   2: 1193.276 us/op
-Iteration   3: 1186.114 us/op
-Iteration   4: 1188.304 us/op
-Iteration   5: 1186.561 us/op
+8304.623 us/op
+# Warmup Iteration   2: 7267.254 us/op
+# Warmup Iteration   3: 6917.429 us/op
+Iteration   1: 7023.877 us/op
+Iteration   2: 6606.920 us/op
+Iteration   3: 6637.254 us/op
+Iteration   4: 6606.726 us/op
+Iteration   5: 6559.521 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1205.423 ±(99.9%) 49.158 us/op [Average]
-  (min, avg, max) = (1183.981, 1205.423, 1267.721), stdev = 32.515
-  CI (99.9%): [1156.265, 1254.582] (assumes normal distribution)
+  6684.719 ±(99.9%) 220.099 us/op [Average]
+  (min, avg, max) = (6559.521, 6684.719, 7023.877), stdev = 145.582
+  CI (99.9%): [6464.620, 6904.818] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -2211,34 +2207,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1.457 us/op
-# Warmup Iteration   2: 0.945 us/op
-# Warmup Iteration   3: 0.814 us/op
-Iteration   1: 0.808 us/op
-Iteration   2: 0.821 us/op
-Iteration   3: 0.811 us/op
-Iteration   4: 0.830 us/op
-Iteration   5: 0.813 us/op
+1.899 us/op
+# Warmup Iteration   2: 1.721 us/op
+# Warmup Iteration   3: 1.263 us/op
+Iteration   1: 1.266 us/op
+Iteration   2: 1.261 us/op
+Iteration   3: 1.257 us/op
+Iteration   4: 1.261 us/op
+Iteration   5: 1.267 us/op
 
 # Run progress: 89.58% complete, ETA 00:00:41
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1.414 us/op
-# Warmup Iteration   2: 0.874 us/op
-# Warmup Iteration   3: 0.761 us/op
-Iteration   1: 0.763 us/op
-Iteration   2: 0.761 us/op
-Iteration   3: 0.779 us/op
-Iteration   4: 0.761 us/op
-Iteration   5: 0.760 us/op
+1.871 us/op
+# Warmup Iteration   2: 1.682 us/op
+# Warmup Iteration   3: 1.224 us/op
+Iteration   1: 1.229 us/op
+Iteration   2: 1.241 us/op
+Iteration   3: 1.233 us/op
+Iteration   4: 1.231 us/op
+Iteration   5: 1.232 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.791 ±(99.9%) 0.043 us/op [Average]
-  (min, avg, max) = (0.760, 0.791, 0.830), stdev = 0.029
-  CI (99.9%): [0.748, 0.834] (assumes normal distribution)
+  1.248 ±(99.9%) 0.024 us/op [Average]
+  (min, avg, max) = (1.229, 1.248, 1.267), stdev = 0.016
+  CI (99.9%): [1.224, 1.272] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -2259,34 +2255,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-22.746 us/op
-# Warmup Iteration   2: 11.162 us/op
-# Warmup Iteration   3: 10.738 us/op
-Iteration   1: 10.815 us/op
-Iteration   2: 10.757 us/op
-Iteration   3: 10.872 us/op
-Iteration   4: 10.834 us/op
-Iteration   5: 10.859 us/op
+74.295 us/op
+# Warmup Iteration   2: 79.916 us/op
+# Warmup Iteration   3: 73.906 us/op
+Iteration   1: 61.759 us/op
+Iteration   2: 61.925 us/op
+Iteration   3: 61.706 us/op
+Iteration   4: 61.866 us/op
+Iteration   5: 61.753 us/op
 
 # Run progress: 93.75% complete, ETA 00:00:25
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-22.878 us/op
-# Warmup Iteration   2: 11.276 us/op
-# Warmup Iteration   3: 10.841 us/op
-Iteration   1: 10.884 us/op
-Iteration   2: 11.218 us/op
-Iteration   3: 11.150 us/op
-Iteration   4: 11.330 us/op
-Iteration   5: 11.307 us/op
+74.624 us/op
+# Warmup Iteration   2: 80.135 us/op
+# Warmup Iteration   3: 74.499 us/op
+Iteration   1: 62.012 us/op
+Iteration   2: 62.325 us/op
+Iteration   3: 61.919 us/op
+Iteration   4: 61.906 us/op
+Iteration   5: 61.694 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  11.003 ±(99.9%) 0.336 us/op [Average]
-  (min, avg, max) = (10.757, 11.003, 11.330), stdev = 0.222
-  CI (99.9%): [10.667, 11.338] (assumes normal distribution)
+  61.886 ±(99.9%) 0.283 us/op [Average]
+  (min, avg, max) = (61.694, 61.886, 62.325), stdev = 0.187
+  CI (99.9%): [61.603, 62.170] (assumes normal distribution)
 
 
 # JMH version: 1.37
@@ -2307,34 +2303,34 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1653.732 us/op
-# Warmup Iteration   2: 1287.478 us/op
-# Warmup Iteration   3: 1285.905 us/op
-Iteration   1: 1220.217 us/op
-Iteration   2: 1202.091 us/op
-Iteration   3: 1197.305 us/op
-Iteration   4: 1205.076 us/op
-Iteration   5: 1199.425 us/op
+8317.489 us/op
+# Warmup Iteration   2: 7332.924 us/op
+# Warmup Iteration   3: 6698.820 us/op
+Iteration   1: 6675.694 us/op
+Iteration   2: 6590.693 us/op
+Iteration   3: 6567.235 us/op
+Iteration   4: 6546.538 us/op
+Iteration   5: 6549.213 us/op
 
 # Run progress: 97.92% complete, ETA 00:00:08
 # Fork: 2 of 2
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1620.168 us/op
-# Warmup Iteration   2: 1284.125 us/op
-# Warmup Iteration   3: 1285.277 us/op
-Iteration   1: 1202.675 us/op
-Iteration   2: 1182.423 us/op
-Iteration   3: 1181.488 us/op
-Iteration   4: 1182.053 us/op
-Iteration   5: 1195.829 us/op
+8363.994 us/op
+# Warmup Iteration   2: 7460.428 us/op
+# Warmup Iteration   3: 6755.892 us/op
+Iteration   1: 6686.937 us/op
+Iteration   2: 6661.163 us/op
+Iteration   3: 6632.483 us/op
+Iteration   4: 6634.864 us/op
+Iteration   5: 6623.227 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1196.858 ±(99.9%) 18.490 us/op [Average]
-  (min, avg, max) = (1181.488, 1196.858, 1220.217), stdev = 12.230
-  CI (99.9%): [1178.369, 1215.348] (assumes normal distribution)
+  6616.805 ±(99.9%) 77.439 us/op [Average]
+  (min, avg, max) = (6546.538, 6616.805, 6686.937), stdev = 51.221
+  CI (99.9%): [6539.366, 6694.244] (assumes normal distribution)
 
 
 # Run complete. Total time: 00:06:42
@@ -2351,28 +2347,28 @@ works, and factor in a small probability of new VM bugs. Additionally, while com
 different JVMs are already problematic, the performance difference caused by different Blackhole
 modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
 
-Benchmark                 (compression)        (format)  (payloadSize)   Mode  Cnt     Score    Error   Units
-EncodeDecodeBench.decode           NONE       WIRE_ONLY            100  thrpt   10    47.828 ±  0.435  ops/us
-EncodeDecodeBench.decode           NONE       WIRE_ONLY          10240  thrpt   10     0.619 ±  0.012  ops/us
-EncodeDecodeBench.decode           NONE       WIRE_ONLY        1048576  thrpt   10     0.004 ±  0.001  ops/us
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX            100  thrpt   10    47.033 ±  0.934  ops/us
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX          10240  thrpt   10     0.611 ±  0.011  ops/us
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX        1048576  thrpt   10     0.004 ±  0.001  ops/us
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY            100  thrpt   10     1.210 ±  0.068  ops/us
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY          10240  thrpt   10     0.094 ±  0.001  ops/us
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY        1048576  thrpt   10     0.001 ±  0.001  ops/us
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX            100  thrpt   10     1.238 ±  0.012  ops/us
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX          10240  thrpt   10     0.092 ±  0.001  ops/us
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX        1048576  thrpt   10     0.001 ±  0.001  ops/us
-EncodeDecodeBench.decode           NONE       WIRE_ONLY            100   avgt   10     0.021 ±  0.001   us/op
-EncodeDecodeBench.decode           NONE       WIRE_ONLY          10240   avgt   10     1.621 ±  0.033   us/op
-EncodeDecodeBench.decode           NONE       WIRE_ONLY        1048576   avgt   10   236.474 ±  3.996   us/op
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX            100   avgt   10     0.021 ±  0.001   us/op
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX          10240   avgt   10     1.650 ±  0.018   us/op
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX        1048576   avgt   10   236.067 ±  4.106   us/op
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY            100   avgt   10     0.820 ±  0.017   us/op
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY          10240   avgt   10    10.703 ±  0.495   us/op
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY        1048576   avgt   10  1205.423 ± 49.158   us/op
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX            100   avgt   10     0.791 ±  0.043   us/op
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX          10240   avgt   10    11.003 ±  0.336   us/op
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX        1048576   avgt   10  1196.858 ± 18.490   us/op
+Benchmark                 (compression)        (format)  (payloadSize)   Mode  Cnt     Score     Error   Units
+EncodeDecodeBench.decode           NONE       WIRE_ONLY            100  thrpt   10    47.753 ±   0.944  ops/us
+EncodeDecodeBench.decode           NONE       WIRE_ONLY          10240  thrpt   10     0.616 ±   0.015  ops/us
+EncodeDecodeBench.decode           NONE       WIRE_ONLY        1048576  thrpt   10     0.004 ±   0.001  ops/us
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX            100  thrpt   10    47.185 ±   0.884  ops/us
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX          10240  thrpt   10     0.596 ±   0.028  ops/us
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX        1048576  thrpt   10     0.004 ±   0.001  ops/us
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY            100  thrpt   10     0.800 ±   0.015  ops/us
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY          10240  thrpt   10     0.016 ±   0.001  ops/us
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY        1048576  thrpt   10    ≈ 10⁻⁴            ops/us
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX            100  thrpt   10     0.805 ±   0.023  ops/us
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX          10240  thrpt   10     0.016 ±   0.001  ops/us
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX        1048576  thrpt   10    ≈ 10⁻⁴            ops/us
+EncodeDecodeBench.decode           NONE       WIRE_ONLY            100   avgt   10     0.021 ±   0.001   us/op
+EncodeDecodeBench.decode           NONE       WIRE_ONLY          10240   avgt   10     1.620 ±   0.026   us/op
+EncodeDecodeBench.decode           NONE       WIRE_ONLY        1048576   avgt   10   232.395 ±   6.801   us/op
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX            100   avgt   10     0.021 ±   0.001   us/op
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX          10240   avgt   10     1.662 ±   0.035   us/op
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX        1048576   avgt   10   238.055 ±   2.266   us/op
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY            100   avgt   10     1.243 ±   0.011   us/op
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY          10240   avgt   10    61.676 ±   0.882   us/op
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY        1048576   avgt   10  6684.719 ± 220.099   us/op
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX            100   avgt   10     1.248 ±   0.024   us/op
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX          10240   avgt   10    61.886 ±   0.283   us/op
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX        1048576   avgt   10  6616.805 ±  77.439   us/op
