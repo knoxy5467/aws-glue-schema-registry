@@ -71,11 +71,21 @@ func newGlueHandle(t testing.TB) *glueHandle {
 		}
 		c := r.NewCleanup()
 		// Wire Run into t.Cleanup so teardown fires on t.Fail too.
+		//
+		// Phase 4.8 nit #15: escalate cleanup failures from t.Logf to
+		// t.Errorf. The earlier Logf treated leaked schemas as
+		// informational, which (combined with the original
+		// pre-fix-#1 broken leak-check command) meant leaks could
+		// accumulate across runs with NO red signal. Now the leak
+		// shows up as a failing test immediately, and the runbook
+		// gives the user a deterministic recovery path.
+		// EntityNotFoundException is already suppressed inside
+		// Cleanup.Run, so this only escalates real cleanup failures.
 		t.Cleanup(func() {
 			tdCtx, tdCancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer tdCancel()
 			if err := c.Run(tdCtx); err != nil {
-				t.Logf("realglue.Cleanup.Run: %v (continuing — leaked resources are tracked in REAL-AWS-RUNBOOK.md)", err)
+				t.Errorf("realglue.Cleanup.Run: %v — manual cleanup required, see integration-tests/REAL-AWS-RUNBOOK.md", err)
 			}
 		})
 		return &glueHandle{Mode: glueModeReal, Client: r, Real: r, Cleanup: c}
@@ -116,16 +126,25 @@ func scenarioGate(t testing.TB, requiresReal, requiresFake bool) {
 	}
 }
 
-// randomGlueName returns "<base>-<UNIX_TS>-<8 hex bytes>". Used by
-// every §5.3 scenario that goes through newGlueHandle so retries and
-// parallel runs against the same real-Glue account never collide.
+// randomGlueName returns "gsr-go-it-<base>-<UNIX_TS>-<16 hex chars>"
+// (8 random bytes → 64 bits of entropy after the per-second timestamp).
+// Used by every §5.3 scenario that goes through newGlueHandle so
+// retries and parallel runs against the same real-Glue account
+// never collide.
+//
+// Phase 4.8 nit #10: earlier draft documented "8 hex bytes" but the
+// implementation only read 4 bytes ([4]byte → 8 hex chars / 32 bits).
+// 32 bits is enough for any realistic per-second collision budget,
+// but the documented promise didn't match. Bumped the read to 8
+// bytes so a future canary-style continuous loop inherits the
+// stronger guarantee the comment implied.
 //
 // The "gsr-go-it-" prefix is significant: REAL-AWS-RUNBOOK.md's
-// post-run cleanup verification (`aws glue list-registries`) looks
-// for that string to flag any leaked resources.
+// post-run leak check (`aws glue list-schemas | grep gsr-go-it-`)
+// uses that exact prefix.
 func randomGlueName(t testing.TB, base string) string {
 	t.Helper()
-	var buf [4]byte
+	var buf [8]byte
 	_, _ = rand.Read(buf[:])
 	return fmt.Sprintf("gsr-go-it-%s-%d-%x", base, time.Now().Unix(), buf[:])
 }

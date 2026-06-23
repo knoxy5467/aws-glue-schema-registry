@@ -61,9 +61,9 @@ func TestLifecycle_AutoRegister_ThenCacheReuse(t *testing.T) {
 	require.Equal(t, out1[:gsrcore.WireFormatHeaderSize], out2[:gsrcore.WireFormatHeaderSize],
 		"both encodes should reuse the same wire-format prefix (cached version-id)")
 
-	require.Equal(t, 1, h.Fake.CallCounts["CreateSchema"],
+	require.Equal(t, 1, h.Fake.Count("CreateSchema"),
 		"second Encode must hit the cache, not call CreateSchema again")
-	require.LessOrEqual(t, h.Fake.CallCounts["GetSchemaByDefinition"], 1,
+	require.LessOrEqual(t, h.Fake.Count("GetSchemaByDefinition"), 1,
 		"second Encode must hit the cache, not re-call GetSchemaByDefinition")
 }
 
@@ -104,7 +104,7 @@ func TestLifecycle_AutoRegisterDisabled_UnknownSchemaErrors(t *testing.T) {
 	require.Error(t, err, "auto-register=false + unknown schema must error")
 	require.True(t, errors.Is(err, gsrcore.ErrSchemaAutoRegistrationDisabled),
 		"surfaced error must wrap ErrSchemaAutoRegistrationDisabled (got %T: %v)", err, err)
-	require.Equal(t, 0, h.Fake.CallCounts["CreateSchema"],
+	require.Equal(t, 0, h.Fake.Count("CreateSchema"),
 		"CreateSchema must NOT be called when auto-register is disabled")
 }
 
@@ -145,8 +145,8 @@ func TestLifecycle_PreRegisteredSchemaID(t *testing.T) {
 		out[2:gsrcore.WireFormatHeaderSize],
 		"primed cache must short-circuit Glue lookup and use the seeded version UUID")
 
-	require.Equal(t, 0, h.Fake.CallCounts["GetSchemaByDefinition"], "primed cache must skip Glue lookup")
-	require.Equal(t, 0, h.Fake.CallCounts["CreateSchema"], "primed cache must skip CreateSchema")
+	require.Equal(t, 0, h.Fake.Count("GetSchemaByDefinition"), "primed cache must skip Glue lookup")
+	require.Equal(t, 0, h.Fake.Count("CreateSchema"), "primed cache must skip CreateSchema")
 }
 
 // §5.3 item 16 — cache TTL eviction. After TTL, a fresh
@@ -185,9 +185,9 @@ func TestLifecycle_CacheTTLEviction(t *testing.T) {
 	// schema. GetSchemaByDefinition succeeds (the fake still has the
 	// schema from the first encode), so CreateSchema is NOT called
 	// twice.
-	require.GreaterOrEqual(t, h.Fake.CallCounts["GetSchemaByDefinition"], 2,
+	require.GreaterOrEqual(t, h.Fake.Count("GetSchemaByDefinition"), 2,
 		"GetSchemaByDefinition should be called again after TTL eviction")
-	require.Equal(t, 1, h.Fake.CallCounts["CreateSchema"],
+	require.Equal(t, 1, h.Fake.Count("CreateSchema"),
 		"CreateSchema should still be called only once — the schema exists in Glue after the first encode")
 }
 

@@ -70,7 +70,7 @@ func TestNegative_IAMDenied(t *testing.T) {
 	require.Error(t, err)
 	var ad *types.AccessDeniedException
 	require.True(t, errors.As(err, &ad), "encoder must surface AccessDeniedException via errors.As (got %T: %v)", err, err)
-	require.Equal(t, 0, h.Fake.CallCounts["CreateSchema"],
+	require.Equal(t, 0, h.Fake.Count("CreateSchema"),
 		"AccessDenied on GetSchemaByDefinition must NOT trigger a write-amplifying CreateSchema attempt")
 }
 
@@ -107,7 +107,7 @@ func TestNegative_Throttling(t *testing.T) {
 	require.True(t, errors.As(err, &apiErr), "encoder must surface a smithy.APIError-typed error (got %T: %v)", err, err)
 	require.Equal(t, "ThrottlingException", apiErr.ErrorCode(),
 		"the surfaced error must carry the ThrottlingException API code so the retry middleware matches")
-	require.Equal(t, 0, h.Fake.CallCounts["CreateSchema"],
+	require.Equal(t, 0, h.Fake.Count("CreateSchema"),
 		"ThrottlingException on GetSchemaByDefinition must NOT trigger an additional CreateSchema call (which would double the load)")
 }
 
@@ -139,8 +139,8 @@ func TestNegative_EntityNotFoundFallsThroughToCreate(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, encoded)
-	require.Equal(t, 1, h.Fake.CallCounts["CreateSchema"], "auto-register=true should fall through to CreateSchema")
-	require.Equal(t, 1, h.Fake.CallCounts["GetSchemaByDefinition"], "first Glue call is GetSchemaByDefinition")
+	require.Equal(t, 1, h.Fake.Count("CreateSchema"), "auto-register=true should fall through to CreateSchema")
+	require.Equal(t, 1, h.Fake.Count("GetSchemaByDefinition"), "first Glue call is GetSchemaByDefinition")
 }
 
 // §5.3 item 26 — malformed payload surfaces an error at the wire-
@@ -163,6 +163,14 @@ func TestNegative_EntityNotFoundFallsThroughToCreate(t *testing.T) {
 // Tier-1 coverage in the comment instead of pretending to mirror it.
 func TestNegative_MalformedDecodePayload(t *testing.T) {
 	t.Parallel()
+	// Phase 4.8 nit #6: gate requiresFake=true. The decoder does
+	// reach the GlueClient here (GetSchemaVersion lookup of the
+	// unknown UUID), but the assertion is just "any non-nil error";
+	// running this against real Glue pays the LoadDefaultConfig +
+	// Credentials.Retrieve probe cost for zero added coverage over
+	// the fake. The companion TestNegative_UnknownVersionUUID below
+	// already covers the same Glue path in backend-agnostic mode.
+	scenarioGate(t, false, true)
 	h := newGlueHandle(t)
 	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
 		RegistryName: "default-registry",
@@ -170,10 +178,17 @@ func TestNegative_MalformedDecodePayload(t *testing.T) {
 	require.NoError(t, err)
 
 	// A payload with a valid version + compression byte but a
-	// schema-version-id Glue has never seen — both fakeglue and real
-	// Glue return EntityNotFound (or 400) from GetSchemaVersion. The
-	// decoder surfaces that as an error from Decode rather than
-	// silently returning empty.
+	// schema-version-id Glue has never seen. Backend behavior:
+	//   - fakeglue: returns *types.EntityNotFoundException from
+	//     GetSchemaVersion (the empty in-memory map miss).
+	//   - real Glue: returns *types.InvalidInputException for this
+	//     specific all-zero UUID (server rejects "00000000-..." as
+	//     not a valid version id) — NOT EntityNotFound. A random
+	//     non-zero unknown UUID would surface as EntityNotFound.
+	// Either way the decoder MUST surface a non-nil error rather than
+	// silently returning empty, which is the only assertion below.
+	// Phase 4.8 nit #11: doc updated to reflect real-Glue's actual
+	// error type for the all-zero UUID case.
 	bad := []byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		'm', 'a', 'l', 'f', 'o', 'r', 'm', 'e', 'd'}
@@ -193,9 +208,14 @@ func TestNegative_MalformedDecodePayload(t *testing.T) {
 // need to also wire up CreateSchema flow.
 func TestNegative_NonUTF8Path(t *testing.T) {
 	t.Parallel()
-	// This test primes the decoder cache directly via
-	// PrimeSchemaCache and never reaches the underlying GlueClient;
-	// it's backend-agnostic, no gate needed.
+	// Phase 4.8 nit #6: although the body of this test primes the
+	// decoder cache directly via PrimeSchemaCache and never reaches
+	// the underlying GlueClient, newGlueHandle still pays the
+	// LoadDefaultConfig + Credentials.Retrieve cost in real mode.
+	// gscenarioGate(t, false, true) so the real-mode run skips it
+	// without paying that cost — there is no real-mode value to be
+	// gained since GlueClient is never called.
+	scenarioGate(t, false, true)
 	h := newGlueHandle(t)
 	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
 		RegistryName: "default-registry",
@@ -239,8 +259,12 @@ func TestNegative_NonUTF8Path(t *testing.T) {
 // §5.3 item 28 — truncated payload (< 18 bytes) → typed error.
 func TestNegative_TruncatedPayload(t *testing.T) {
 	t.Parallel()
-	// Truncation check happens entirely inside DecodeWireFormat
-	// (size guard); no GlueClient call. Backend-agnostic.
+	// Phase 4.8 nit #6: gate requiresFake=true. The truncation check
+	// short-circuits inside DecodeWireFormat (size guard) before any
+	// GlueClient call, so there is nothing for real-Glue mode to
+	// contribute. Skip on real to avoid paying the LoadDefaultConfig
+	// + Credentials.Retrieve probe.
+	scenarioGate(t, false, true)
 	h := newGlueHandle(t)
 	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
 		RegistryName: "default-registry",

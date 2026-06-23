@@ -79,24 +79,38 @@ The recipe will:
 
 ## Expected cost
 
-Each `RequiresRealGlue=false` scenario (the bulk of the suite) skips
-under `GSR_GLUE=real` because the assertion shape requires fakeglue
-introspection. Today the `GSR_GLUE=real` path exercises roughly:
+Each `RequiresFakeGlue=true` scenario (the bulk of the §5.3 suite,
+because they assert on fakeglue `Force*Error` / `Count` affordances)
+skips under `GSR_GLUE=real`. Today the `GSR_GLUE=real` path
+exercises roughly:
 
-- ~6 wire-format direct scenarios (no Glue).
-- ~3 compatibility round-trips that hit real Glue
-  (CreateSchema + GetSchemaByDefinition × 2).
-- ~1 `RequiresRealGlue=true` companion that exercises server-side
-  compatibility rejection (CreateSchema × 2 — one succeeds, one
-  rejected at v2).
-- Negative-decode scenarios that fetch by version-UUID (one
-  GetSchemaVersion per).
+- **6** wire-format direct scenarios (no Glue at all).
+- **2** compatibility round-trips that hit real Glue end-to-end:
+  - `TestCompatibility_BackwardV1ToV2` — registers v1 then a
+    backward-compatible v2 (≈ 2 × `CreateSchema/RegisterSchemaVersion`
+    + 2 × `GetSchemaByDefinition` + 2 × `GetSchemaVersion`).
+  - `TestCompatibility_ForwardV2ToV1` — registers v2 then v1 under
+    `Compatibility=FORWARD` (same shape).
+- **1** `RequiresRealGlue=true` companion
+  (`TestCompatibility_IncompatibleRejected_Real`) — registers v1,
+  attempts an incompatible v2 the server must reject (≈ 1 successful
+  CreateSchema + 1 rejected attempt).
+- **1** negative decode that reaches Glue
+  (`TestNegative_UnknownVersionUUID` → 1 `GetSchemaVersion`).
 
-Conservative ceiling per run: **< 50 Glue control-plane calls**.
+Total fresh Glue control-plane calls per `make test-integ-real` run:
+**roughly 15-20**.
+
+Phase 4.8 nit #8: this estimate is tighter than Phase 4.7's earlier
+"<50" figure because the gate review reclassified
+`MalformedDecodePayload`, `NonUTF8Path`, and `TruncatedPayload` as
+`requiresFake=true` (they never reached the real GlueClient anyway).
+Re-estimate when the §5.3 matrix grows or when new `requiresReal`
+scenarios are added.
+
 At Glue Schema Registry public pricing (free for the first ~1M
-ops/month at the time of writing), this is well inside the free
-tier. The §5.3 matrix expansion in a future phase will increase
-the call count — re-estimate when the matrix grows.
+ops/month at the time of writing) this is well inside the free
+tier even at hundreds of runs/day.
 
 ## Post-run cleanup verification
 

@@ -43,15 +43,17 @@ const (
 // version-id, and the consumer's decoder looks up that exact v1
 // schema. That bytes-flow is what this test pins — it runs against
 // either backend.
+//
+// Phase 4.8 nit #5: earlier version only registered v1, so the
+// "Compatibility=BACKWARD" config value was never proven to flow
+// into the CreateSchema request. Now we ALSO register a
+// backward-compatible v2 (adds a nullable field with default) and
+// confirm both versions round-trip — on real Glue this exercises
+// the server's BACKWARD compatibility check; on fake it just locks
+// the wire-format flow for both definitions.
 func TestCompatibility_BackwardV1ToV2(t *testing.T) {
 	t.Parallel()
 	h := newGlueHandle(t)
-	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
-		RegistryName:                  "default-registry",
-		Compatibility:                 "BACKWARD",
-		SchemaAutoRegistrationEnabled: true,
-	})
-	require.NoError(t, err)
 	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
 		RegistryName: "default-registry",
 	})
@@ -61,18 +63,30 @@ func TestCompatibility_BackwardV1ToV2(t *testing.T) {
 	if h.Cleanup != nil {
 		h.Cleanup.TrackSchema("default-registry", schemaName)
 	}
-	encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
-		SchemaDefinition: schemaV1,
-		SchemaName:       schemaName,
-		DataFormat:       "AVRO",
-	})
-	require.NoError(t, err)
 
-	// Decode resolves the wire-format version-id back through Glue —
-	// proving v1's bytes land at v1's schema.
-	decoded, err := dec.Decode(encoded)
-	require.NoError(t, err)
-	require.Equal(t, []byte("payload"), decoded)
+	// v1 then v2. Fresh encoder per version to defeat the per-name
+	// cache (same pattern as items 19 / 21).
+	for i, def := range []string{schemaV1, schemaV2} {
+		enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
+			RegistryName:                  "default-registry",
+			Compatibility:                 "BACKWARD",
+			SchemaAutoRegistrationEnabled: true,
+		})
+		require.NoError(t, err)
+
+		encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
+			SchemaDefinition: def,
+			SchemaName:       schemaName,
+			DataFormat:       "AVRO",
+		})
+		require.NoError(t, err, "v%d encode (Compatibility=BACKWARD) must succeed; "+
+			"a regression dropping Compatibility from CreateSchema would surface as a "+
+			"server-side rejection of v2 here", i+1)
+
+		decoded, err := dec.Decode(encoded)
+		require.NoError(t, err, "v%d decode", i+1)
+		require.Equal(t, []byte("payload"), decoded)
+	}
 }
 
 // §5.3 item 19 — BACKWARD_ALL across three versions. The encoder's
@@ -129,15 +143,15 @@ func TestCompatibility_BackwardAll_ThreeVersions(t *testing.T) {
 // consumer reads with v1 schema. Same wire-flow contract as item 18
 // (v2's bytes carry v2's version-id; consumer fetches v2's schema).
 // Backend-agnostic.
+//
+// Phase 4.8 nit #5: same shape as item 18 — register v2 then v1
+// under Compatibility=FORWARD so the config value is actually
+// proven against the server. v1 is forward-compatible from v2 (v2
+// adds a nullable field; reading v2 bytes with a v1 reader-schema
+// drops the field).
 func TestCompatibility_ForwardV2ToV1(t *testing.T) {
 	t.Parallel()
 	h := newGlueHandle(t)
-	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
-		RegistryName:                  "default-registry",
-		Compatibility:                 "FORWARD",
-		SchemaAutoRegistrationEnabled: true,
-	})
-	require.NoError(t, err)
 	dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
 		RegistryName: "default-registry",
 	})
@@ -147,15 +161,27 @@ func TestCompatibility_ForwardV2ToV1(t *testing.T) {
 	if h.Cleanup != nil {
 		h.Cleanup.TrackSchema("default-registry", schemaName)
 	}
-	encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
-		SchemaDefinition: schemaV2,
-		SchemaName:       schemaName,
-		DataFormat:       "AVRO",
-	})
-	require.NoError(t, err)
-	decoded, err := dec.Decode(encoded)
-	require.NoError(t, err)
-	require.Equal(t, []byte("payload"), decoded)
+
+	// v2 then v1. FORWARD with v1 second proves the server accepts
+	// "the new version is the OLDER one" — the canonical FORWARD case.
+	for i, def := range []string{schemaV2, schemaV1} {
+		enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
+			RegistryName:                  "default-registry",
+			Compatibility:                 "FORWARD",
+			SchemaAutoRegistrationEnabled: true,
+		})
+		require.NoError(t, err)
+
+		encoded, err := enc.Encode([]byte("payload"), schemaName, &gsrcore.Schema{
+			SchemaDefinition: def,
+			SchemaName:       schemaName,
+			DataFormat:       "AVRO",
+		})
+		require.NoError(t, err, "iteration %d under Compatibility=FORWARD must succeed", i+1)
+		decoded, err := dec.Decode(encoded)
+		require.NoError(t, err)
+		require.Equal(t, []byte("payload"), decoded)
+	}
 }
 
 // §5.3 item 21 — FULL evolution both directions. Same cache-defeat

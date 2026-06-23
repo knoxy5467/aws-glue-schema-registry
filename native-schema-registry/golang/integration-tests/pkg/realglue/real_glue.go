@@ -59,6 +59,16 @@ func WithProfile(profile string) Option {
 // WithEndpoint sets the Glue client's BaseEndpoint. Used in dev
 // environments that route Glue traffic through a regional VPC
 // endpoint or a localstack-ultimate-style override.
+//
+// Phase 4.8 nit #14: WithEndpoint is applied as the FINAL glue.Options
+// override. If the caller passes WithAWSConfig with a config that
+// already carries a BaseEndpointResolver / EndpointResolverWithOptions,
+// the explicit WithEndpoint URL takes precedence and the injected
+// resolver is silently bypassed for these tests. That precedence is
+// intentional (a literal endpoint override should "just work" in a
+// dev loop), but if you build a multi-endpoint resolver in
+// production code, do NOT layer WithEndpoint on top of it — pick
+// one or the other.
 func WithEndpoint(endpoint string) Option {
 	return func(o *Options) { o.endpoint = endpoint }
 }
@@ -100,9 +110,19 @@ func New(ctx context.Context, opts ...Option) (*Real, error) {
 	// Region precedence (uniform across the injected-config and
 	// LoadDefaultConfig branches):
 	//   1. WithRegion option (explicit override)
-	//   2. injected aws.Config.Region (only when WithAWSConfig was used)
+	//   2. injected aws.Config.Region (only when WithAWSConfig was used,
+	//      AND no WithRegion was passed)
 	//   3. AWS_REGION env var
 	//   4. DefaultRegion (us-east-2; plan §6.3 anchor)
+	//
+	// Phase 4.8 nit #9: once the chain resolves, cfg.Region is
+	// OVERWRITTEN on the local copy below (line "cfg.Region = region").
+	// The caller's aws.Config is unaffected — Go passes the struct by
+	// value through the option closure — but the local *Real client
+	// will always talk to `region`, not whatever the caller had set
+	// on the Region field. If you ever add a fifth precedence layer
+	// (e.g. profile-resolved region), update this comment and the
+	// overwrite below in lockstep.
 	region := o.region
 	if region == "" && o.awsConfig != nil {
 		region = o.awsConfig.Region
@@ -117,7 +137,7 @@ func New(ctx context.Context, opts ...Option) (*Real, error) {
 	var cfg aws.Config
 	if o.awsConfig != nil {
 		cfg = *o.awsConfig
-		cfg.Region = region
+		cfg.Region = region // intentional: see precedence note above
 	} else {
 		loadOpts := []func(*awsconfig.LoadOptions) error{
 			awsconfig.WithRegion(region),

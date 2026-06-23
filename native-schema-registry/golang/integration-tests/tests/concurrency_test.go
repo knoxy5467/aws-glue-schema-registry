@@ -157,6 +157,6 @@ func TestConcurrency_SingleflightFirstEncode(t *testing.T) {
 		require.NoError(t, err, "singleflight encoder must not error on the cached-path branch")
 	}
 
-	require.Equal(t, 1, h.Fake.CallCounts["CreateSchema"],
+	require.Equal(t, 1, h.Fake.Count("CreateSchema"),
 		"N concurrent first-encodes of the same schema must collapse to one CreateSchema call (singleflight)")
 }
