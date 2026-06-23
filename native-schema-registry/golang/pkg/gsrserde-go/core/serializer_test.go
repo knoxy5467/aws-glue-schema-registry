@@ -114,14 +114,16 @@ func TestSerializer_Encode_ProtobufFormat(t *testing.T) {
 			Status:          types.SchemaVersionStatusAvailable,
 		}, nil)
 	
-	// SchemaName must name a message in SchemaDefinition — the encoder uses
-	// SchemaName as the protobuf message-type to look up in the schema's BFS+
-	// lex-sorted descriptor list. Mismatch returns wrapped
-	// ErrMessageTypeNotFound; see protobuf_utils.go and §2.2 of the plan.
+	// AdditionalInfo carries the proto fully-qualified message name; the
+	// encoder uses it (NOT SchemaName) to look up the message index in
+	// the schema's BFS+lex-sorted descriptor list. Mismatch returns
+	// wrapped ErrMessageTypeNotFound; see protobuf_utils.go and §2.2 of
+	// the plan.
 	schema := &Schema{
 		SchemaDefinition: `syntax = "proto3"; message Test { string name = 1; }`,
 		DataFormat:       "PROTOBUF",
 		SchemaName:       "Test",
+		AdditionalInfo:   "Test",
 	}
 
 	result, err := serializer.Encode([]byte("test-data"), "test-transport", schema)

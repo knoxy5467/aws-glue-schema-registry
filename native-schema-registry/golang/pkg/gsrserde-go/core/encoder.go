@@ -110,17 +110,19 @@ func (s *GsrEncoder) Encode(data []byte, transportName string, schema *Schema) (
 	// Protobuf: prepend the message-index varint BEFORE compression.
 	// The message-index is computed from the protobuf message FULL NAME
 	// (e.g. "test.TestMessage"), NOT the Glue schema name. The format
-	// layer sets schema.AdditionalInfo to the proto fully-qualified
-	// message name via SetAdditionalSchemaInfo; that's what we look up.
-	// Fall back to SchemaName for backwards compatibility with callers
-	// that haven't populated AdditionalInfo, but a real protobuf flow
-	// must populate it or the index lookup will fail.
+	// layer populates schema.AdditionalInfo with the proto fully-qualified
+	// message name via SetAdditionalSchemaInfo; that's the canonical
+	// source. Callers that bypass the format layer and build a *Schema
+	// directly (e.g. benchmarks) must set AdditionalInfo themselves —
+	// silently falling back to SchemaName masks the missing wiring with
+	// an opaque ErrMessageTypeNotFound at index-lookup time.
 	if schema.DataFormat == "PROTOBUF" {
-		messageType := schema.AdditionalInfo
-		if messageType == "" {
-			messageType = schema.SchemaName
+		if schema.AdditionalInfo == "" {
+			return nil, NewSerializationError(
+				"PROTOBUF schema.AdditionalInfo is empty — set it to the proto fully-qualified message name " +
+					"(e.g. \"test.TestMessage\") via SetAdditionalSchemaInfo before encoding")
 		}
-		payload, err = prefixMessageIndexToBytes(payload, schema.SchemaDefinition, messageType)
+		payload, err = prefixMessageIndexToBytes(payload, schema.SchemaDefinition, schema.AdditionalInfo)
 		if err != nil {
 			return nil, fmt.Errorf("failed to prefix protobuf message index: %w", err)
 		}

@@ -147,6 +147,10 @@ func primeEncoderForBench(enc *GsrEncoder, format string) {
 		SchemaDefinition: benchSchemaFor(format),
 		DataFormat:       format,
 		SchemaVersionID:  benchSchemaVersionID,
+		// AdditionalInfo carries the proto fully-qualified message name
+		// for PROTOBUF; the encoder requires it to be non-empty when
+		// DataFormat=PROTOBUF. AVRO/JSON ignore it.
+		AdditionalInfo: benchSchemaName(format),
 	}
 	PrimeEncoderCache(enc, schemaName, format, schema)
 }
@@ -171,6 +175,7 @@ func BenchmarkEncodeWireFormat(b *testing.B) {
 					SchemaDefinition: benchSchemaFor(format),
 					DataFormat:       format,
 					SchemaVersionID:  benchSchemaVersionID,
+					AdditionalInfo:   benchSchemaName(format),
 				}
 
 				b.Run(fmt.Sprintf("%s/%s/%s/warm", format, comp.name, sz.name), func(b *testing.B) {
@@ -265,6 +270,7 @@ func runSmokeEncode(b *testing.B, format string) {
 		SchemaDefinition: benchSchemaFor(format),
 		DataFormat:       format,
 		SchemaVersionID:  benchSchemaVersionID,
+		AdditionalInfo:   benchSchemaName(format),
 	}
 	enc := newBenchEncoder(b, "NONE")
 	primeEncoderForBench(enc, format)
