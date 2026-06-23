@@ -135,8 +135,15 @@ func (p *ProtobufSerializer) Serialize(data interface{}) ([]byte, error) {
 	return serializedData, nil
 }
 
-// GetSchemaDefinition extracts the schema definition from a protobuf message.
-// It returns the FileDescriptorProto as a JSON string.
+// GetSchemaDefinition extracts the schema definition from a protobuf message
+// as a canonical .proto-text representation produced by jhump
+// protoprint.PrintProtoFile. The .proto-text form is what the Java
+// reference implementation registers with AWS Glue (see Java
+// utils/ProtobufSchemaParser.getProtobufSchemaStringFromFileDescriptorProto),
+// so cross-language consumers can parse a Go-registered schema the same
+// way they parse a Java-registered one. The Go decoder side accepts both
+// .proto-text and base64-binary FileDescriptorProto for backwards
+// compatibility (see core/protobuf_utils.go parseSchemaDefinitionToDescriptor).
 //
 // Parameters:
 //
@@ -144,7 +151,7 @@ func (p *ProtobufSerializer) Serialize(data interface{}) ([]byte, error) {
 //
 // Returns:
 //
-//	string: The schema definition as JSON
+//	string: .proto-text canonical schema definition
 //	error: Any error that occurred during schema extraction
 func (p *ProtobufSerializer) GetSchemaDefinition(data interface{}) (string, error) {
 	if data == nil {
