@@ -428,14 +428,22 @@ type DecodeResponse struct {
 	DataFormat       string
 }
 
-// KafkaProduceRequest is the input to POST /kafka-produce: the sidecar
-// registers the schema with REAL AWS Glue, frames the payload, and
-// produces ONE record to the named Kafka topic.
+// KafkaProduceRequest is the input to POST /kafka-produce. Phase 4.6.5:
+// the sidecar drives GlueSchemaRegistryKafkaSerializer.serialize(topic,
+// record) end-to-end, so callers ship the LOGICAL typed record in a
+// per-format JSON envelope (Record) instead of pre-encoded bytes.
+//
+// Envelope shapes:
+//
+//	AVRO     : {"fields": {"<name>": <value>, ...}}
+//	JSON     : {"schema": "<jsonSchema>", "payload": "<jsonDoc>"}
+//	PROTOBUF : {"messageTypeFullName": "<test.TestMessage>",
+//	            "fieldsJson": "<json>"}
 type KafkaProduceRequest struct {
 	Format      string
 	Schema      string
 	SchemaName  string
-	Payload     []byte
+	Record      map[string]any // per-format envelope; see above
 	Compression string
 	Bootstrap   string
 	Topic       string
@@ -450,12 +458,16 @@ type KafkaProduceResponse struct {
 	Partition       int32
 }
 
-// KafkaConsumeRequest is the input to POST /kafka-consume: the sidecar
-// polls Kafka for one record, parses the GSR header, and resolves the
-// UUID against REAL AWS Glue.
+// KafkaConsumeRequest is the input to POST /kafka-consume. The sidecar
+// drives GlueSchemaRegistryKafkaDeserializer.deserialize(topic, bytes)
+// and returns the per-format JSON envelope in Record.
+//
+// Format must match the producer's format so the sidecar knows how to
+// reconstruct the typed record into the envelope.
 type KafkaConsumeRequest struct {
 	Bootstrap string
 	Topic     string
+	Format    string // AVRO | JSON | PROTOBUF — drives RecordCodec envelope shape
 	GroupID   string // optional; sidecar generates a random one if empty
 	Region    string // optional
 	TimeoutMs int    // optional; sidecar defaults to 30000
@@ -463,11 +475,13 @@ type KafkaConsumeRequest struct {
 
 // KafkaConsumeResponse reports what the sidecar consumed.
 type KafkaConsumeResponse struct {
-	Payload          []byte
 	SchemaVersionID  string
-	SchemaDefinition string
 	DataFormat       string
+	SchemaDefinition string
 	SchemaArn        string
+	// Record is the per-format JSON envelope: see KafkaProduceRequest for
+	// the shape. Empty when the sidecar couldn't reconstruct it.
+	Record map[string]any
 }
 
 // Encode posts the request to the sidecar's /encode endpoint and returns
@@ -498,20 +512,23 @@ func (s *Sidecar) Encode(ctx context.Context, req EncodeRequest) ([]byte, error)
 	return out, nil
 }
 
-// KafkaProduce drives the Java GSR producer path: the sidecar registers
-// the schema in real Glue, frames the payload with the GSR header, and
-// produces one record to Kafka. Returns the UUID assigned by Glue (or
-// fetched from cache if the schema already existed) and the framed bytes.
+// KafkaProduce drives GlueSchemaRegistryKafkaSerializer.serialize(topic,
+// record) on the Java side: the sidecar reconstructs the typed Java
+// record from the per-format envelope, registers the schema with real
+// Glue, frames + produces one record to Kafka.
 func (s *Sidecar) KafkaProduce(ctx context.Context, req KafkaProduceRequest) (*KafkaProduceResponse, error) {
 	compression, err := compressionOrDefault(req.Compression)
 	if err != nil {
 		return nil, err
 	}
+	if req.Record == nil {
+		return nil, fmt.Errorf("javasidecar: KafkaProduceRequest.Record must not be nil")
+	}
 	body := map[string]any{
 		"format":      req.Format,
 		"schema":      req.Schema,
 		"schemaName":  req.SchemaName,
-		"payload":     base64.StdEncoding.EncodeToString(req.Payload),
+		"record":      req.Record,
 		"compression": compression,
 		"bootstrap":   req.Bootstrap,
 		"topic":       req.Topic,
@@ -540,13 +557,18 @@ func (s *Sidecar) KafkaProduce(ctx context.Context, req KafkaProduceRequest) (*K
 	}, nil
 }
 
-// KafkaConsume drives the Java GSR consumer path: poll Kafka for one
-// record, parse the GSR header, resolve the UUID via real Glue, return
-// the decompressed payload + schema metadata.
+// KafkaConsume drives GlueSchemaRegistryKafkaDeserializer.deserialize on
+// the Java side: poll Kafka for one record, deserialize through the full
+// library entry point, and return the typed record as a per-format JSON
+// envelope (see KafkaConsumeResponse.Record).
 func (s *Sidecar) KafkaConsume(ctx context.Context, req KafkaConsumeRequest) (*KafkaConsumeResponse, error) {
+	if req.Format == "" {
+		return nil, fmt.Errorf("javasidecar: KafkaConsumeRequest.Format must be set (AVRO|JSON|PROTOBUF)")
+	}
 	body := map[string]any{
 		"bootstrap": req.Bootstrap,
 		"topic":     req.Topic,
+		"format":    req.Format,
 	}
 	if req.GroupID != "" {
 		body["groupId"] = req.GroupID
@@ -558,25 +580,21 @@ func (s *Sidecar) KafkaConsume(ctx context.Context, req KafkaConsumeRequest) (*K
 		body["timeoutMs"] = req.TimeoutMs
 	}
 	var raw struct {
-		Payload          string `json:"payload"`
-		SchemaVersionID  string `json:"schemaVersionId"`
-		SchemaDefinition string `json:"schemaDefinition"`
-		DataFormat       string `json:"dataFormat"`
-		SchemaArn        string `json:"schemaArn"`
+		SchemaVersionID  string         `json:"schemaVersionId"`
+		DataFormat       string         `json:"dataFormat"`
+		SchemaDefinition string         `json:"schemaDefinition"`
+		SchemaArn        string         `json:"schemaArn"`
+		Record           map[string]any `json:"record"`
 	}
 	if err := s.postJSON(ctx, "/kafka-consume", body, &raw); err != nil {
 		return nil, err
 	}
-	payload, err := base64.StdEncoding.DecodeString(raw.Payload)
-	if err != nil {
-		return nil, fmt.Errorf("javasidecar: decode consumed payload: %w", err)
-	}
 	return &KafkaConsumeResponse{
-		Payload:          payload,
 		SchemaVersionID:  raw.SchemaVersionID,
-		SchemaDefinition: raw.SchemaDefinition,
 		DataFormat:       raw.DataFormat,
+		SchemaDefinition: raw.SchemaDefinition,
 		SchemaArn:        raw.SchemaArn,
+		Record:           raw.Record,
 	}, nil
 }
 
