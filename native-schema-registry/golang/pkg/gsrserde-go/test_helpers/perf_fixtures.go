@@ -28,24 +28,54 @@ const PerfJSONSchema = `{"type":"object","properties":{"blob":{"type":"string"}}
 // the core decoder bench needs to feed into prefixMessageIndexToBytes.
 const PerfProtoTextSchema = `syntax = "proto3"; package perf; message Payload { bytes blob = 1; }`
 
-// PerfPayload returns a deterministic-but-non-trivial byte buffer of the
-// requested size, restricted to printable ASCII. Restricting to ASCII keeps
-// `json.Marshal(map[string]string{...: string(p)})` lossless — a previous
-// version of the bench used crypto/rand bytes here, which made
-// `encoding/json` substitute U+FFFD for invalid UTF-8 sequences and
-// distorted JSON throughput numbers (Phase 6.1 review findings 3 + 4).
+// PerfPayload returns a deterministic, printable-ASCII byte buffer of the
+// requested size. The bytes are produced by an xorshift64 PRNG seeded with
+// a fixed constant, then mapped into a 64-character ASCII alphabet via
+// `alphabet[(rng>>16) & 63]`.
 //
-// "Non-trivial" matters for compression benches: a single repeated byte
-// compresses to ~0 bytes in zlib; the rotating-printable-ASCII pattern
-// here compresses to roughly the same ratio as realistic JSON text.
+// Why xorshift over a simple alphabet[i%len(alphabet)]:
+//   - The modulo pattern is a 63-byte cycle, which LZ77 reduces to ~1%
+//     output size. ZLIB benchmarks then measure compression CPU against
+//     a near-empty deflate stream — far better than realistic JSON/Avro
+//     text (~10-30% ratio). Phase 6.1 /code-review finding 1 flagged this.
+//   - xorshift64 has period 2^64-1; the output has no detectable
+//     periodicity at any practical buffer size, so zlib hits realistic
+//     dictionary turnover.
+//   - Deterministic from a fixed seed → same bytes every run → benchstat
+//     deltas reflect code changes, not input drift.
+//   - All output bytes land in a printable-ASCII window so
+//     `json.Marshal(string(p))` stays lossless (the original UTF-8 fix
+//     that motivated swapping away from crypto/rand).
+//
+// The Java side of the bench uses the same xorshift64 + same seed + same
+// alphabet so Go and Java consume byte-identical payloads for a given
+// size — without that, the ZLIB cross-language column is incomparable.
+// See native-schema-registry/perf/java/.../EncodeDecodeBench.java for
+// the matching Java implementation.
+//
+// PerfPayloadSeed is the xorshift64 starting state. Pinned because
+// benchstat regression detection requires byte-stable inputs.
+const PerfPayloadSeed uint64 = 0x9E3779B97F4A7C15 // golden-ratio constant — arbitrary, just non-zero
+
+// PerfPayloadAlphabet is the 64-character set the PRNG output is mapped
+// into. The Java side ships an identical string literal; do not edit one
+// without editing the other.
+const PerfPayloadAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ."
+
 func PerfPayload(size int) []byte {
 	if size <= 0 {
 		return nil
 	}
 	out := make([]byte, size)
-	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 "
+	state := PerfPayloadSeed
 	for i := range out {
-		out[i] = alphabet[i%len(alphabet)]
+		// xorshift64 (Marsaglia 2003) — well-distributed bits per step.
+		state ^= state << 13
+		state ^= state >> 7
+		state ^= state << 17
+		// Take the middle bits to avoid low-bit cyclic structure that
+		// some xorshift variants leak; mask to the alphabet size (64).
+		out[i] = PerfPayloadAlphabet[(state>>16)&63]
 	}
 	return out
 }
@@ -58,6 +88,10 @@ func PerfPayload(size int) []byte {
 // proto.Message without owning a generated .pb.go file. Built once and
 // memoized per process so the bench setup doesn't repay the cost.
 var perfPayloadFD protoreflect.FileDescriptor
+
+// PerfPayloadMessageName is "perf.Payload" — the BFS+lex-sorted full name
+// the encoder's prefixMessageIndexToBytes uses to resolve message-index 0.
+const PerfPayloadMessageName = "perf.Payload"
 
 func init() {
 	fdProto := &descriptorpb.FileDescriptorProto{
@@ -83,6 +117,20 @@ func init() {
 		panic(fmt.Errorf("test_helpers: build perf proto FileDescriptor: %w", err))
 	}
 	perfPayloadFD = fd
+
+	// Sanity-check the constants line up with the descriptor. Catches
+	// drift between PerfPayloadMessageName / PerfProtoTextSchema and the
+	// proto definition above at package init — much friendlier than a
+	// mysterious "message type not found" failure deep inside the bench.
+	got := string(perfPayloadFD.Messages().Get(0).FullName())
+	if got != PerfPayloadMessageName {
+		panic(fmt.Errorf("test_helpers: PerfPayloadMessageName=%q but descriptor produces %q",
+			PerfPayloadMessageName, got))
+	}
+	if !strings.Contains(PerfProtoTextSchema, "package perf;") ||
+		!strings.Contains(PerfProtoTextSchema, "message Payload") {
+		panic("test_helpers: PerfProtoTextSchema out of sync with PerfPayloadDescriptor")
+	}
 }
 
 // PerfPayloadDescriptor returns the cached perf.proto FileDescriptor.
@@ -90,26 +138,4 @@ func init() {
 // and set the `blob` field to ship a Phase 6 protobuf benchmark payload.
 func PerfPayloadDescriptor() protoreflect.FileDescriptor {
 	return perfPayloadFD
-}
-
-// PerfPayloadMessageName is "perf.Payload" — the BFS+lex-sorted full name
-// the encoder's prefixMessageIndexToBytes uses to resolve message-index 0.
-const PerfPayloadMessageName = "perf.Payload"
-
-// Compile-time assert the perf message name actually matches the
-// descriptor. Catches drift between PerfPayloadMessageName and the proto
-// definition above at package init.
-func init() {
-	got := string(perfPayloadFD.Messages().Get(0).FullName())
-	if got != PerfPayloadMessageName {
-		panic(fmt.Errorf("test_helpers: PerfPayloadMessageName=%q but descriptor produces %q",
-			PerfPayloadMessageName, got))
-	}
-	// Quick sanity check the proto-text schema stays in sync with the
-	// descriptor's package + message name. If the text drifts the core
-	// decoder bench's prefixMessageIndexToBytes will fail to resolve.
-	if !strings.Contains(PerfProtoTextSchema, "package perf;") ||
-		!strings.Contains(PerfProtoTextSchema, "message Payload") {
-		panic("test_helpers: PerfProtoTextSchema out of sync with PerfPayloadDescriptor")
-	}
 }

@@ -22,7 +22,6 @@
 package gsrserde
 
 import (
-	"crypto/rand"
 	"fmt"
 	"testing"
 
@@ -70,12 +69,35 @@ const benchAvroSchema = `{"type":"record","name":"Payload","namespace":"perf","f
 
 const benchJSONSchema = `{"type":"object","properties":{"blob":{"type":"string"}},"required":["blob"]}`
 
-// benchPayload allocates a deterministic-but-non-zero payload of the
-// requested size. zlib on all-zeros would over-state compression gains.
+// benchPayload allocates a deterministic, printable-ASCII byte buffer of
+// the requested size. The bytes are produced by xorshift64 mapped into a
+// 64-char alphabet — byte-identical to test_helpers.PerfPayload in the
+// outer module and to PerfPayload(int) in the Java JMH bench.
+//
+// Why not crypto/rand: random bytes are incompressible, so the ZLIB cells
+// would measure deflate CPU over near-pass-through output. Why not
+// alphabet[i%len]: a 64-byte cycle is trivially LZ77-compressible
+// (~1% output) which over-states ZLIB MB/s vs realistic text.
+// xorshift64 has period 2^64-1 so adjacent compression windows differ
+// and zlib hits a realistic ~30-60% ratio across the bench matrix.
+//
+// Keep the generator in lock-step with test_helpers/perf_fixtures.go
+// (PerfPayloadSeed + PerfPayloadAlphabet) and with the Java bench;
+// changing one without the others breaks cross-language ZLIB parity.
+const benchPayloadSeed uint64 = 0x9E3779B97F4A7C15
+const benchPayloadAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ."
+
 func benchPayload(size int) []byte {
+	if size <= 0 {
+		return nil
+	}
 	out := make([]byte, size)
-	if _, err := rand.Read(out); err != nil {
-		panic(fmt.Errorf("rand.Read: %w", err))
+	state := benchPayloadSeed
+	for i := range out {
+		state ^= state << 13
+		state ^= state >> 7
+		state ^= state << 17
+		out[i] = benchPayloadAlphabet[(state>>16)&63]
 	}
 	return out
 }

@@ -61,6 +61,14 @@ func benchDesPayloadBytes(size int) []byte {
 // finding 8). The unit-test fake stubs only GetSchemaVersion via
 // testify/mock — every other method short-circuits to (nil, nil), which
 // is fine here because the bench never invokes them.
+//
+// DANGER (Phase 6.2 review finding 6): if a future regression bypasses
+// PrimeSchemaCache and the decoder takes the slow path, it will call
+// GetSchemaByDefinition (or another method that returns nil, nil from
+// the unit-test fake) and proceed with a zero-value schema. The bench
+// will then report successful but meaningless throughput. If you change
+// the priming flow, switch this fake to one whose un-stubbed methods
+// b.Fatalf instead of returning nil.
 func newBenchDeserializer(b *testing.B, format common.DataFormat, schemaDefinition, schemaName string) *Deserializer {
 	b.Helper()
 

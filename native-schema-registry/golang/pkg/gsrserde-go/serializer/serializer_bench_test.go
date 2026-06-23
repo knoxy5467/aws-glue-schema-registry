@@ -103,22 +103,20 @@ func protoDataForBench(payload []byte) proto.Message {
 	return msg
 }
 
-// fixedSchemaNameStrategy returns the same schemaName for every call. The
-// protobuf path needs schema.SchemaName == proto message full name (the
-// encoder uses it to compute the message-index varint); the
-// DefaultSchemaNameStrategy returns the transport name verbatim, which
-// only works for protobuf when the test arranges topic == message-full-name.
-// For Phase 6 benches we use the strategy seam to decouple topic from
-// message-type name. This is a *bench* workaround.
+// fixedSchemaNameStrategy returns the same schemaName for every call.
+// Required by the protobuf cells in this bench because we prime the
+// encoder cache directly (PrimeEncoderCache below) rather than going
+// through Serializer.Serialize → SetAdditionalSchemaInfo, which is what
+// normally populates schema.AdditionalInfo with the proto full message
+// name. With AdditionalInfo unset, core.Encode (encoder.go:119-122)
+// falls back to schema.SchemaName for the message-index lookup — so the
+// strategy must produce "perf.Payload" for protobuf cells, not the
+// transport name. AVRO/JSON cells ignore the strategy's output for
+// message-index purposes.
 //
-// TODO(phase 7+): the orchestrator's protobuf-naming asymmetry is a real
-// gap — core.Encode (encoder.go:111) passes schema.SchemaName to
-// prefixMessageIndexToBytes, but the format-layer puts the proto full
-// message name into schema.AdditionalInfo (protobuf_serializer.go:362),
-// never into SchemaName. Fix is to plumb AdditionalInfo into the
-// message-index lookup OR set SchemaName to the message full name for
-// PROTOBUF data formats. Not in Phase 6 scope; this strategy seam exists
-// only to keep this benchmark exercising the protobuf encode path.
+// This is purely a *benchmark wiring* artifact: production code paths
+// go through Serializer.Serialize, where SetAdditionalSchemaInfo runs
+// and AdditionalInfo is populated correctly.
 type fixedSchemaNameStrategy struct{ name string }
 
 func (f fixedSchemaNameStrategy) SchemaName(string) string { return f.name }

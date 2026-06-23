@@ -56,10 +56,8 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.nio.ByteBuffer;
-import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -120,6 +118,28 @@ public class EncodeDecodeBench {
     private Descriptors.Descriptor protobufMessageDescriptor;
 
     /**
+     * Pre-marshaled payload bytes the encode loop prefixes with the
+     * message-index varint. Built once in @Setup so the per-call cost
+     * matches Go's BenchmarkEncodeWireFormat PROTOBUF cells, which pass
+     * an already-marshaled payload []byte to GsrEncoder.Encode (which
+     * then runs only prefixMessageIndexToBytes + compress + header per
+     * iteration). Phase 6.2 review-fix — the previous Java path called
+     * DynamicMessage.newBuilder + setField + toByteArray on every
+     * encode() invocation, inflating Java's PROTOBUF_INDEX column
+     * relative to Go's PROTOBUF column.
+     */
+    private byte[] preMarshaledProtoPayload;
+
+    /**
+     * Pre-computed message-index varint for the perf.Payload message.
+     * In a single-message schema the BFS+lex-sort index is 0, so the
+     * varint is the single byte 0x00 — but we resolve it at @Setup
+     * rather than hardcoding so a future change to the perf schema
+     * (e.g. adding a nested message) still produces the right prefix.
+     */
+    private byte[] messageIndexVarint;
+
+    /**
      * The schema-version UUID used across every iteration of a benchmark.
      * Mirrors the Go warm path where the schema-version-id is already
      * cached; the Go cold path constructs a fresh encoder per iteration
@@ -129,12 +149,40 @@ public class EncodeDecodeBench {
      */
     private UUID schemaVersionId;
 
-    private final Random rng = new SecureRandom();
+    /**
+     * Phase 6.2 review-fix: deterministic xorshift64 → printable-ASCII payload
+     * matching the Go test_helpers.PerfPayload generator byte-for-byte. The
+     * previous SecureRandom-based generator produced incompressible bytes
+     * while the Go side switched to ASCII; the ZLIB cross-language column
+     * was then measuring different inputs. Keeping the seed + alphabet in
+     * lock-step with Go (perf_fixtures.go's PerfPayloadSeed +
+     * PerfPayloadAlphabet, and core/encoder_bench_test.go's matching pair)
+     * is what makes the Java/Go ZLIB MB/s columns directly comparable.
+     */
+    private static final long PERF_PAYLOAD_SEED = 0x9E3779B97F4A7C15L;
+    private static final String PERF_PAYLOAD_ALPHABET =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .";
+
+    private static byte[] generatePerfPayload(int size) {
+        byte[] out = new byte[size];
+        long state = PERF_PAYLOAD_SEED;
+        for (int i = 0; i < size; i++) {
+            // xorshift64 — same operation order + same shift amounts as the
+            // Go generator. Java's long is two's-complement 64-bit; the
+            // bitwise ops below preserve the same bit pattern as Go's
+            // uint64, so the output stream is byte-identical.
+            state ^= state << 13;
+            state ^= state >>> 7;
+            state ^= state << 17;
+            int idx = (int) ((state >>> 16) & 63L);
+            out[i] = (byte) PERF_PAYLOAD_ALPHABET.charAt(idx);
+        }
+        return out;
+    }
 
     @Setup
     public void setup() throws Exception {
-        payload = new byte[payloadSize];
-        rng.nextBytes(payload);
+        payload = generatePerfPayload(payloadSize);
 
         Map<String, Object> cfg = new HashMap<>();
         cfg.put(AWSSchemaRegistryConstants.AWS_REGION, "us-east-2");
@@ -152,6 +200,21 @@ public class EncodeDecodeBench {
             protobufFileDescriptor = buildPerfProtobufDescriptor();
             protobufMessageDescriptor = protobufFileDescriptor.findMessageTypeByName("Payload");
             protobufEncoder = new ProtobufWireFormatEncoder(new MessageIndexFinder());
+            // Pre-marshal the perf.Payload message once. The encode loop
+            // measures only the varint-prefix concatenation + the GSR
+            // wire-format write — same per-iteration work Go's PROTOBUF
+            // cells measure.
+            DynamicMessage msg = DynamicMessage.newBuilder(protobufMessageDescriptor)
+                    .setField(protobufMessageDescriptor.findFieldByName("blob"),
+                              ByteString.copyFrom(payload))
+                    .build();
+            preMarshaledProtoPayload = msg.toByteArray();
+            // Pre-compute the message-index varint (single byte 0x00 for
+            // index 0 — but resolved via MessageIndexFinder so the bench
+            // survives schema changes).
+            int messageIndex = new MessageIndexFinder()
+                    .getByDescriptor(protobufFileDescriptor, protobufMessageDescriptor);
+            messageIndexVarint = encodeUnsignedVarint(messageIndex);
         }
 
         // Pre-build the decode input so the decode benchmark measures only
@@ -189,24 +252,47 @@ public class EncodeDecodeBench {
     }
 
     /**
-     * For WIRE_ONLY: pass the raw payload through. For PROTOBUF_INDEX: prepend
-     * the varint message-index via ProtobufWireFormatEncoder before the GSR
-     * header path. Allocated per call rather than cached so the protobuf
-     * cell measures the prefix cost on every invocation (matches Go's
-     * BenchmarkEncodeWireFormat PROTOBUF cells, which call
-     * prefixMessageIndexToBytes inside Encode).
+     * For WIRE_ONLY: pass the raw payload through. For PROTOBUF_INDEX:
+     * concatenate the pre-computed message-index varint with the
+     * pre-marshaled message bytes. The DynamicMessage build +
+     * proto.Marshal + MessageIndexFinder lookup are one-time @Setup
+     * cost — that matches Go's BenchmarkEncodeWireFormat PROTOBUF path,
+     * where enc.Encode receives an already-marshaled payload and the
+     * per-iteration cost is only the varint concat + compress + header.
+     *
+     * The varint-prefix concatenation here replaces what
+     * ProtobufWireFormatEncoder.prefixMessageIndexToBytes does
+     * internally — that method is package-private in schema-registry-serde
+     * 1.1.25, so we inline the byte concat using the cached varint.
      */
     private byte[] materializeEncoderInput() {
         if ("PROTOBUF_INDEX".equals(format)) {
-            // Wrap the random payload in a perf.Payload message — same
-            // shape as the Go bench's dynamicpb.NewMessage call.
-            DynamicMessage msg = DynamicMessage.newBuilder(protobufMessageDescriptor)
-                    .setField(protobufMessageDescriptor.findFieldByName("blob"),
-                              ByteString.copyFrom(payload))
-                    .build();
-            return protobufEncoder.encode(msg, protobufFileDescriptor);
+            byte[] out = new byte[messageIndexVarint.length + preMarshaledProtoPayload.length];
+            System.arraycopy(messageIndexVarint, 0, out, 0, messageIndexVarint.length);
+            System.arraycopy(preMarshaledProtoPayload, 0,
+                    out, messageIndexVarint.length, preMarshaledProtoPayload.length);
+            return out;
         }
         return payload;
+    }
+
+    /**
+     * Plain unsigned varint encoder — same algorithm as
+     * CodedOutputStream.writeUInt32NoTag, returned as a byte[] so the
+     * benchmark's encode loop can do a cheap copy rather than a
+     * stream-based write.
+     */
+    private static byte[] encodeUnsignedVarint(int value) {
+        byte[] buf = new byte[5];
+        int pos = 0;
+        while ((value & ~0x7F) != 0) {
+            buf[pos++] = (byte) ((value & 0x7F) | 0x80);
+            value >>>= 7;
+        }
+        buf[pos++] = (byte) (value & 0x7F);
+        byte[] out = new byte[pos];
+        System.arraycopy(buf, 0, out, 0, pos);
+        return out;
     }
 
     /**
