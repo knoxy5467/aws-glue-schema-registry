@@ -298,6 +298,36 @@ test-integ-interop-container:
 	@echo "Running interop tests (GSR_INTEROP_MODE=container)..."
 	cd integration-tests && GSR_INTEROP_MODE=container $(GO) test -tags integration -count=1 -timeout=15m -run=Interop ./... 2>&1 | tee ../$(BUILD_DIR)/integration-test-interop-container.txt
 
+# test-integ-interop-real runs the Kafka-in-the-loop interop tests
+# against REAL AWS Glue + testcontainers-go Kafka. THIS BILLS AWS.
+#
+# Required gates (mirroring test-integ-real):
+#   1. AWS credentials present (AWS_PROFILE or AWS_ACCESS_KEY_ID).
+#   2. GSR_GLUE=real + AWS_INTEGRATION=1 (the test skips otherwise).
+#   3. GSR_INTEROP_MODE=local — Java JVM must talk to the Kafka container's
+#      host-mapped port, which is only reachable when the JVM is on the host.
+#
+# All registered schemas are prefixed gsr-go-it- so realglue.Cleanup
+# deletes them on test teardown.
+.PHONY: test-integ-interop-real
+test-integ-interop-real: setup-dirs java-sidecar-build
+	@if [ -z "$$AWS_PROFILE" ] && [ -z "$$AWS_ACCESS_KEY_ID" ]; then \
+		echo "ERROR: test-integ-interop-real requires AWS credentials"; \
+		echo "  set AWS_PROFILE=<your-beta-profile> OR"; \
+		echo "  set AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "============================================================"
+	@echo "About to bill real AWS Glue (Kafka-in-the-loop interop) in $(REAL_REGION)."
+	@echo "Press Ctrl-C within 5s to abort."
+	@echo "============================================================"
+	@echo ""
+	@sleep 5
+	cd integration-tests && GSR_GLUE=real GSR_INTEROP_MODE=local AWS_INTEGRATION=1 \
+	  $(GO) test -tags integration -count=1 -timeout=30m -run='TestInterop_Kafka' ./tests/ \
+	  2>&1 | tee ../$(BUILD_DIR)/integration-test-interop-real.txt
+
 # ---- Phase 6 benchmarks ----------------------------------------------------
 #
 # bench-go         Smoke-runs the Go benchmark matrix and writes the output
@@ -371,6 +401,7 @@ help:
 	@echo "  java-sidecar-build          Build Phase 4.6 Java interop sidecar JAR + Docker image"
 	@echo "  test-integ-interop          Run interop_*_test.go in GSR_INTEROP_MODE=local"
 	@echo "  test-integ-interop-container Run interop_*_test.go in GSR_INTEROP_MODE=container"
+	@echo "  test-integ-interop-real     Kafka-in-the-loop interop against REAL AWS Glue (bills AWS)"
 	@echo "  bench-go                    Phase 6 Go benchmark smoke (writes perf/baselines/go/)"
 	@echo "  bench-go-full               Phase 6 Go benchmark count=5 benchtime=2s (~10 min)"
 	@echo "  bench-java                  Phase 6 JMH benchmark smoke (writes perf/baselines/java/)"
