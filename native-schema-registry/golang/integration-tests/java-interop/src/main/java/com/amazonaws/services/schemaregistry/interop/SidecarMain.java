@@ -29,8 +29,15 @@ public final class SidecarMain {
         EncodeHandler encodeHandler = new EncodeHandler(store);
         DecodeHandler decodeHandler = new DecodeHandler(store);
 
+        // Wire-format-only endpoints (in-memory schema store, no AWS calls).
+        // Kept for fast byte-level parity tests that don't need Kafka.
         server.createContext("/encode", encodeHandler);
         server.createContext("/decode", decodeHandler);
+        // Kafka-in-the-loop endpoints (real AWS Glue + real Kafka). The
+        // producer-side endpoint registers schemas with the configured
+        // beta account; cleanup is the test harness's responsibility.
+        server.createContext("/kafka-produce", new KafkaProduceHandler());
+        server.createContext("/kafka-consume", new KafkaConsumeHandler());
         server.createContext("/health", new HealthHandler());
 
         server.setExecutor(Executors.newFixedThreadPool(4));

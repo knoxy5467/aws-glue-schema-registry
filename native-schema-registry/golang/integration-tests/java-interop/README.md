@@ -84,6 +84,17 @@ host-random port, and tear the container down on `t.Cleanup`.
 
 ## HTTP surface
 
+The sidecar exposes two families of endpoints:
+
+- **Wire-format-only** (`/encode`, `/decode`) — no AWS calls; the schema-by-UUID
+  map lives in-process. Fast inner-loop check that the two languages agree
+  on the GSR header layout.
+- **Kafka-in-the-loop** (`/kafka-produce`, `/kafka-consume`) — full real-Glue
+  + real-Kafka path. The producer registers schemas with **real AWS Glue**;
+  the consumer resolves UUIDs against **real AWS Glue**. These exercise the
+  scenario the harness exists for: a Java producer and a Go consumer (or
+  the reverse) talking to the same Glue registry across a Kafka topic.
+
 ### `POST /encode`
 
 Request:
@@ -141,6 +152,47 @@ parse + zlib decompress) and returns the decompressed body plus stored
 schema metadata. `schemaName` / `schemaDefinition` / `dataFormat` are
 `null` when the UUID has never been seen by `/encode` — that's expected
 for tests that exercise the decode path in isolation.
+
+### `POST /kafka-produce`
+
+Bills AWS. Request:
+
+```json
+{
+  "format":      "AVRO" | "JSON" | "PROTOBUF",
+  "schema":      "<schema definition string>",
+  "schemaName":  "<schema name>",
+  "payload":     "<base64 of pre-encoded record bytes>",
+  "compression": "NONE" | "ZLIB",
+  "bootstrap":   "<kafka bootstrap servers>",
+  "topic":       "<kafka topic name>",
+  "region":      "<aws region, optional>"
+}
+```
+
+The handler calls `SchemaByDefinitionFetcher.getORRegisterSchemaVersionId(...)`
+against real Glue (auto-registration is on), frames the payload with
+`SerializationDataEncoder`, and produces ONE record to the named topic.
+Response: `{schemaVersionId, bytes, offset, partition}`.
+
+### `POST /kafka-consume`
+
+Bills AWS. Request:
+
+```json
+{
+  "bootstrap": "<kafka bootstrap servers>",
+  "topic":     "<kafka topic name>",
+  "groupId":   "<optional consumer group>",
+  "region":    "<aws region, optional>",
+  "timeoutMs": 30000
+}
+```
+
+The handler polls the topic for one record, parses the GSR header with
+`GlueSchemaRegistryDeserializerDataParser`, then calls
+`AWSSchemaRegistryClient.getSchemaVersionResponse(UUID)` against real
+Glue. Response: `{payload, schemaVersionId, schemaDefinition, dataFormat, schemaArn}`.
 
 ### `GET /health`
 
