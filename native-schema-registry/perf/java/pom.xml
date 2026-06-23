@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Phase 6 — Java JMH benchmark module.
+
+  Mirrors the Go benchmarks under native-schema-registry/golang/pkg/gsrserde-go/
+  *_bench_test.go across (format × compression × payload × cacheState).
+
+  Build & run:
+    cd native-schema-registry/perf/java
+    mvn package
+    java -jar target/benchmarks.jar -i 1 -wi 0 -f 1 -r 1s
+
+  Or to run a specific benchmark:
+    java -jar target/benchmarks.jar 'EncodeDecodeBench.encode' -i 1 -wi 0 -f 1
+
+  This module is NOT part of the schema-registry-parent reactor — it is a
+  standalone Maven build pointing at *installed* schema-registry-common
+  and schema-registry-serde artifacts. Adding it to the parent reactor would
+  couple the Phase 6 perf workflow to the Java build's full surface (checkstyle,
+  jacoco, native-image profiles), which is not desirable for a benchmark
+  harness. The README under perf/ documents the `mvn` invocation.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>software.amazon.glue.perf</groupId>
+    <artifactId>schema-registry-jmh-benchmarks</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>AWS Glue Schema Registry JMH Benchmarks</name>
+    <description>Phase 6 JMH benchmarks for cross-language perf comparison
+        with the Go GSR client. Exercises wire-format encode/decode plus
+        compression and protobuf message-index handling, with a stub
+        AWSSchemaRegistryClient so Glue is never called.</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <jmh.version>1.37</jmh.version>
+        <gsr.version>1.1.25</gsr.version>
+        <protobuf.version>3.25.5</protobuf.version>
+        <avro.version>1.11.4</avro.version>
+        <aws.sdk.v2.version>2.32.25</aws.sdk.v2.version>
+        <shade.plugin.version>3.5.1</shade.plugin.version>
+        <compiler.plugin.version>3.11.0</compiler.plugin.version>
+        <uberjar.name>benchmarks</uberjar.name>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+            <version>${jmh.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
+            <version>${jmh.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.glue</groupId>
+            <artifactId>schema-registry-common</artifactId>
+            <version>${gsr.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.glue</groupId>
+            <artifactId>schema-registry-serde</artifactId>
+            <version>${gsr.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>${avro.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>glue</artifactId>
+            <version>${aws.sdk.v2.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${compiler.plugin.version}</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.openjdk.jmh</groupId>
+                            <artifactId>jmh-generator-annprocess</artifactId>
+                            <version>${jmh.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${shade.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${uberjar.name}</finalName>
+                            <transformers>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>org.openjdk.jmh.Main</mainClass>
+                                </transformer>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <!--
+                                        Shading a Java agent or signed jar requires stripping
+                                        the original META-INF signatures, which would otherwise
+                                        invalidate the uber jar.
+                                    -->
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
