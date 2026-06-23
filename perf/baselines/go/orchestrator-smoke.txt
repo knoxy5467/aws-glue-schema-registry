@@ -1,0 +1,84 @@
+goos: linux
+goarch: amd64
+pkg: github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer
+cpu: Intel(R) Xeon(R) Platinum 8175M CPU @ 2.50GHz
+BenchmarkSerializerSerialize/AVRO/NONE/small_100B/warm-48         	      10	     51214 ns/op	   1.95 MB/s	   21398 B/op	     311 allocs/op
+BenchmarkSerializerSerialize/AVRO/NONE/small_100B/cold-48         	      10	     91514 ns/op	   1.09 MB/s	   29660 B/op	     395 allocs/op
+BenchmarkSerializerSerialize/AVRO/NONE/medium_10KB/warm-48        	      10	     56936 ns/op	 179.85 MB/s	   44006 B/op	     311 allocs/op
+BenchmarkSerializerSerialize/AVRO/NONE/medium_10KB/cold-48        	      10	    104233 ns/op	  98.24 MB/s	   51114 B/op	     394 allocs/op
+BenchmarkSerializerSerialize/AVRO/NONE/large_1MB/warm-48          	      10	   1622062 ns/op	 646.45 MB/s	 2461656 B/op	     316 allocs/op
+BenchmarkSerializerSerialize/AVRO/NONE/large_1MB/cold-48          	      10	   1422310 ns/op	 737.23 MB/s	 2373616 B/op	     400 allocs/op
+BenchmarkSerializerSerialize/AVRO/ZLIB/small_100B/warm-48         	      10	    335241 ns/op	   0.30 MB/s	  841796 B/op	     338 allocs/op
+BenchmarkSerializerSerialize/AVRO/ZLIB/small_100B/cold-48         	      10	    550153 ns/op	   0.18 MB/s	  864681 B/op	     420 allocs/op
+BenchmarkSerializerSerialize/AVRO/ZLIB/medium_10KB/warm-48        	      10	    703068 ns/op	  14.56 MB/s	  875906 B/op	     336 allocs/op
+BenchmarkSerializerSerialize/AVRO/ZLIB/medium_10KB/cold-48        	      10	    694106 ns/op	  14.75 MB/s	  896355 B/op	     419 allocs/op
+BenchmarkSerializerSerialize/AVRO/ZLIB/large_1MB/warm-48          	      10	  22619180 ns/op	  46.36 MB/s	 6516401 B/op	     349 allocs/op
+BenchmarkSerializerSerialize/AVRO/ZLIB/large_1MB/cold-48          	      10	  23344484 ns/op	  44.92 MB/s	 6127844 B/op	     433 allocs/op
+BenchmarkSerializerSerialize/JSON/NONE/small_100B/warm-48         	      10	     33975 ns/op	   2.94 MB/s	   14992 B/op	     159 allocs/op
+BenchmarkSerializerSerialize/JSON/NONE/small_100B/cold-48         	      10	     76117 ns/op	   1.31 MB/s	   26996 B/op	     242 allocs/op
+BenchmarkSerializerSerialize/JSON/NONE/medium_10KB/warm-48        	      10	   1984313 ns/op	   5.16 MB/s	  626456 B/op	     166 allocs/op
+BenchmarkSerializerSerialize/JSON/NONE/medium_10KB/cold-48        	      10	   2031316 ns/op	   5.04 MB/s	  647847 B/op	     251 allocs/op
+BenchmarkSerializerSerialize/JSON/NONE/large_1MB/warm-48          	      10	 201845509 ns/op	   5.19 MB/s	55687075 B/op	     175 allocs/op
+BenchmarkSerializerSerialize/JSON/NONE/large_1MB/cold-48          	      10	 203482121 ns/op	   5.15 MB/s	55738326 B/op	     263 allocs/op
+BenchmarkSerializerSerialize/JSON/ZLIB/small_100B/warm-48         	      10	    361827 ns/op	   0.28 MB/s	  831098 B/op	     183 allocs/op
+BenchmarkSerializerSerialize/JSON/ZLIB/small_100B/cold-48         	      10	    422096 ns/op	   0.24 MB/s	  857823 B/op	     267 allocs/op
+BenchmarkSerializerSerialize/JSON/ZLIB/medium_10KB/warm-48        	      10	   4853176 ns/op	   2.11 MB/s	 1443500 B/op	     195 allocs/op
+BenchmarkSerializerSerialize/JSON/ZLIB/medium_10KB/cold-48        	      10	   4947837 ns/op	   2.07 MB/s	 1470940 B/op	     279 allocs/op
+BenchmarkSerializerSerialize/JSON/ZLIB/large_1MB/warm-48          	      10	 464490394 ns/op	   2.26 MB/s	55673898 B/op	     209 allocs/op
+BenchmarkSerializerSerialize/JSON/ZLIB/large_1MB/cold-48          	      10	 464694867 ns/op	   2.26 MB/s	55724611 B/op	     297 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/NONE/small_100B/warm-48     	      10	     98231 ns/op	   1.02 MB/s	   46729 B/op	     380 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/NONE/small_100B/cold-48     	      10	    188575 ns/op	   0.53 MB/s	   54958 B/op	     463 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/NONE/medium_10KB/warm-48    	      10	     97617 ns/op	 104.90 MB/s	   79027 B/op	     380 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/NONE/medium_10KB/cold-48    	      10	    164517 ns/op	  62.24 MB/s	   91352 B/op	     463 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/NONE/large_1MB/warm-48      	      10	   1692836 ns/op	 619.42 MB/s	 3221354 B/op	     382 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/NONE/large_1MB/cold-48      	      10	   1679354 ns/op	 624.39 MB/s	 3248708 B/op	     465 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/ZLIB/small_100B/warm-48     	      10	    522305 ns/op	   0.19 MB/s	  862824 B/op	     403 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/ZLIB/small_100B/cold-48     	      10	    623650 ns/op	   0.16 MB/s	  886083 B/op	     487 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/ZLIB/medium_10KB/warm-48    	      10	    821401 ns/op	  12.47 MB/s	  905820 B/op	     402 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/ZLIB/medium_10KB/cold-48    	      10	    756673 ns/op	  13.53 MB/s	  929102 B/op	     487 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/ZLIB/large_1MB/warm-48      	      10	  24787686 ns/op	  42.30 MB/s	 6638375 B/op	     414 allocs/op
+BenchmarkSerializerSerialize/PROTOBUF/ZLIB/large_1MB/cold-48      	      10	  25405388 ns/op	  41.27 MB/s	 6674395 B/op	     494 allocs/op
+PASS
+ok  	github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer	16.314s
+goos: linux
+goarch: amd64
+pkg: github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/deserializer
+cpu: Intel(R) Xeon(R) Platinum 8175M CPU @ 2.50GHz
+BenchmarkDeserializerDeserialize/AVRO/NONE/small_100B/warm-48         	      10	     34078 ns/op	   2.93 MB/s	   11964 B/op	     167 allocs/op
+BenchmarkDeserializerDeserialize/AVRO/NONE/small_100B/cold-48         	      10	     65742 ns/op	   1.52 MB/s	   23722 B/op	     246 allocs/op
+BenchmarkDeserializerDeserialize/AVRO/NONE/medium_10KB/warm-48        	      10	     30662 ns/op	 333.97 MB/s	   22096 B/op	     168 allocs/op
+BenchmarkDeserializerDeserialize/AVRO/NONE/medium_10KB/cold-48        	      10	     67800 ns/op	 151.03 MB/s	   33836 B/op	     247 allocs/op
+BenchmarkDeserializerDeserialize/AVRO/NONE/large_1MB/warm-48          	      10	    685286 ns/op	1530.13 MB/s	 1063048 B/op	     169 allocs/op
+BenchmarkDeserializerDeserialize/AVRO/NONE/large_1MB/cold-48          	      10	    709900 ns/op	1477.08 MB/s	 1083463 B/op	     248 allocs/op
+BenchmarkDeserializerDeserialize/AVRO/ZLIB/small_100B/warm-48         	      10	     32623 ns/op	   3.07 MB/s	   53078 B/op	     175 allocs/op
+BenchmarkDeserializerDeserialize/AVRO/ZLIB/small_100B/cold-48         	      10	     82668 ns/op	   1.21 MB/s	   64672 B/op	     253 allocs/op
+BenchmarkDeserializerDeserialize/AVRO/ZLIB/medium_10KB/warm-48        	      10	     46077 ns/op	 222.24 MB/s	   87792 B/op	     186 allocs/op
+BenchmarkDeserializerDeserialize/AVRO/ZLIB/medium_10KB/cold-48        	      10	     85835 ns/op	 119.30 MB/s	   95806 B/op	     265 allocs/op
+BenchmarkDeserializerDeserialize/AVRO/ZLIB/large_1MB/warm-48          	      10	   1647769 ns/op	 636.36 MB/s	 3343173 B/op	     202 allocs/op
+BenchmarkDeserializerDeserialize/AVRO/ZLIB/large_1MB/cold-48          	      10	   1619812 ns/op	 647.34 MB/s	 3376324 B/op	     283 allocs/op
+BenchmarkDeserializerDeserialize/JSON/NONE/small_100B/warm-48         	      10	     28938 ns/op	   3.46 MB/s	    7728 B/op	      87 allocs/op
+BenchmarkDeserializerDeserialize/JSON/NONE/small_100B/cold-48         	      10	     65275 ns/op	   1.53 MB/s	   19282 B/op	     164 allocs/op
+BenchmarkDeserializerDeserialize/JSON/NONE/medium_10KB/warm-48        	      10	    951640 ns/op	  10.76 MB/s	  295647 B/op	      93 allocs/op
+BenchmarkDeserializerDeserialize/JSON/NONE/medium_10KB/cold-48        	      10	   1030992 ns/op	   9.93 MB/s	  307995 B/op	     172 allocs/op
+BenchmarkDeserializerDeserialize/JSON/NONE/large_1MB/warm-48          	      10	  99382277 ns/op	  10.55 MB/s	24153556 B/op	      99 allocs/op
+BenchmarkDeserializerDeserialize/JSON/NONE/large_1MB/cold-48          	      10	 101303941 ns/op	  10.35 MB/s	24205033 B/op	     182 allocs/op
+BenchmarkDeserializerDeserialize/JSON/ZLIB/small_100B/warm-48         	      10	     46554 ns/op	   2.15 MB/s	   48848 B/op	      95 allocs/op
+BenchmarkDeserializerDeserialize/JSON/ZLIB/small_100B/cold-48         	      10	     82162 ns/op	   1.22 MB/s	   60651 B/op	     174 allocs/op
+BenchmarkDeserializerDeserialize/JSON/ZLIB/medium_10KB/warm-48        	      10	   1317172 ns/op	   7.77 MB/s	  431167 B/op	     151 allocs/op
+BenchmarkDeserializerDeserialize/JSON/ZLIB/medium_10KB/cold-48        	      10	   1380793 ns/op	   7.42 MB/s	  449172 B/op	     230 allocs/op
+BenchmarkDeserializerDeserialize/JSON/ZLIB/large_1MB/warm-48          	      10	 129285202 ns/op	   8.11 MB/s	34173798 B/op	    1422 allocs/op
+BenchmarkDeserializerDeserialize/JSON/ZLIB/large_1MB/cold-48          	      10	 127097453 ns/op	   8.25 MB/s	34231372 B/op	    1508 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/NONE/small_100B/warm-48     	      10	      3203 ns/op	  31.22 MB/s	     840 B/op	      14 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/NONE/small_100B/cold-48     	      10	     38509 ns/op	   2.60 MB/s	   12520 B/op	      92 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/NONE/medium_10KB/warm-48    	      10	      3028 ns/op	3381.99 MB/s	   10968 B/op	      14 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/NONE/medium_10KB/cold-48    	      10	     42566 ns/op	 240.57 MB/s	   18764 B/op	      90 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/NONE/large_1MB/warm-48      	      10	    571481 ns/op	1834.84 MB/s	 1049304 B/op	      14 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/NONE/large_1MB/cold-48      	      10	    555729 ns/op	1886.85 MB/s	 1069635 B/op	      92 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/ZLIB/small_100B/warm-48     	      10	     13364 ns/op	   7.48 MB/s	   41994 B/op	      22 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/ZLIB/small_100B/cold-48     	      10	     53396 ns/op	   1.87 MB/s	   50024 B/op	     101 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/ZLIB/medium_10KB/warm-48    	      10	     19076 ns/op	 536.79 MB/s	   76668 B/op	      32 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/ZLIB/medium_10KB/cold-48    	      10	     54044 ns/op	 189.48 MB/s	   88259 B/op	     109 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/ZLIB/large_1MB/warm-48      	      10	   1814505 ns/op	 577.89 MB/s	 3326092 B/op	      45 allocs/op
+BenchmarkDeserializerDeserialize/PROTOBUF/ZLIB/large_1MB/cold-48      	      10	   1488496 ns/op	 704.45 MB/s	 3373512 B/op	     129 allocs/op
+PASS
+ok  	github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/deserializer	5.726s
