@@ -3,24 +3,25 @@
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 100)
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 100)
 
-# Run progress: 0.00% complete, ETA 00:00:48
+# Run progress: 0.00% complete, ETA 00:01:36
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-18.516 ops/us
+19.376 ops/us
+Iteration   1: 49.010 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  18.516 ops/us
+  49.010 ops/us
 
 
 # JMH version: 1.37
@@ -28,24 +29,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 10240)
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 10240)
 
-# Run progress: 2.08% complete, ETA 00:01:01
+# Run progress: 2.08% complete, ETA 00:01:49
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.304 ops/us
+0.264 ops/us
+Iteration   1: 0.611 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.304 ops/us
+  0.611 ops/us
 
 
 # JMH version: 1.37
@@ -53,23 +55,336 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 1048576)
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 1048576)
 
-# Run progress: 4.17% complete, ETA 00:01:00
+# Run progress: 4.17% complete, ETA 00:01:47
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
 0.003 ops/us
+Iteration   1: 0.004 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
+  0.004 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 100)
+
+# Run progress: 6.25% complete, ETA 00:01:45
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+10.769 ops/us
+Iteration   1: 47.209 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
+  47.209 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 10240)
+
+# Run progress: 8.33% complete, ETA 00:01:44
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+0.278 ops/us
+Iteration   1: 0.616 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
+  0.616 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 1048576)
+
+# Run progress: 10.42% complete, ETA 00:01:42
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+0.003 ops/us
+Iteration   1: 0.004 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
+  0.004 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 100)
+
+# Run progress: 12.50% complete, ETA 00:01:40
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+0.677 ops/us
+Iteration   1: 1.050 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
+  1.050 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 10240)
+
+# Run progress: 14.58% complete, ETA 00:01:37
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+0.044 ops/us
+Iteration   1: 0.089 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
+  0.089 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 1048576)
+
+# Run progress: 16.67% complete, ETA 00:01:34
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+0.001 ops/us
+Iteration   1: 0.001 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
+  0.001 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 100)
+
+# Run progress: 18.75% complete, ETA 00:01:32
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+0.645 ops/us
+Iteration   1: 0.976 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
+  0.976 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 10240)
+
+# Run progress: 20.83% complete, ETA 00:01:30
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+0.044 ops/us
+Iteration   1: 0.088 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
+  0.088 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 1048576)
+
+# Run progress: 22.92% complete, ETA 00:01:28
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+0.001 ops/us
+Iteration   1: 0.001 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
+  0.001 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 100)
+
+# Run progress: 25.00% complete, ETA 00:01:25
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+6.342 ops/us
+Iteration   1: 18.073 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
+  18.073 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 10240)
+
+# Run progress: 27.08% complete, ETA 00:01:23
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+0.155 ops/us
+Iteration   1: 0.358 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
+  0.358 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 1048576)
+
+# Run progress: 29.17% complete, ETA 00:01:20
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+0.002 ops/us
+Iteration   1: 0.003 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
   0.003 ops/us
 
 
@@ -78,24 +393,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 100)
 
-# Run progress: 6.25% complete, ETA 00:00:59
+# Run progress: 31.25% complete, ETA 00:01:18
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.679 ops/us
+0.392 ops/us
+Iteration   1: 1.032 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.679 ops/us
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
+  1.032 ops/us
 
 
 # JMH version: 1.37
@@ -103,24 +419,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 10240)
 
-# Run progress: 8.33% complete, ETA 00:00:57
+# Run progress: 33.33% complete, ETA 00:01:16
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
 0.046 ops/us
+Iteration   1: 0.120 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.046 ops/us
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
+  0.120 ops/us
 
 
 # JMH version: 1.37
@@ -128,23 +445,24 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 1048576)
 
-# Run progress: 10.42% complete, ETA 00:00:56
+# Run progress: 35.42% complete, ETA 00:01:13
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
 0.001 ops/us
+Iteration   1: 0.001 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
+Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
   0.001 ops/us
 
 
@@ -153,174 +471,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 100)
-
-# Run progress: 12.50% complete, ETA 00:00:55
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-19.086 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  19.086 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 10240)
-
-# Run progress: 14.58% complete, ETA 00:00:54
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.306 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.306 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 1048576)
-
-# Run progress: 16.67% complete, ETA 00:00:52
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.003 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.003 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 100)
-
-# Run progress: 18.75% complete, ETA 00:00:51
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.661 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.661 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 10240)
-
-# Run progress: 20.83% complete, ETA 00:00:50
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.042 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.042 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 1048576)
-
-# Run progress: 22.92% complete, ETA 00:00:48
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.001 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.001 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 100)
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 100)
 
-# Run progress: 25.00% complete, ETA 00:00:47
+# Run progress: 37.50% complete, ETA 00:01:11
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-7.299 ops/us
+0.101 ops/us
+Iteration   1: 0.106 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  7.299 ops/us
+  0.106 ops/us
 
 
 # JMH version: 1.37
@@ -328,99 +497,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 10240)
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 10240)
 
-# Run progress: 27.08% complete, ETA 00:00:46
+# Run progress: 39.58% complete, ETA 00:01:08
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.176 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.176 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 1048576)
-
-# Run progress: 29.17% complete, ETA 00:00:44
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.002 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.002 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 100)
-
-# Run progress: 31.25% complete, ETA 00:00:43
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.104 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.104 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 10240)
-
-# Run progress: 33.33% complete, ETA 00:00:42
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
 0.005 ops/us
+Iteration   1: 0.004 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.005 ops/us
+  0.004 ops/us
 
 
 # JMH version: 1.37
@@ -428,20 +523,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 1048576)
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 1048576)
 
-# Run progress: 35.42% complete, ETA 00:00:40
+# Run progress: 41.67% complete, ETA 00:01:06
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
 ≈ 10⁻⁵ ops/us
+Iteration   1: ≈ 10⁻⁵ ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
@@ -453,24 +549,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 100)
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 100)
 
-# Run progress: 37.50% complete, ETA 00:00:39
+# Run progress: 43.75% complete, ETA 00:01:04
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1.480 ops/us
+0.071 ops/us
+Iteration   1: 0.073 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  1.480 ops/us
+  0.073 ops/us
 
 
 # JMH version: 1.37
@@ -478,99 +575,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 10240)
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 10240)
 
-# Run progress: 39.58% complete, ETA 00:00:38
+# Run progress: 45.83% complete, ETA 00:01:01
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.144 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.144 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 1048576)
-
-# Run progress: 41.67% complete, ETA 00:00:36
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.002 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.002 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 100)
-
-# Run progress: 43.75% complete, ETA 00:00:35
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.097 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.097 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 10240)
-
-# Run progress: 45.83% complete, ETA 00:00:34
-# Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
 0.005 ops/us
+Iteration   1: 0.004 ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.005 ops/us
+  0.004 ops/us
 
 
 # JMH version: 1.37
@@ -578,20 +601,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 1048576)
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 1048576)
 
-# Run progress: 47.92% complete, ETA 00:00:32
+# Run progress: 47.92% complete, ETA 00:00:59
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
 ≈ 10⁻⁵ ops/us
+Iteration   1: ≈ 10⁻⁵ ops/us
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
@@ -603,24 +627,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 100)
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 100)
 
-# Run progress: 50.00% complete, ETA 00:00:31
+# Run progress: 50.00% complete, ETA 00:00:57
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.055 us/op
+0.060 us/op
+Iteration   1: 0.023 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.055 us/op
+  0.023 us/op
 
 
 # JMH version: 1.37
@@ -628,24 +653,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 10240)
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 10240)
 
-# Run progress: 52.08% complete, ETA 00:00:30
+# Run progress: 52.08% complete, ETA 00:00:54
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-3.764 us/op
+3.744 us/op
+Iteration   1: 1.621 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  3.764 us/op
+  1.621 us/op
 
 
 # JMH version: 1.37
@@ -653,24 +679,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 1048576)
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 1048576)
 
-# Run progress: 54.17% complete, ETA 00:00:29
+# Run progress: 54.17% complete, ETA 00:00:52
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-303.082 us/op
+312.745 us/op
+Iteration   1: 244.818 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  303.082 us/op
+  244.818 us/op
 
 
 # JMH version: 1.37
@@ -678,24 +705,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 100)
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 100)
 
-# Run progress: 56.25% complete, ETA 00:00:27
+# Run progress: 56.25% complete, ETA 00:00:50
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1.491 us/op
+0.058 us/op
+Iteration   1: 0.021 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1.491 us/op
+  0.021 us/op
 
 
 # JMH version: 1.37
@@ -703,24 +731,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 10240)
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 10240)
 
-# Run progress: 58.33% complete, ETA 00:00:26
+# Run progress: 58.33% complete, ETA 00:00:47
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-22.467 us/op
+3.939 us/op
+Iteration   1: 1.667 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  22.467 us/op
+  1.667 us/op
 
 
 # JMH version: 1.37
@@ -728,24 +757,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 1048576)
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 1048576)
 
-# Run progress: 60.42% complete, ETA 00:00:25
+# Run progress: 60.42% complete, ETA 00:00:45
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1622.455 us/op
+308.908 us/op
+Iteration   1: 241.832 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1622.455 us/op
+  241.832 us/op
 
 
 # JMH version: 1.37
@@ -753,24 +783,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 100)
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 100)
 
-# Run progress: 62.50% complete, ETA 00:00:23
+# Run progress: 62.50% complete, ETA 00:00:42
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.056 us/op
+1.535 us/op
+Iteration   1: 0.978 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.056 us/op
+  0.978 us/op
 
 
 # JMH version: 1.37
@@ -778,24 +809,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 10240)
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 10240)
 
-# Run progress: 64.58% complete, ETA 00:00:22
+# Run progress: 64.58% complete, ETA 00:00:40
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-3.642 us/op
+24.134 us/op
+Iteration   1: 11.966 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  3.642 us/op
+  11.966 us/op
 
 
 # JMH version: 1.37
@@ -803,24 +835,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 1048576)
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 1048576)
 
-# Run progress: 66.67% complete, ETA 00:00:21
+# Run progress: 66.67% complete, ETA 00:00:38
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-303.509 us/op
+1715.234 us/op
+Iteration   1: 1311.605 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  303.509 us/op
+  1311.605 us/op
 
 
 # JMH version: 1.37
@@ -828,24 +861,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 100)
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 100)
 
-# Run progress: 68.75% complete, ETA 00:00:19
+# Run progress: 68.75% complete, ETA 00:00:35
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1.501 us/op
+1.538 us/op
+Iteration   1: 1.080 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1.501 us/op
+  1.080 us/op
 
 
 # JMH version: 1.37
@@ -853,24 +887,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 10240)
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 10240)
 
-# Run progress: 70.83% complete, ETA 00:00:18
+# Run progress: 70.83% complete, ETA 00:00:33
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-22.430 us/op
+23.343 us/op
+Iteration   1: 11.660 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  22.430 us/op
+  11.660 us/op
 
 
 # JMH version: 1.37
@@ -878,24 +913,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 1048576)
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 1048576)
 
-# Run progress: 72.92% complete, ETA 00:00:17
+# Run progress: 72.92% complete, ETA 00:00:31
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1612.699 us/op
+1703.340 us/op
+Iteration   1: 1313.906 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1612.699 us/op
+  1313.906 us/op
 
 
 # JMH version: 1.37
@@ -903,24 +939,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 100)
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 100)
 
-# Run progress: 75.00% complete, ETA 00:00:15
+# Run progress: 75.00% complete, ETA 00:00:28
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.148 us/op
+0.145 us/op
+Iteration   1: 0.057 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.148 us/op
+  0.057 us/op
 
 
 # JMH version: 1.37
@@ -928,24 +965,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 10240)
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 10240)
 
-# Run progress: 77.08% complete, ETA 00:00:14
+# Run progress: 77.08% complete, ETA 00:00:26
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-6.033 us/op
+6.592 us/op
+Iteration   1: 2.778 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  6.033 us/op
+  2.778 us/op
 
 
 # JMH version: 1.37
@@ -953,24 +991,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = NONE, payloadSize = 1048576)
+# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 1048576)
 
-# Run progress: 79.17% complete, ETA 00:00:13
+# Run progress: 79.17% complete, ETA 00:00:23
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-595.411 us/op
+618.476 us/op
+Iteration   1: 385.043 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  595.411 us/op
+  385.043 us/op
 
 
 # JMH version: 1.37
@@ -978,24 +1017,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 100)
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 100)
 
-# Run progress: 81.25% complete, ETA 00:00:11
+# Run progress: 81.25% complete, ETA 00:00:21
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-9.566 us/op
+2.771 us/op
+Iteration   1: 1.017 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  9.566 us/op
+  1.017 us/op
 
 
 # JMH version: 1.37
@@ -1003,24 +1043,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 10240)
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 10240)
 
-# Run progress: 83.33% complete, ETA 00:00:10
+# Run progress: 83.33% complete, ETA 00:00:19
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-191.537 us/op
+20.468 us/op
+Iteration   1: 8.372 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  191.537 us/op
+  8.372 us/op
 
 
 # JMH version: 1.37
@@ -1028,24 +1069,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = warm, compression = ZLIB, payloadSize = 1048576)
+# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 1048576)
 
-# Run progress: 85.42% complete, ETA 00:00:09
+# Run progress: 85.42% complete, ETA 00:00:16
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-37030.712 us/op
+1454.668 us/op
+Iteration   1: 986.060 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  37030.712 us/op
+  986.060 us/op
 
 
 # JMH version: 1.37
@@ -1053,24 +1095,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 100)
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 100)
 
-# Run progress: 87.50% complete, ETA 00:00:07
+# Run progress: 87.50% complete, ETA 00:00:14
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.683 us/op
+10.210 us/op
+Iteration   1: 9.523 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.683 us/op
+  9.523 us/op
 
 
 # JMH version: 1.37
@@ -1078,24 +1121,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 10240)
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 10240)
 
-# Run progress: 89.58% complete, ETA 00:00:06
+# Run progress: 89.58% complete, ETA 00:00:11
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-8.582 us/op
+197.928 us/op
+Iteration   1: 205.700 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  8.582 us/op
+  205.700 us/op
 
 
 # JMH version: 1.37
@@ -1103,24 +1147,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = NONE, payloadSize = 1048576)
+# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 1048576)
 
-# Run progress: 91.67% complete, ETA 00:00:05
+# Run progress: 91.67% complete, ETA 00:00:09
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-621.472 us/op
+37709.534 us/op
+Iteration   1: 37286.633 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  621.472 us/op
+  37286.633 us/op
 
 
 # JMH version: 1.37
@@ -1128,24 +1173,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 100)
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 100)
 
-# Run progress: 93.75% complete, ETA 00:00:03
+# Run progress: 93.75% complete, ETA 00:00:07
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-10.576 us/op
+13.691 us/op
+Iteration   1: 14.094 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  10.576 us/op
+  14.094 us/op
 
 
 # JMH version: 1.37
@@ -1153,24 +1199,25 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 10240)
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 10240)
 
-# Run progress: 95.83% complete, ETA 00:00:02
+# Run progress: 95.83% complete, ETA 00:00:04
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-202.442 us/op
+220.482 us/op
+Iteration   1: 240.247 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  202.442 us/op
+  240.247 us/op
 
 
 # JMH version: 1.37
@@ -1178,27 +1225,28 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
 # VM options: -Xms2g -Xmx2g
 # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: <none>
+# Warmup: 1 iterations, 1 s each
 # Measurement: 1 iterations, 1 s each
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
 # Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (cacheState = cold, compression = ZLIB, payloadSize = 1048576)
+# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 1048576)
 
-# Run progress: 97.92% complete, ETA 00:00:01
+# Run progress: 97.92% complete, ETA 00:00:02
 # Fork: 1 of 1
-Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-36976.189 us/op
+39353.530 us/op
+Iteration   1: 39788.202 us/op
 
 
 Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  36976.189 us/op
+  39788.202 us/op
 
 
-# Run complete. Total time: 00:01:03
+# Run complete. Total time: 00:01:54
 
 REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
 why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
@@ -1212,52 +1260,52 @@ works, and factor in a small probability of new VM bugs. Additionally, while com
 different JVMs are already problematic, the performance difference caused by different Blackhole
 modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
 
-Benchmark                 (cacheState)  (compression)  (payloadSize)   Mode  Cnt      Score   Error   Units
-EncodeDecodeBench.decode          warm           NONE            100  thrpt          18.516          ops/us
-EncodeDecodeBench.decode          warm           NONE          10240  thrpt           0.304          ops/us
-EncodeDecodeBench.decode          warm           NONE        1048576  thrpt           0.003          ops/us
-EncodeDecodeBench.decode          warm           ZLIB            100  thrpt           0.679          ops/us
-EncodeDecodeBench.decode          warm           ZLIB          10240  thrpt           0.046          ops/us
-EncodeDecodeBench.decode          warm           ZLIB        1048576  thrpt           0.001          ops/us
-EncodeDecodeBench.decode          cold           NONE            100  thrpt          19.086          ops/us
-EncodeDecodeBench.decode          cold           NONE          10240  thrpt           0.306          ops/us
-EncodeDecodeBench.decode          cold           NONE        1048576  thrpt           0.003          ops/us
-EncodeDecodeBench.decode          cold           ZLIB            100  thrpt           0.661          ops/us
-EncodeDecodeBench.decode          cold           ZLIB          10240  thrpt           0.042          ops/us
-EncodeDecodeBench.decode          cold           ZLIB        1048576  thrpt           0.001          ops/us
-EncodeDecodeBench.encode          warm           NONE            100  thrpt           7.299          ops/us
-EncodeDecodeBench.encode          warm           NONE          10240  thrpt           0.176          ops/us
-EncodeDecodeBench.encode          warm           NONE        1048576  thrpt           0.002          ops/us
-EncodeDecodeBench.encode          warm           ZLIB            100  thrpt           0.104          ops/us
-EncodeDecodeBench.encode          warm           ZLIB          10240  thrpt           0.005          ops/us
-EncodeDecodeBench.encode          warm           ZLIB        1048576  thrpt          ≈ 10⁻⁵          ops/us
-EncodeDecodeBench.encode          cold           NONE            100  thrpt           1.480          ops/us
-EncodeDecodeBench.encode          cold           NONE          10240  thrpt           0.144          ops/us
-EncodeDecodeBench.encode          cold           NONE        1048576  thrpt           0.002          ops/us
-EncodeDecodeBench.encode          cold           ZLIB            100  thrpt           0.097          ops/us
-EncodeDecodeBench.encode          cold           ZLIB          10240  thrpt           0.005          ops/us
-EncodeDecodeBench.encode          cold           ZLIB        1048576  thrpt          ≈ 10⁻⁵          ops/us
-EncodeDecodeBench.decode          warm           NONE            100   avgt           0.055           us/op
-EncodeDecodeBench.decode          warm           NONE          10240   avgt           3.764           us/op
-EncodeDecodeBench.decode          warm           NONE        1048576   avgt         303.082           us/op
-EncodeDecodeBench.decode          warm           ZLIB            100   avgt           1.491           us/op
-EncodeDecodeBench.decode          warm           ZLIB          10240   avgt          22.467           us/op
-EncodeDecodeBench.decode          warm           ZLIB        1048576   avgt        1622.455           us/op
-EncodeDecodeBench.decode          cold           NONE            100   avgt           0.056           us/op
-EncodeDecodeBench.decode          cold           NONE          10240   avgt           3.642           us/op
-EncodeDecodeBench.decode          cold           NONE        1048576   avgt         303.509           us/op
-EncodeDecodeBench.decode          cold           ZLIB            100   avgt           1.501           us/op
-EncodeDecodeBench.decode          cold           ZLIB          10240   avgt          22.430           us/op
-EncodeDecodeBench.decode          cold           ZLIB        1048576   avgt        1612.699           us/op
-EncodeDecodeBench.encode          warm           NONE            100   avgt           0.148           us/op
-EncodeDecodeBench.encode          warm           NONE          10240   avgt           6.033           us/op
-EncodeDecodeBench.encode          warm           NONE        1048576   avgt         595.411           us/op
-EncodeDecodeBench.encode          warm           ZLIB            100   avgt           9.566           us/op
-EncodeDecodeBench.encode          warm           ZLIB          10240   avgt         191.537           us/op
-EncodeDecodeBench.encode          warm           ZLIB        1048576   avgt       37030.712           us/op
-EncodeDecodeBench.encode          cold           NONE            100   avgt           0.683           us/op
-EncodeDecodeBench.encode          cold           NONE          10240   avgt           8.582           us/op
-EncodeDecodeBench.encode          cold           NONE        1048576   avgt         621.472           us/op
-EncodeDecodeBench.encode          cold           ZLIB            100   avgt          10.576           us/op
-EncodeDecodeBench.encode          cold           ZLIB          10240   avgt         202.442           us/op
-EncodeDecodeBench.encode          cold           ZLIB        1048576   avgt       36976.189           us/op
+Benchmark                 (compression)        (format)  (payloadSize)   Mode  Cnt      Score   Error   Units
+EncodeDecodeBench.decode           NONE       WIRE_ONLY            100  thrpt          49.010          ops/us
+EncodeDecodeBench.decode           NONE       WIRE_ONLY          10240  thrpt           0.611          ops/us
+EncodeDecodeBench.decode           NONE       WIRE_ONLY        1048576  thrpt           0.004          ops/us
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX            100  thrpt          47.209          ops/us
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX          10240  thrpt           0.616          ops/us
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX        1048576  thrpt           0.004          ops/us
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY            100  thrpt           1.050          ops/us
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY          10240  thrpt           0.089          ops/us
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY        1048576  thrpt           0.001          ops/us
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX            100  thrpt           0.976          ops/us
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX          10240  thrpt           0.088          ops/us
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX        1048576  thrpt           0.001          ops/us
+EncodeDecodeBench.encode           NONE       WIRE_ONLY            100  thrpt          18.073          ops/us
+EncodeDecodeBench.encode           NONE       WIRE_ONLY          10240  thrpt           0.358          ops/us
+EncodeDecodeBench.encode           NONE       WIRE_ONLY        1048576  thrpt           0.003          ops/us
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX            100  thrpt           1.032          ops/us
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX          10240  thrpt           0.120          ops/us
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX        1048576  thrpt           0.001          ops/us
+EncodeDecodeBench.encode           ZLIB       WIRE_ONLY            100  thrpt           0.106          ops/us
+EncodeDecodeBench.encode           ZLIB       WIRE_ONLY          10240  thrpt           0.004          ops/us
+EncodeDecodeBench.encode           ZLIB       WIRE_ONLY        1048576  thrpt          ≈ 10⁻⁵          ops/us
+EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX            100  thrpt           0.073          ops/us
+EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX          10240  thrpt           0.004          ops/us
+EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX        1048576  thrpt          ≈ 10⁻⁵          ops/us
+EncodeDecodeBench.decode           NONE       WIRE_ONLY            100   avgt           0.023           us/op
+EncodeDecodeBench.decode           NONE       WIRE_ONLY          10240   avgt           1.621           us/op
+EncodeDecodeBench.decode           NONE       WIRE_ONLY        1048576   avgt         244.818           us/op
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX            100   avgt           0.021           us/op
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX          10240   avgt           1.667           us/op
+EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX        1048576   avgt         241.832           us/op
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY            100   avgt           0.978           us/op
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY          10240   avgt          11.966           us/op
+EncodeDecodeBench.decode           ZLIB       WIRE_ONLY        1048576   avgt        1311.605           us/op
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX            100   avgt           1.080           us/op
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX          10240   avgt          11.660           us/op
+EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX        1048576   avgt        1313.906           us/op
+EncodeDecodeBench.encode           NONE       WIRE_ONLY            100   avgt           0.057           us/op
+EncodeDecodeBench.encode           NONE       WIRE_ONLY          10240   avgt           2.778           us/op
+EncodeDecodeBench.encode           NONE       WIRE_ONLY        1048576   avgt         385.043           us/op
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX            100   avgt           1.017           us/op
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX          10240   avgt           8.372           us/op
+EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX        1048576   avgt         986.060           us/op
+EncodeDecodeBench.encode           ZLIB       WIRE_ONLY            100   avgt           9.523           us/op
+EncodeDecodeBench.encode           ZLIB       WIRE_ONLY          10240   avgt         205.700           us/op
+EncodeDecodeBench.encode           ZLIB       WIRE_ONLY        1048576   avgt       37286.633           us/op
+EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX            100   avgt          14.094           us/op
+EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX          10240   avgt         240.247           us/op
+EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX        1048576   avgt       39788.202           us/op

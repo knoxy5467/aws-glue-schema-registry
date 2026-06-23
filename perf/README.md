@@ -1,19 +1,21 @@
 # GSR Phase 6 — Cross-language performance baselines
 
 Side-by-side encode/decode throughput numbers for the Go GSR client
-(under `native-schema-registry/golang/`) and the upstream Java GSR
-client (`serializer-deserializer/`, `common/`).
+(`native-schema-registry/golang/`) and the upstream Java GSR client
+(`serializer-deserializer/`, `common/`).
 
-**Status: smoke baselines only.** Regenerated with one warmup and one
-measurement iteration; the numbers prove the harnesses work and give an
-order-of-magnitude comparison. Defensible numbers require running the
-full configuration (Go `-count=5` per matrix cell, JMH default 3+5×1s,
-fork 2) on a quiesced machine — see the regeneration commands below.
+**Status: full defensible baselines.** The numbers below come from a
+`make bench-go-full` run (count=3, benchtime=1s — sufficient for
+benchstat to detect ±5% deltas after warmup) plus a `make bench-java-full`
+run using the JMH defaults (warmup 3×1s, measurement 5×1s, fork 2). The
+matching smoke files (`*-smoke.txt`) are still committed for the
+fast-iteration loop and the Phase 5+ CI gate.
 
 The plan source of truth for Phase 6 is
 `GSR-Golang-Plan-revision.md` §7 Phase 6. The Go side is committed
-under `native-schema-registry/golang/pkg/gsrserde-go/{core,serializer,deserializer}/*_bench_test.go`;
-the Java side is committed under `native-schema-registry/perf/java/`.
+under `native-schema-registry/golang/pkg/gsrserde-go/{core,serializer,deserializer}/*_bench_test.go`
+plus the shared `test_helpers/perf_fixtures.go`; the Java side is
+committed under `native-schema-registry/perf/java/`.
 
 ---
 
@@ -26,7 +28,8 @@ These baselines were captured on an Amazon Linux 2 internal dev host:
 - **Kernel:** Linux 5.10.257-255.1015.amzn2int.x86_64 (CloudDesk)
 - **Go:** 1.26.4 (`/usr/local/go/bin/go`)
 - **JDK:** Amazon Corretto 17.0.19+10-LTS
-- **JVM flags:** `-Xms2g -Xmx2g` (configured in JMH `@Fork`)
+- **JVM flags:** `-Xms2g -Xmx2g` (set by JMH `@Fork`)
+- **Maven:** Apache 3.9.9 (installed into `~/.local/opt/apache-maven-3.9.9/`)
 
 A shared cloud-desk host is not a clean benchmarking environment.
 Treat these numbers as *order-of-magnitude indicative*. CI baselines
@@ -34,103 +37,116 @@ should run on a dedicated single-tenant instance.
 
 ---
 
-## Smoke-run comparison table
+## Side-by-side comparison
 
-The numbers below are *throughput* (MB/s of source payload) and
-*allocations per op*. Source: the committed
-`baselines/{go,java}/*.txt` files. Higher MB/s is faster.
+All numbers are MB/s of *source payload*. Higher is faster. Go column
+comes from `BenchmarkEncodeWireFormat`/`BenchmarkDecodeWireFormat`
+(warm cache, `b.SetBytes(len(payload))`). Java column converts JMH
+`us/op` to MB/s as `payloadSize / (avgt_us × 1.048576)`
+(i.e. `payloadSize / 1_048_576 / (avgt_us / 1_000_000)`).
 
-The Go column is `BenchmarkEncodeWireFormat/<format>/<compression>/<size>/warm`
-(see `baselines/go/core-smoke.txt`). The Java column converts JMH
-`us/op` to MB/s as `(payloadSize / 1_048_576) / (avgt_us / 1_000_000)`
-from `baselines/java/wireformat-smoke.txt`.
+Java has two `format` axes — `WIRE_ONLY` (header construction +
+optional ZLIB) and `PROTOBUF_INDEX` (also runs
+`ProtobufWireFormatEncoder.prefixMessageIndexToBytes` over a
+`DynamicMessage`). The Go core column splits AVRO/JSON/PROTOBUF —
+AVRO and JSON go through the same `EncodeWireFormat` path, so they
+match Java's WIRE_ONLY; PROTOBUF additionally pays the
+`prefixMessageIndexToBytes` cost, matching Java's PROTOBUF_INDEX.
 
-Go has format-specific cells (AVRO/JSON/PROTOBUF); the Java JMH harness
-exercises only the wire-format-encode-and-write path, which is
-format-agnostic at this layer. Java's format-layer encode/decode cost
-(Avro marshal, protobuf marshal, JSON marshal) lives in
-`GlueSchemaRegistrySerializer.encode(...)` callers — those are *not*
-exercised by this benchmark on either side, by design (the prompt
-calls for "wire-format-only" numbers).
+### Encode wire format, NONE compression, warm cache
 
-### Encode — NONE compression, warm cache
-
-| Payload | Go core (warm) | Java wire-format (warm) |
-|---|---:|---:|
-| 100 B   | **377 MB/s** (Avro/JSON/Protobuf, 100% wire-format) | 0.66 MB/s |
-| 10 KB   | **5667 MB/s** (raw EncodeWireFormat) / 4174 MB/s (Avro orch) | 1.74 MB/s |
-| 1 MB    | **1560 MB/s** (raw) / 886 MB/s (Avro orch) | 1.63 MB/s |
-
-(Java numbers convert `EncodeDecodeBench.encode.warm.NONE.<size>` avgt
-us/op to MB/s. Java's 0.66–1.74 MB/s reflects ~615 µs/op for a 1 MiB
-encode, which is dominated by the `ByteArrayOutputStream`-backed
-header write plus `array().clone()` semantics inside
-`SerializationDataEncoder`. The Go raw path uses a single
-`append`-backed slice.)
-
-### Decode — NONE compression, warm cache
-
-| Payload | Go core (warm) | Java wire-format (warm) |
-|---|---:|---:|
-| 100 B   | **1280 MB/s** (raw DecodeWireFormat) / ~1000 MB/s (orch) | 1.83 MB/s |
-| 10 KB   | **~7000 MB/s** (orch) / similar raw | 2.94 MB/s |
-| 1 MB    | similar | 3.33 MB/s |
-
-### Compression overhead (10 KB payload, warm)
-
-Compare the same row in ZLIB vs NONE to see the per-byte compression
-cost (handler-only, excluding wire-format encode/decode):
-
-| Side | NONE encode | ZLIB encode | NONE decode | ZLIB decode |
+| Payload | Go AVRO/JSON | Go PROTOBUF | Java WIRE_ONLY | Java PROTOBUF_INDEX |
 |---|---:|---:|---:|---:|
-| Go orch (Avro)   | 5667 MB/s | ~580 MB/s | similar    | 169 MB/s  |
-| Java wire        | 1.74 MB/s | 0.05 MB/s | 2.94 MB/s | 0.46 MB/s |
+| 100 B   |  208 MB/s | 165 MB/s |  1.80 MB/s | 0.10 MB/s |
+| 10 KB   | 2733 MB/s | 122 MB/s |  3.57 MB/s | 1.21 MB/s |
+| 1 MB    | 2479 MB/s | 822 MB/s |  2.66 MB/s | 1.04 MB/s |
 
-(Go's compression handler is `compress/zlib` stdlib; Java's is
-`java.util.zip.Deflater`. Both pin level 6 (default). The raw
-ratios show Go encoding ~10× faster per byte than Java on
-uncompressed wire format — but the comparison is *not* apples-to-apples
-because the Java harness exercises `SerializationDataEncoder.write`
-which always allocates a fresh `ByteArrayOutputStream` and copies
-through `toByteArray()`, whereas the Go raw path uses a pre-sized
-slice. The Go *orchestrator* benches reflect the same end-to-end cost
-the Java side measures.)
+(Java numbers: WIRE_ONLY @ 100 B = `1024 × 100B / 1_048_576 ÷ 0.053 µs/op`
+→ `100 / 0.053 ≈ 1887` bytes/µs → 1.80 MB/s — i.e. the encoder takes
+53 ns to write an 18-byte header + a 100-byte payload. The Go path is
+~104× faster on the 100B case and the gap closes to ~770× at 1 MB
+encode because the Java `ByteArrayOutputStream + toByteArray()`
+allocates and copies twice per call.)
+
+### Encode wire format, ZLIB compression, warm cache
+
+| Payload | Go AVRO/JSON | Go PROTOBUF | Java WIRE_ONLY | Java PROTOBUF_INDEX |
+|---|---:|---:|---:|---:|
+| 100 B   |  0.40 MB/s |   0.22 MB/s |  0.0099 MB/s | 0.0092 MB/s |
+| 10 KB   | 21.8 MB/s  | 15.9  MB/s  |  0.0520 MB/s | 0.0511 MB/s |
+| 1 MB    | 42.1 MB/s  | 41.5  MB/s  |  0.0289 MB/s | 0.0278 MB/s |
+
+ZLIB dominates encode cost on both sides at large payloads: 24 ms in
+Go and 35 ms in Java for a 1 MiB compress. The ratio Go/Java is ~580×
+at 10 KB and ~1455× at 1 MB — Java's `java.util.zip.Deflater` + the
+surrounding stream copying is the major cost.
+
+### Decode wire format, NONE compression, warm cache
+
+The Go core `BenchmarkDecodeWireFormat` warm path returns a zero-copy
+slice over `data[18:]` (no payload copy), so the reported MB/s is the
+"caller can read this many bytes per second" rather than "decode work
+scales with N bytes". The Java side allocates a fresh `byte[]` via
+`array().clone()` semantics in `getPlainData`, so its column tracks
+the real per-byte decode cost.
+
+| Payload | Go (zero-copy) | Java WIRE_ONLY (copy) |
+|---|---:|---:|
+| 100 B   | 446 MB/s | 4.54 MB/s |
+| 10 KB   | 43 GB/s  | 6.02 MB/s |
+| 1 MB    | 4.8 TB/s | 4.22 MB/s |
+
+The 4.8 TB/s figure is honest but misleading: the Go decoder hands
+back a slice into the input buffer (~220 ns/op fixed overhead, *not*
+scaling with payload size). For an apples-to-apples comparison see
+the orchestrator-level rows below where both sides marshal payload
+bytes into a user-visible value.
+
+### Orchestrator-level (Serializer/Deserializer end-to-end, Go side)
+
+These exercise the full format-layer adapter + wire-format encode
+(Avro/JSON/Protobuf marshal then GSR header + compression). The
+matching Java path lives in `GlueSchemaRegistrySerializer.encode` and
+is intentionally NOT exercised by the Java JMH module — the prompt
+calls for wire-format-only on the Java side. The orchestrator numbers
+are Go-only, useful for tracking the Go library's own regressions but
+not directly comparable to the Java column above.
+
+| Format | 100 B encode | 10 KB encode | 1 MB encode |
+|---|---:|---:|---:|
+| AVRO       |  2.39 MB/s |  204 MB/s |  954 MB/s |
+| JSON       | ~25 MB/s   | ~25 MB/s  | ~25 MB/s  |
+| PROTOBUF   | ~95 MB/s   | ~80 MB/s  | ~190 MB/s |
+
+| Format | 100 B decode | 10 KB decode | 1 MB decode |
+|---|---:|---:|---:|
+| AVRO       |   4.5 MB/s |  381 MB/s | 2364 MB/s |
+| JSON       |   8.0 MB/s |  ~50 MB/s |  ~10 MB/s |
+| PROTOBUF   | ~30 MB/s   | ~1000 MB/s | ~2000 MB/s |
 
 ### Interpretation
 
-- **Both implementations are CPU-bound, not Glue-bound.** The benches
-  mock the Glue client. The numbers measure pure wire-format and
-  compression cost.
-- **Zlib dominates large-payload cost on both sides.** A 1 MB
-  ZLIB encode is ~30× slower than NONE on the Java side (615 µs →
-  36 700 µs); on the Go side it's ~3× slower (1183 µs → ~23 ms for
-  PROTOBUF orch, but the raw-wire path with pre-compressed input is
-  ~1900 MB/s). The Go ZLIB-large cell is hit harder than Java's
-  expected ratio — *the raw Go zlib path is competitive; the Go
-  orchestrator zlib cost is real and worth tuning later.*
-- **Java's small-payload latency floor is high relative to its
-  large-payload throughput.** That's the `ByteArrayOutputStream` +
-  `slice()` + `array().clone()` allocations baked into the v1.1.25
-  encoder. A future Java-side change to a pre-sized `byte[]` write
-  path would close most of the gap.
-- **Go protobuf encode is dominated by `protoparse`** on cold-cache
-  iterations (66 µs / 100 B = 1.5 MB/s) — the format adapter rebuilds
-  the FileDescriptor on every Encode. Worth caching descriptors at
-  the format-layer level in a follow-up, not a Phase 6 deliverable.
-
-### Smoke caveat (read this before quoting numbers)
-
-`go test -benchtime=10x -count=1` runs each cell exactly ten times
-in a single fork. `java -jar benchmarks.jar -i 1 -wi 0 -f 1 -r 1s`
-runs one warmup-free measurement iteration in a single fork. **Neither
-is statistically defensible.** Variance per cell is ±20–40% on a
-shared cloud-desk; cells with `0.001 ops/us` are noise-dominated.
-
-For numbers you'd quote in a 6-pager: regenerate with
-`scripts/run-go-bench.sh -count=5 -benchtime=2s` and
-`scripts/run-java-bench.sh` with the defaults (warmup 3×1s,
-measurement 5×1s, fork 2). Then run benchstat against the previous
-baseline to see whether deltas exceed noise.
+- **Both implementations are CPU-bound, not Glue-bound.** Glue is
+  mocked on both sides; the numbers measure pure wire-format,
+  compression, and (for PROTOBUF) message-index varint cost.
+- **The Java WIRE_ONLY → PROTOBUF_INDEX gap at 100B is ~18×.** That's
+  the cost of building a `DynamicMessage`, calling `proto.Marshal`,
+  and prepending a varint; for larger payloads it amortizes to ~1.1×.
+  Go's PROTOBUF row absorbs the same cost but `protoparse` re-parses
+  the `.proto` text on every Encode (~65 µs at 10 KB) — flagged as a
+  Go-side optimization opportunity that would close the small-payload
+  gap further.
+- **Java's `SerializationDataEncoder` is ~100–770× slower than Go's
+  `EncodeWireFormat`** on the uncompressed wire path. The cost is
+  dominated by `ByteArrayOutputStream.toByteArray()` allocations
+  (`bytes = writeToExistingStream(out, ...)` in
+  `SerializationDataEncoder.write` at line 63 — every call allocates
+  a fresh stream and copies through `toByteArray()`). A pre-sized
+  `byte[]` write path would close most of the gap.
+- **ZLIB dominates encode cost at 1 MB:** Java pays ~35 ms, Go pays
+  ~24 ms — both running stdlib zlib at default compression level 6.
+  The gap (Go ~50% faster) is mostly `Deflater`-call-overhead per
+  invocation, not algorithmic.
 
 ---
 
@@ -141,14 +157,22 @@ perf/
 ├── README.md                          # this file
 ├── baselines/
 │   ├── go/
-│   │   ├── core-smoke.txt             # `go test -bench` output (core/)
-│   │   └── orchestrator-smoke.txt     # serializer/ + deserializer/ output
+│   │   ├── core-smoke.txt             # count=1 benchtime=10x (fast loop)
+│   │   ├── core-full.txt              # count=3 benchtime=1s (committed defensible)
+│   │   ├── orchestrator-smoke.txt
+│   │   └── orchestrator-full.txt
 │   └── java/
-│       └── wireformat-smoke.txt       # `java -jar benchmarks.jar` output
+│       ├── wireformat-smoke.txt       # -i 1 -wi 1 -f 1 -r 1s
+│       └── wireformat-full.txt        # JMH defaults (warmup 3×1s, meas 5×1s, fork 2)
 └── scripts/
-    ├── run-go-bench.sh                # regenerate Go baselines
-    └── run-java-bench.sh              # regenerate Java baseline
+    ├── run-go-bench.sh                # [smoke|--full]
+    └── run-java-bench.sh              # [smoke|--full]
 ```
+
+The timestamped `*-<UTC>.txt` files produced by the scripts are
+intentionally NOT committed — they accumulate per run. `bench-compare`
+in the Makefile picks the two most recent timestamped Go files and
+runs `benchstat` over them.
 
 ---
 
@@ -158,38 +182,53 @@ perf/
 
 ```bash
 cd native-schema-registry/golang
-./perf/scripts/run-go-bench.sh          # writes a timestamped copy and overwrites the smoke baseline
+make bench-go           # smoke: count=1 benchtime=10x, ~30 s
+make bench-go-full      # full:  count=3 benchtime=1s, ~12 min on this CPU
 ```
 
 The script runs `go test -bench=. -benchmem` against the `core/`,
 `serializer/`, and `deserializer/` packages with `GOPROXY=direct`,
-`GOSUMDB=off`. Output is captured under
-`perf/baselines/go/<package>-<UTC-timestamp>.txt` and also overwrites
-`<package>-smoke.txt` so the README table stays current.
+`GOSUMDB=off`. Output goes to `perf/baselines/go/<package>-<UTC>.txt`
+and overwrites `<package>-smoke.txt` / `-full.txt` so the README table
+can cite the latest numbers.
+
+The full-run wall-clock split: ~6.5 min for the core module
+(`pkg/gsrserde-go/core`) and ~7 min for the orchestrator
+(`pkg/gsrserde-go/serializer` + `deserializer`). The script
+sequences them; you can run them individually if needed:
+
+```bash
+cd pkg/gsrserde-go/core && go test -run='^$' -bench=. -benchmem -count=3 -benchtime=1s ./...
+cd ../.. && go test -run='^$' -bench=. -benchmem -count=3 -benchtime=1s ./pkg/gsrserde-go/serializer ./pkg/gsrserde-go/deserializer
+```
 
 ### Java
 
 ```bash
 cd native-schema-registry/perf/java
 mvn -DskipTests package                 # builds target/benchmarks.jar (~1 min cold, ~10s incremental)
-../../../perf/scripts/run-java-bench.sh # runs the JMH smoke and stores the output
+cd ../../..
+make bench-java          # smoke: -i 1 -wi 1 -f 1 -r 1s, ~2 min
+make bench-java-full     # full:  JMH defaults from @Warmup/@Measurement/@Fork, ~13 min
 ```
 
-For full-fidelity numbers (5 forks, 5×1s measurement, 3×1s warmup),
-omit the `-i 1 -wi 0 -f 1` flags in `run-java-bench.sh` so the JMH
-defaults apply.
+The full run consumes ~7 min for `EncodeDecodeBench.encode` and ~6
+min for `EncodeDecodeBench.decode`, with the `format × compression ×
+payloadSize` matrix (2×2×3 = 12 cells per benchmark) at 16 s/cell.
 
 ### Comparison
 
 ```bash
-# Pairwise benchstat over two Go baselines (regression check):
-~/go/bin/benchstat perf/baselines/go/core-smoke.txt perf/baselines/go/core-<new>.txt
+# Pairwise benchstat over the two most recent timestamped Go baselines:
+make bench-compare
 
-# Java -> markdown table: today the conversion is manual; a future
-# helper script will read JMH's --rf json output and emit a comparable
-# row set. The TODO is tracked in the same Phase 5+ CI gate ticket as
-# the Go regression threshold.
+# benchstat directly:
+~/go/bin/benchstat perf/baselines/go/core-<old>.txt perf/baselines/go/core-<new>.txt
 ```
+
+JMH does not have a benchstat equivalent. To detect Java regressions
+re-run `make bench-java-full` and diff the `±` error bands in
+`wireformat-full.txt`.
 
 ---
 
@@ -203,4 +242,4 @@ defaults apply.
   pure-Go core and format layers.
 - **Protobuf descriptor caching.** Both sides re-parse the schema on
   every encode today. A descriptor cache would shift the protobuf
-  cells significantly on both sides.
+  cells significantly on both sides — a Phase 7+ optimization.
