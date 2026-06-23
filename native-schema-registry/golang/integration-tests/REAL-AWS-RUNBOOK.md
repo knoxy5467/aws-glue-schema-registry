@@ -98,10 +98,18 @@ exercises roughly:
   Tests: `TestCompatibility_BackwardV1ToV2` (v1, v2 under BACKWARD),
   `TestCompatibility_ForwardV2ToV1` (v2, v1 under FORWARD).
 - **1** `RequiresRealGlue=true` companion
-  (`TestCompatibility_IncompatibleRejected_Real`): iter 1 = 3 calls
-  (same as above), iter 2 = 2 calls (GetSchemaByDefinition miss +
-  CreateSchema rejection — no Register fall-through because the
-  server enforced the rejection). ≈ **5 calls**.
+  (`TestCompatibility_IncompatibleRejected_Real`). This test ONLY
+  calls `enc.Encode` (no `dec.Decode`), so the per-iteration shape
+  is one call shorter than the round-trip tests above — no
+  `GetSchemaVersion` hop:
+  - iter 1 (v1, accepted): `GetSchemaByDefinition` (miss) +
+    `CreateSchema` = 2 calls.
+  - iter 2 (v2, server-rejected): `GetSchemaByDefinition` (miss) +
+    `CreateSchema` (rejected with `InvalidInputException`) =
+    2 calls. No fall-through to `RegisterSchemaVersion`: the
+    encoder bubbles the typed error up (Phase 4.5 bug-2 fix gates
+    fall-through on `EntityNotFoundException`, not on every error).
+  - **≈ 4 calls** for this test.
 - **1** negative decode that reaches Glue
   (`TestNegative_UnknownVersionUUID` → 1 `GetSchemaVersion`).
 - Cleanup pass via `realglue.Cleanup.Run` at teardown: one
@@ -109,7 +117,7 @@ exercises roughly:
   ForwardV2ToV1, IncompatibleRejected_Real all `TrackSchema`).
 
 Total Glue control-plane calls per `make test-integ-real` run:
-**roughly 23**. (Phase 4.7's earlier "<50" was an order-of-magnitude
+**roughly 22**. (Phase 4.7's earlier "<50" was an order-of-magnitude
 ceiling; this breakdown is the per-test reality.)
 
 Phase 4.8 nit #8 / review-of-review #3: the previous per-test

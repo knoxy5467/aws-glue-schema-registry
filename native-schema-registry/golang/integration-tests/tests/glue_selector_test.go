@@ -139,11 +139,10 @@ func scenarioGate(t testing.TB, requiresReal, requiresFake bool) {
 // bytes so a future canary-style continuous loop inherits the
 // stronger guarantee the comment implied.
 //
-// The "gsr-go-it-" prefix is significant: REAL-AWS-RUNBOOK.md's
-// post-run leak check runs `aws glue list-schemas
-// --registry-id RegistryName=default-registry --query
-// 'Schemas[?starts_with(SchemaName, ` + "`gsr-go-it-`" + `)].SchemaName'`
-// and matches on that exact prefix.
+// The "gsr-go-it-" prefix is significant: it is matched by the
+// post-run leak check in integration-tests/REAL-AWS-RUNBOOK.md
+// ("Post-run cleanup verification" section). If you change the
+// prefix here, update that command in lock-step.
 func randomGlueName(t testing.TB, base string) string {
 	t.Helper()
 	var buf [8]byte
