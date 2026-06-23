@@ -83,6 +83,18 @@
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
         </dependency>
+        <!--
+          protobuf-java-util adds JsonFormat for DynamicMessage <-> JSON.
+          schema-registry-serde transitively pulls protobuf-java; util is
+          a separate jar that we need explicitly for the JsonFormat parser
+          and printer the Kafka-in-the-loop handlers use to reconstruct
+          and re-encode DynamicMessage instances.
+        -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>3.25.5</version>
+        </dependency>
         <!-- Quiet SLF4J: GSR pulls slf4j-api; bind a no-op impl in the fat JAR. -->
         <dependency>
             <groupId>org.slf4j</groupId>

@@ -1,39 +1,38 @@
 /*
  * POST /kafka-consume — Java consumer in a cross-language interop test.
  *
+ * Phase 4.6.5: drives the FULL Kafka customer API — exact same library
+ * entry point a real Java GSR Kafka consumer would use.
+ *
  * Request body (JSON):
  *   {
- *     "bootstrap":  "<kafka bootstrap servers>",
- *     "topic":      "<kafka topic name>",
- *     "groupId":    "<consumer group id>",      // optional; defaults to random
- *     "region":     "<aws region>",             // optional
- *     "timeoutMs":  <int>                       // optional poll budget, default 30000
+ *     "bootstrap": "<kafka bootstrap servers>",
+ *     "topic":     "<kafka topic name>",
+ *     "format":    "AVRO" | "JSON" | "PROTOBUF",   // needed to re-encode the typed record
+ *     "groupId":   "<optional consumer group>",
+ *     "region":    "<aws region, optional>",
+ *     "timeoutMs": 30000                            // optional
  *   }
  *
- * What the handler does:
- *   1. Polls Kafka for ONE record (or times out).
- *   2. Parses the GSR header via the real Java deserializer-data-parser:
- *      extracts schemaVersionId UUID and the decompressed payload bytes.
- *   3. Calls AWSSchemaRegistryClient.getSchemaVersionResponse(UUID) against
- *      real AWS Glue to resolve the schema — this is the real-interop
- *      signal that the producer (other language) registered the schema
- *      we're now looking up.
+ * Behavior:
+ *   1. Plain KafkaConsumer<byte[],byte[]> polls one record.
+ *   2. GlueSchemaRegistryKafkaDeserializer.deserialize(topic, bytes) →
+ *      typed Java record. This is the symmetric call to the producer side.
+ *   3. RecordCodec.recordToEnvelope serializes back to the per-format JSON
+ *      envelope the Go test asserts against.
  *
  * Response body (JSON):
- *   {
- *     "payload":          "<base64 of decompressed payload>",
- *     "schemaVersionId":  "<UUID>",
- *     "schemaDefinition": "<string>",
- *     "dataFormat":       "AVRO" | "JSON" | "PROTOBUF",
- *     "schemaArn":        "<arn>"
- *   }
+ *   { "schemaVersionId", "dataFormat", "schemaDefinition", "schemaArn",
+ *     "record": <per-format envelope> }
  *
- * On timeout returns 404 with { "error": "no record within <ms>ms" }.
+ * On poll timeout: 404 with { "error": "no record within <ms>ms" }.
  */
 package com.amazonaws.services.schemaregistry.interop;
 
 import com.amazonaws.services.schemaregistry.common.AWSSchemaRegistryClient;
 import com.amazonaws.services.schemaregistry.deserializers.GlueSchemaRegistryDeserializerDataParser;
+import com.amazonaws.services.schemaregistry.deserializers.GlueSchemaRegistryKafkaDeserializer;
+import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -48,8 +47,9 @@ import software.amazon.awssdk.services.glue.model.GetSchemaVersionResponse;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -67,23 +67,24 @@ public final class KafkaConsumeHandler implements HttpHandler {
             JsonNode req = MAPPER.readTree(exchange.getRequestBody());
             String bootstrap = HttpUtil.requireString(req, "bootstrap");
             String topic = HttpUtil.requireString(req, "topic");
+            String format = HttpUtil.requireString(req, "format");
             String groupId = req.hasNonNull("groupId")
                     ? req.get("groupId").asText()
                     : "gsr-interop-" + UUID.randomUUID();
             String region = req.hasNonNull("region") ? req.get("region").asText(null) : null;
             int timeoutMs = req.hasNonNull("timeoutMs") ? req.get("timeoutMs").asInt(DEFAULT_TIMEOUT_MS) : DEFAULT_TIMEOUT_MS;
 
-            // 1. Poll Kafka.
-            Properties props = new Properties();
-            props.put("bootstrap.servers", bootstrap);
-            props.put("group.id", groupId);
-            props.put("key.deserializer", ByteArrayDeserializer.class.getName());
-            props.put("value.deserializer", ByteArrayDeserializer.class.getName());
-            props.put("auto.offset.reset", "earliest");
-            props.put("enable.auto.commit", "false");
+            // 1. Poll Kafka for one framed message.
+            Properties consumerProps = new Properties();
+            consumerProps.put("bootstrap.servers", bootstrap);
+            consumerProps.put("group.id", groupId);
+            consumerProps.put("key.deserializer", ByteArrayDeserializer.class.getName());
+            consumerProps.put("value.deserializer", ByteArrayDeserializer.class.getName());
+            consumerProps.put("auto.offset.reset", "earliest");
+            consumerProps.put("enable.auto.commit", "false");
 
             byte[] framed;
-            try (KafkaConsumer<byte[], byte[]> consumer = new KafkaConsumer<>(props)) {
+            try (KafkaConsumer<byte[], byte[]> consumer = new KafkaConsumer<>(consumerProps)) {
                 consumer.subscribe(Collections.singletonList(topic));
                 long deadline = System.currentTimeMillis() + timeoutMs;
                 framed = null;
@@ -101,21 +102,34 @@ public final class KafkaConsumeHandler implements HttpHandler {
                 return;
             }
 
-            // 2. Parse the GSR header + decompress.
-            GlueSchemaRegistryDeserializerDataParser parser = GlueSchemaRegistryDeserializerDataParser.getInstance();
-            UUID schemaVersionId = parser.getSchemaVersionId(ByteBuffer.wrap(framed));
-            byte[] plain = parser.getPlainData(ByteBuffer.wrap(framed));
+            // 2. Hand to the real GSR Kafka deserializer. Configure with the
+            // same property surface a real Kafka consumer would supply.
+            Map<String, Object> gsrConfigs = new HashMap<>();
+            gsrConfigs.put(AWSSchemaRegistryConstants.AWS_REGION,
+                    region != null ? region : RealGlueClient.defaultRegion());
+            if ("PROTOBUF".equals(format)) {
+                gsrConfigs.put(AWSSchemaRegistryConstants.PROTOBUF_MESSAGE_TYPE, "DYNAMIC_MESSAGE");
+            }
 
-            // 3. Resolve the schema via real Glue — the cross-language signal.
-            AWSSchemaRegistryClient client = RealGlueClient.get(region);
-            GetSchemaVersionResponse schemaResp = client.getSchemaVersionResponse(schemaVersionId.toString());
+            GlueSchemaRegistryKafkaDeserializer kafkaDeserializer =
+                    new GlueSchemaRegistryKafkaDeserializer(gsrConfigs);
+            Object javaRecord = kafkaDeserializer.deserialize(topic, framed);
+
+            // 3. Resolve schema metadata for the response (so the test
+            // can sanity-check the registered schema definition matches
+            // what the producer side claims).
+            UUID schemaVersionId = GlueSchemaRegistryDeserializerDataParser.getInstance()
+                    .getSchemaVersionId(ByteBuffer.wrap(framed));
+            AWSSchemaRegistryClient glueClient = RealGlueClient.get(region);
+            GetSchemaVersionResponse schemaResp =
+                    glueClient.getSchemaVersionResponse(schemaVersionId.toString());
 
             ObjectNode resp = MAPPER.createObjectNode();
-            resp.put("payload", Base64.getEncoder().encodeToString(plain));
             resp.put("schemaVersionId", schemaVersionId.toString());
-            resp.put("schemaDefinition", schemaResp.schemaDefinition());
             resp.put("dataFormat", schemaResp.dataFormat().toString());
+            resp.put("schemaDefinition", schemaResp.schemaDefinition());
             resp.put("schemaArn", schemaResp.schemaArn());
+            resp.set("record", RecordCodec.recordToEnvelope(format, javaRecord));
             HttpUtil.writeJson(exchange, 200, resp);
         } catch (IllegalArgumentException e) {
             HttpUtil.writeError(exchange, 400, e.getMessage());

@@ -1,47 +1,44 @@
 /*
  * POST /kafka-produce — Java producer in a cross-language interop test.
  *
+ * Phase 4.6.5: drives the FULL Kafka customer API — same library entry
+ * point a real Java GSR Kafka producer would use — so the test exercises
+ * the format-specific serializer (including PROTOBUF's message-index
+ * prefix) and the Glue register/lookup, not just the wire-format envelope.
+ *
  * Request body (JSON):
  *   {
  *     "format":      "AVRO" | "JSON" | "PROTOBUF",
  *     "schema":      "<schema definition string>",
- *     "schemaName":  "<schema name>",        // must match the gsr-go-it-* prefix
- *     "payload":     "<base64 of pre-encoded record bytes>",
+ *     "schemaName":  "<schema name>",
+ *     "record":      <per-format JSON envelope; see RecordCodec>
  *     "compression": "NONE" | "ZLIB",
  *     "bootstrap":   "<kafka bootstrap servers>",
  *     "topic":       "<kafka topic name>",
- *     "region":      "<aws region>"          // optional; falls back to AWS_REGION or us-east-2
+ *     "region":      "<aws region, optional>"
  *   }
  *
- * What the handler does:
- *   1. Calls SchemaByDefinitionFetcher.getORRegisterSchemaVersionId(...)
- *      to register the schema with real AWS Glue (or fetch the UUID if
- *      it already exists). This is the call the Go consumer must later
- *      see when it resolves the UUID — that's the "real interop" signal.
- *   2. Frames the payload via SerializationDataEncoder.write(...) — same
- *      18-byte header + zlib body that the Go wire-format module emits.
- *   3. Produces one record to the requested Kafka topic via plain
- *      KafkaProducer<byte[], byte[]>; key is null.
+ * Behavior:
+ *   1. RecordCodec.buildRecord rebuilds the typed Java record
+ *      (GenericRecord / JsonDataWithSchema / DynamicMessage) from the
+ *      envelope.
+ *   2. GlueSchemaRegistryKafkaSerializer.serialize(topic, record) → byte[]
+ *      registers the schema with real Glue (auto-registration on) and
+ *      returns the framed bytes — same call path a real Java customer hits.
+ *   3. Plain KafkaProducer<byte[], byte[]> ships one record to Kafka.
  *
  * Response body (JSON):
- *   {
- *     "schemaVersionId": "<UUID>",        // what got written into the GSR header
- *     "bytes":           "<base64>",      // the framed bytes shipped to Kafka
- *     "offset":          <long>,          // partition offset of the produced record
- *     "partition":       <int>
- *   }
+ *   { "schemaVersionId", "bytes", "offset", "partition" }
  *
- * NEVER pre-validates the payload against the schema (e.g. JSON validate,
- * proto descriptor check) — interop tests pre-encode on the Go side and
- * just need the Java framing + Glue path. Validating here would force a
- * second cross-language object-shape contract.
+ * The schemaVersionId is parsed back out of the framed bytes' GSR header
+ * because GlueSchemaRegistryKafkaSerializer doesn't expose the registered
+ * UUID directly through its Serializer interface — the header round-trip
+ * is the cheapest reliable way to surface it for the test's assertions.
  */
 package com.amazonaws.services.schemaregistry.interop;
 
-import com.amazonaws.services.schemaregistry.common.AWSSchemaRegistryClient;
-import com.amazonaws.services.schemaregistry.common.SchemaByDefinitionFetcher;
-import com.amazonaws.services.schemaregistry.common.configs.GlueSchemaRegistryConfiguration;
-import com.amazonaws.services.schemaregistry.serializers.SerializationDataEncoder;
+import com.amazonaws.services.schemaregistry.deserializers.GlueSchemaRegistryDeserializerDataParser;
+import com.amazonaws.services.schemaregistry.serializers.GlueSchemaRegistryKafkaSerializer;
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,6 +51,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -74,31 +72,35 @@ public final class KafkaProduceHandler implements HttpHandler {
             String format = HttpUtil.requireString(req, "format");
             String schemaDef = HttpUtil.requireString(req, "schema");
             String schemaName = HttpUtil.requireString(req, "schemaName");
-            byte[] payload = Base64.getDecoder().decode(HttpUtil.requireString(req, "payload"));
             String compression = req.hasNonNull("compression") ? req.get("compression").asText("NONE") : "NONE";
             String bootstrap = HttpUtil.requireString(req, "bootstrap");
             String topic = HttpUtil.requireString(req, "topic");
             String region = req.hasNonNull("region") ? req.get("region").asText(null) : null;
+            JsonNode recordEnv = req.get("record");
+            if (recordEnv == null || !recordEnv.isObject()) {
+                throw new IllegalArgumentException("missing required field: record (object)");
+            }
 
-            // 1. Register (or fetch) the schema in real Glue.
-            Map<String, Object> configs = new HashMap<>();
-            configs.put(AWSSchemaRegistryConstants.AWS_REGION,
+            Object javaRecord = RecordCodec.buildRecord(format, schemaDef, recordEnv);
+
+            // Configure the GSR Kafka serializer with the same property keys
+            // a real Kafka customer would set on the Producer config.
+            Map<String, Object> gsrConfigs = new HashMap<>();
+            gsrConfigs.put(AWSSchemaRegistryConstants.AWS_REGION,
                     region != null ? region : RealGlueClient.defaultRegion());
-            configs.put(AWSSchemaRegistryConstants.COMPRESSION_TYPE, compression);
-            configs.put(AWSSchemaRegistryConstants.SCHEMA_AUTO_REGISTRATION_SETTING, "true");
-            GlueSchemaRegistryConfiguration cfg = new GlueSchemaRegistryConfiguration(configs);
+            gsrConfigs.put(AWSSchemaRegistryConstants.SCHEMA_NAME, schemaName);
+            gsrConfigs.put(AWSSchemaRegistryConstants.DATA_FORMAT, format);
+            gsrConfigs.put(AWSSchemaRegistryConstants.COMPRESSION_TYPE, compression);
+            gsrConfigs.put(AWSSchemaRegistryConstants.COMPATIBILITY_SETTING, "NONE");
+            gsrConfigs.put(AWSSchemaRegistryConstants.SCHEMA_AUTO_REGISTRATION_SETTING, true);
+            if ("PROTOBUF".equals(format)) {
+                gsrConfigs.put(AWSSchemaRegistryConstants.PROTOBUF_MESSAGE_TYPE, "DYNAMIC_MESSAGE");
+            }
 
-            AWSSchemaRegistryClient client = RealGlueClient.get(region);
-            SchemaByDefinitionFetcher fetcher = new SchemaByDefinitionFetcher(client, cfg);
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put(AWSSchemaRegistryConstants.TRANSPORT_METADATA_KEY, topic);
-            UUID schemaVersionId = fetcher.getORRegisterSchemaVersionId(schemaDef, schemaName, format, metadata);
+            GlueSchemaRegistryKafkaSerializer kafkaSerializer = new GlueSchemaRegistryKafkaSerializer(gsrConfigs);
+            byte[] framed = kafkaSerializer.serialize(topic, javaRecord);
 
-            // 2. Frame with the real GSR header.
-            SerializationDataEncoder encoder = new SerializationDataEncoder(cfg);
-            byte[] framed = encoder.write(payload, schemaVersionId);
-
-            // 3. Produce to Kafka.
+            // Plain bytes producer — Kafka is just transport here.
             Properties props = new Properties();
             props.put("bootstrap.servers", bootstrap);
             props.put("key.serializer", ByteArraySerializer.class.getName());
@@ -111,6 +113,11 @@ public final class KafkaProduceHandler implements HttpHandler {
                 ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, null, framed);
                 md = producer.send(record).get();
             }
+
+            // Recover the registered UUID from the GSR header for the test's
+            // assertions.
+            UUID schemaVersionId =
+                    GlueSchemaRegistryDeserializerDataParser.getInstance().getSchemaVersionId(ByteBuffer.wrap(framed));
 
             ObjectNode resp = MAPPER.createObjectNode();
             resp.put("schemaVersionId", schemaVersionId.toString());
