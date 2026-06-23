@@ -12,7 +12,6 @@
 package serializer
 
 import (
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -21,9 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/glue/types"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
 
 	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
@@ -31,41 +28,8 @@ import (
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/avro"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 	gsrjson "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer/json"
+	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/test_helpers"
 )
-
-// benchProtoFileDescriptor lazy-builds a FileDescriptor for a single-message
-// schema (package=perf, message=Payload { bytes blob = 1 }). dynamicpb wraps
-// any descriptor so the bench can produce a proto.Message without depending
-// on an integration-tests-only generated .pb.go file.
-//
-// Built once per process; benchmarks share the descriptor via newBenchProtoMessage.
-var benchProtoFileDescriptor protoreflect.FileDescriptor
-
-func init() {
-	fdProto := &descriptorpb.FileDescriptorProto{
-		Name:    proto.String("perf.proto"),
-		Package: proto.String("perf"),
-		Syntax:  proto.String("proto3"),
-		MessageType: []*descriptorpb.DescriptorProto{
-			{
-				Name: proto.String("Payload"),
-				Field: []*descriptorpb.FieldDescriptorProto{
-					{
-						Name:     proto.String("blob"),
-						Number:   proto.Int32(1),
-						Type:     descriptorpb.FieldDescriptorProto_TYPE_BYTES.Enum(),
-						JsonName: proto.String("blob"),
-					},
-				},
-			},
-		},
-	}
-	fd, err := protodesc.NewFile(fdProto, nil)
-	if err != nil {
-		panic(fmt.Errorf("build proto file descriptor: %w", err))
-	}
-	benchProtoFileDescriptor = fd
-}
 
 const benchSerVersionID = "11111111-1111-1111-1111-111111111111"
 
@@ -89,34 +53,36 @@ var benchSerCompressionModes = []struct {
 	{"ZLIB", "ZLIB"},
 }
 
+// benchSerPayloadBytes delegates to the shared test_helpers fixture, which
+// returns a printable-ASCII pattern. The previous version used crypto/rand
+// which made `json.Marshal(string(rand_bytes))` substitute U+FFFD for
+// invalid UTF-8 — distorting the JSON MB/s denominator (Phase 6.1 review
+// finding 3). ASCII keeps JSON's encoder lossless and the SetBytes()
+// reading honest while still defeating trivial-input compression.
 func benchSerPayloadBytes(size int) []byte {
-	out := make([]byte, size)
-	if _, err := rand.Read(out); err != nil {
-		panic(err)
-	}
-	return out
+	return test_helpers.PerfPayload(size)
 }
 
 // avroDataForBench wraps payload bytes in an *avro.AvroRecord whose schema
-// declares a single `bytes` field. hamba/avro will length-prefix and copy
-// the bytes; the throughput number tracks the input size including the
-// length prefix overhead.
+// declares a single `string` field. The schema lives in test_helpers so
+// the deserializer bench can reuse the same definition (avoiding the
+// drift trap of two independent JSON strings — Phase 6.1 review finding 9).
 func avroDataForBench(payload []byte) *avro.AvroRecord {
-	schema := `{"type":"record","name":"PerfRecord","namespace":"perf","fields":[{"name":"blob","type":"bytes"}]}`
-	return avro.NewAvroRecord(schema, map[string]any{"blob": payload})
+	return avro.NewAvroRecord(test_helpers.PerfAvroSchema, map[string]any{"blob": string(payload)})
 }
 
 // jsonDataForBench produces a JsonDataWithSchema wrapper carrying payload
-// bytes as a base64-encoded string. Plain `bytes` isn't a JSON schema
-// primitive, so the wrapper uses `type:string` and the caller is responsible
-// for the encode. base64 inflates by ~33%; benchmarks normalize by the
-// post-encode payload size for SetBytes so MB/s stays interpretable.
+// bytes as a JSON string. Because payload is printable ASCII (see
+// benchSerPayloadBytes), json.Marshal is lossless and the wire bytes are
+// exactly the source bytes plus a small constant `{"blob":"..."}` wrapper —
+// so SetBytes(len(payload)) tracks the actual encoded throughput within
+// a constant factor.
 func jsonDataForBench(payload []byte) *gsrjson.JsonDataWithSchema {
-	schema := `{"type":"object","properties":{"blob":{"type":"string"}},"required":["blob"]}`
-	encoded, _ := json.Marshal(map[string]string{"blob": string(payload)})
-	// Re-quote the bytes via json.Marshal so any non-printable bytes are
-	// properly escaped; the resulting JSON is what the bench measures.
-	wrapper, err := gsrjson.NewJsonDataWithSchema(schema, string(encoded))
+	encoded, err := json.Marshal(map[string]string{"blob": string(payload)})
+	if err != nil {
+		panic(fmt.Errorf("benchSerPayload json.Marshal: %w", err))
+	}
+	wrapper, err := gsrjson.NewJsonDataWithSchema(test_helpers.PerfJSONSchema, string(encoded))
 	if err != nil {
 		panic(err)
 	}
@@ -124,10 +90,11 @@ func jsonDataForBench(payload []byte) *gsrjson.JsonDataWithSchema {
 }
 
 // protoDataForBench builds a dynamic perf.Payload carrying the payload in
-// its single `blob` bytes field. dynamicpb gives us a proto.Message without
-// dragging the integration-tests module into the outer module's deps.
+// its single `blob` bytes field. The descriptor is shared with the
+// deserializer bench via test_helpers.PerfPayloadDescriptor.
 func protoDataForBench(payload []byte) proto.Message {
-	md := benchProtoFileDescriptor.Messages().ByName("Payload")
+	fd := test_helpers.PerfPayloadDescriptor()
+	md := fd.Messages().ByName("Payload")
 	if md == nil {
 		panic("perf.Payload descriptor missing")
 	}
@@ -142,8 +109,16 @@ func protoDataForBench(payload []byte) proto.Message {
 // DefaultSchemaNameStrategy returns the transport name verbatim, which
 // only works for protobuf when the test arranges topic == message-full-name.
 // For Phase 6 benches we use the strategy seam to decouple topic from
-// message-type name. This is a *bench* workaround — the underlying
-// orchestrator-level protobuf-naming asymmetry is tracked elsewhere.
+// message-type name. This is a *bench* workaround.
+//
+// TODO(phase 7+): the orchestrator's protobuf-naming asymmetry is a real
+// gap — core.Encode (encoder.go:111) passes schema.SchemaName to
+// prefixMessageIndexToBytes, but the format-layer puts the proto full
+// message name into schema.AdditionalInfo (protobuf_serializer.go:362),
+// never into SchemaName. Fix is to plumb AdditionalInfo into the
+// message-index lookup OR set SchemaName to the message full name for
+// PROTOBUF data formats. Not in Phase 6 scope; this strategy seam exists
+// only to keep this benchmark exercising the protobuf encode path.
 type fixedSchemaNameStrategy struct{ name string }
 
 func (f fixedSchemaNameStrategy) SchemaName(string) string { return f.name }

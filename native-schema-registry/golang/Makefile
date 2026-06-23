@@ -346,7 +346,8 @@ bench-compare:
 		exit 1; \
 	fi
 	@latest_two=$$(ls -1t $(PERF_ROOT)/baselines/go/core-2*.txt 2>/dev/null | head -2); \
-	count=$$(echo "$$latest_two" | wc -l); \
+	if [ -z "$$latest_two" ]; then count=0; \
+	else count=$$(printf '%s\n' "$$latest_two" | grep -c .); fi; \
 	if [ "$$count" -lt 2 ]; then \
 		echo "Only $$count timestamped Go baseline file(s) — run 'make bench-go' at least twice before benchstat has a delta to report."; \
 		exit 0; \

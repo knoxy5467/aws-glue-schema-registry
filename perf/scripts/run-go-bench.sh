@@ -23,8 +23,8 @@ set -euo pipefail
 
 MODE=${1:-smoke}
 case "$MODE" in
-    smoke) COUNT=1; BENCHTIME=10x ;;
-    --full|full) COUNT=5; BENCHTIME=2s ;;
+    smoke) COUNT=1; BENCHTIME=10x; MODE_LABEL=smoke ;;
+    --full|full) COUNT=5; BENCHTIME=2s; MODE_LABEL=full ;;
     *) echo "usage: $0 [smoke|--full]" >&2; exit 2 ;;
 esac
 
@@ -50,7 +50,7 @@ echo "==> core benches ($MODE, count=$COUNT, benchtime=$BENCHTIME)"
         -timeout=30m \
         ./...
 ) | tee "$OUT_DIR/core-$TS.txt"
-cp "$OUT_DIR/core-$TS.txt" "$OUT_DIR/core-$MODE.txt"
+cp "$OUT_DIR/core-$TS.txt" "$OUT_DIR/core-$MODE_LABEL.txt"
 
 # Outer module (serializer/, deserializer/, etc).
 echo "==> orchestrator benches ($MODE, count=$COUNT, benchtime=$BENCHTIME)"
@@ -65,12 +65,12 @@ echo "==> orchestrator benches ($MODE, count=$COUNT, benchtime=$BENCHTIME)"
         -timeout=30m \
         ./pkg/gsrserde-go/serializer ./pkg/gsrserde-go/deserializer
 ) | tee "$OUT_DIR/orchestrator-$TS.txt"
-cp "$OUT_DIR/orchestrator-$TS.txt" "$OUT_DIR/orchestrator-$MODE.txt"
+cp "$OUT_DIR/orchestrator-$TS.txt" "$OUT_DIR/orchestrator-$MODE_LABEL.txt"
 
 echo
 echo "Wrote:"
 echo "  $OUT_DIR/core-$TS.txt"
 echo "  $OUT_DIR/orchestrator-$TS.txt"
 echo "Updated:"
-echo "  $OUT_DIR/core-$MODE.txt"
-echo "  $OUT_DIR/orchestrator-$MODE.txt"
+echo "  $OUT_DIR/core-$MODE_LABEL.txt"
+echo "  $OUT_DIR/orchestrator-$MODE_LABEL.txt"

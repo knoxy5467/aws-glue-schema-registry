@@ -22,7 +22,6 @@
 package gsrserde
 
 import (
-	"context"
 	"crypto/rand"
 	"fmt"
 	"testing"
@@ -216,28 +215,21 @@ func BenchmarkEncodeWireFormat(b *testing.B) {
 // benchmarks slow down together, the regression is in EncodeWireFormat
 // itself; if only the orchestrated bench slows down, blame the
 // surrounding pipeline.
+//
+// Phase 6.1 review (finding 4) removed the ZLIB sub-benchmark from this
+// floor bench: EncodeWireFormat does not compress, so a "ZLIB" sub-bench
+// with pre-compressed input would measure header construction over a
+// shorter byte slice while SetBytes() reported throughput against the
+// uncompressed source — making ZLIB look spuriously fast. ZLIB cost is
+// covered by BenchmarkEncodeWireFormat above, which exercises the full
+// GsrEncoder.Encode path including compression.
 func BenchmarkEncodeWireFormatRaw(b *testing.B) {
 	for _, sz := range benchPayloadSizes {
 		payload := benchPayload(sz.size)
-		b.Run(fmt.Sprintf("NONE/%s", sz.name), func(b *testing.B) {
+		b.Run(sz.name, func(b *testing.B) {
 			b.SetBytes(int64(len(payload)))
 			for i := 0; i < b.N; i++ {
 				if _, err := EncodeWireFormat(benchSchemaVersionID, CompressionByteNone, payload); err != nil {
-					b.Fatalf("EncodeWireFormat: %v", err)
-				}
-			}
-		})
-		b.Run(fmt.Sprintf("ZLIB/%s", sz.name), func(b *testing.B) {
-			// Pre-compress so the wire-format call is the only thing measured.
-			handler := ZlibCompressionHandler{}
-			compressed, err := handler.Compress(payload)
-			if err != nil {
-				b.Fatalf("zlib: %v", err)
-			}
-			b.SetBytes(int64(len(payload))) // bytes/op uses source size, not compressed
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
-				if _, err := EncodeWireFormat(benchSchemaVersionID, CompressionByteZlib, compressed); err != nil {
 					b.Fatalf("EncodeWireFormat: %v", err)
 				}
 			}
@@ -285,7 +277,3 @@ func runSmokeEncode(b *testing.B, format string) {
 	}
 }
 
-// silence unused-import warnings when the Glue context type is referenced
-// only through the mock — keep the import live so the file compiles in
-// isolation.
-var _ = context.Background
