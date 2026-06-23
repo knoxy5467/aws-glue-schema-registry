@@ -134,8 +134,16 @@ public final class RecordCodec {
         if (msgFullName == null || fieldsJson == null) {
             throw new IllegalArgumentException("PROTOBUF envelope missing messageTypeFullName or fieldsJson");
         }
+        // FileDescriptorUtils.protoFileToFileDescriptor takes a BASENAME
+        // and the package name SEPARATELY — ProtobufSchemaLoader builds
+        // the package's directory hierarchy in its FakeFileSystem and
+        // resolves the basename within it. Passing a path-shaped filename
+        // (e.g. "test/default.proto") makes wire-schema complain about
+        // parent directories. Always pass plain "default.proto".
+        String pkg = extractProtoPackage(schemaDef);
         Descriptors.FileDescriptor fileDesc = FileDescriptorUtils.protoFileToFileDescriptor(
-                schemaDef, "default.proto", Optional.empty());
+                schemaDef, "default.proto",
+                (pkg != null && !pkg.isEmpty()) ? Optional.of(pkg) : Optional.empty());
         Descriptors.Descriptor msgDesc = findMessageDescriptor(fileDesc, msgFullName.asText());
         if (msgDesc == null) {
             throw new IllegalArgumentException("protobuf message type not found in schema: " + msgFullName.asText());
@@ -143,6 +151,20 @@ public final class RecordCodec {
         DynamicMessage.Builder builder = DynamicMessage.newBuilder(msgDesc);
         JsonFormat.parser().ignoringUnknownFields().merge(fieldsJson.asText(), builder);
         return builder.build();
+    }
+
+    /**
+     * Pulls the `package` declaration out of a .proto source string. Returns
+     * empty string when the file has no package line.
+     */
+    private static String extractProtoPackage(String schemaDef) {
+        for (String line : schemaDef.split("\n")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("package ") && trimmed.endsWith(";")) {
+                return trimmed.substring("package ".length(), trimmed.length() - 1).trim();
+            }
+        }
+        return "";
     }
 
     /**

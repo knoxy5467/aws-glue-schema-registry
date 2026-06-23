@@ -110,6 +110,12 @@ public final class KafkaConsumeHandler implements HttpHandler {
             if ("PROTOBUF".equals(format)) {
                 gsrConfigs.put(AWSSchemaRegistryConstants.PROTOBUF_MESSAGE_TYPE, "DYNAMIC_MESSAGE");
             }
+            if ("AVRO".equals(format)) {
+                // Generic record path so we get a GenericRecord back rather
+                // than the deserializer trying to load a generated SpecificRecord
+                // class that doesn't exist on the sidecar classpath.
+                gsrConfigs.put(AWSSchemaRegistryConstants.AVRO_RECORD_TYPE, "GENERIC_RECORD");
+            }
 
             GlueSchemaRegistryKafkaDeserializer kafkaDeserializer =
                     new GlueSchemaRegistryKafkaDeserializer(gsrConfigs);

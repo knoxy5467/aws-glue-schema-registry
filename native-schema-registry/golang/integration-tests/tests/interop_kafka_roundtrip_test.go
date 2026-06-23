@@ -507,8 +507,12 @@ func TestInterop_KafkaGoProduce_JavaConsume(t *testing.T) {
 			defer cancel()
 
 			suffix := uniqueInteropSuffix(t)
-			schemaName := "gsr-go-it-interop-" + tc.schemaNameBase + "-" + suffix
-			topic := "gsr-go-it-interop-" + suffix
+			// On the Go-produce side, the Go serializer's
+			// DefaultSchemaNameStrategy uses topic-as-schema-name, so the
+			// schema registered in Glue is the topic, not whatever name we
+			// might prefer. Track the topic so cleanup deletes it.
+			topic := "gsr-go-it-interop-" + tc.schemaNameBase + "-" + suffix
+			schemaName := topic
 			cleanup.TrackSchema("default-registry", schemaName)
 
 			// Go side produces via serializer.Serializer (real Glue

@@ -108,8 +108,19 @@ func (s *GsrEncoder) Encode(data []byte, transportName string, schema *Schema) (
 	payload := data
 
 	// Protobuf: prepend the message-index varint BEFORE compression.
+	// The message-index is computed from the protobuf message FULL NAME
+	// (e.g. "test.TestMessage"), NOT the Glue schema name. The format
+	// layer sets schema.AdditionalInfo to the proto fully-qualified
+	// message name via SetAdditionalSchemaInfo; that's what we look up.
+	// Fall back to SchemaName for backwards compatibility with callers
+	// that haven't populated AdditionalInfo, but a real protobuf flow
+	// must populate it or the index lookup will fail.
 	if schema.DataFormat == "PROTOBUF" {
-		payload, err = prefixMessageIndexToBytes(payload, schema.SchemaDefinition, schema.SchemaName)
+		messageType := schema.AdditionalInfo
+		if messageType == "" {
+			messageType = schema.SchemaName
+		}
+		payload, err = prefixMessageIndexToBytes(payload, schema.SchemaDefinition, messageType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to prefix protobuf message index: %w", err)
 		}
