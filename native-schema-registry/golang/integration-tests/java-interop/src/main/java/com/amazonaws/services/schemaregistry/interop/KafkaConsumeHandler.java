@@ -68,11 +68,9 @@ public final class KafkaConsumeHandler implements HttpHandler {
             String bootstrap = HttpUtil.requireString(req, "bootstrap");
             String topic = HttpUtil.requireString(req, "topic");
             String format = HttpUtil.requireString(req, "format");
-            String groupId = req.hasNonNull("groupId")
-                    ? req.get("groupId").asText()
-                    : "gsr-interop-" + UUID.randomUUID();
-            String region = req.hasNonNull("region") ? req.get("region").asText(null) : null;
-            int timeoutMs = req.hasNonNull("timeoutMs") ? req.get("timeoutMs").asInt(DEFAULT_TIMEOUT_MS) : DEFAULT_TIMEOUT_MS;
+            String groupId = HttpUtil.optionalString(req, "groupId", "gsr-interop-" + UUID.randomUUID());
+            String region = HttpUtil.optionalString(req, "region", null);
+            int timeoutMs = HttpUtil.optionalInt(req, "timeoutMs", DEFAULT_TIMEOUT_MS);
 
             // 1. Poll Kafka for one framed message.
             Properties consumerProps = new Properties();
@@ -117,6 +115,9 @@ public final class KafkaConsumeHandler implements HttpHandler {
                 gsrConfigs.put(AWSSchemaRegistryConstants.AVRO_RECORD_TYPE, "GENERIC_RECORD");
             }
 
+            // Per-request construction is intentional — see the matching
+            // comment in KafkaProduceHandler. Each request's (region, format)
+            // tuple needs a fresh deserializer instance.
             GlueSchemaRegistryKafkaDeserializer kafkaDeserializer =
                     new GlueSchemaRegistryKafkaDeserializer(gsrConfigs);
             Object javaRecord = kafkaDeserializer.deserialize(topic, framed);

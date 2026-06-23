@@ -435,6 +435,13 @@ func TestInterop_KafkaJavaProduce_GoConsume(t *testing.T) {
 	real, err := realglue.New(startCtx)
 	require.NoError(t, err, "realglue.New")
 	cleanup := real.NewCleanup()
+	// Belt-and-suspenders: subtests TrackSchema explicitly with their
+	// computed schemaName, BUT the Go-produce direction's
+	// DefaultSchemaNameStrategy uses topic-as-schema-name so the
+	// registered Glue name can diverge from what the test predicts. The
+	// prefix scan picks up any gsr-go-it-* schema this run created and
+	// deletes them at teardown, even if the explicit Track missed.
+	cleanup.TrackSchemaPrefix("default-registry", "gsr-go-it-interop-")
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
@@ -493,6 +500,13 @@ func TestInterop_KafkaGoProduce_JavaConsume(t *testing.T) {
 	real, err := realglue.New(startCtx)
 	require.NoError(t, err, "realglue.New")
 	cleanup := real.NewCleanup()
+	// Belt-and-suspenders: subtests TrackSchema explicitly with their
+	// computed schemaName, BUT the Go-produce direction's
+	// DefaultSchemaNameStrategy uses topic-as-schema-name so the
+	// registered Glue name can diverge from what the test predicts. The
+	// prefix scan picks up any gsr-go-it-* schema this run created and
+	// deletes them at teardown, even if the explicit Track missed.
+	cleanup.TrackSchemaPrefix("default-registry", "gsr-go-it-interop-")
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
@@ -542,6 +556,12 @@ func TestInterop_KafkaGoProduce_JavaConsume(t *testing.T) {
 }
 
 // consumeOne reads one message from topic using sarama. Bounded by ctx.
+//
+// Transient partition-consumer errors (e.g. broker leader election during
+// container churn, or KAFKA_BROKER reuse on a not-quite-ready broker) are
+// drained in a background goroutine and logged via t.Logf rather than
+// failing the test. Only ctx expiry produces a fatal — that's the real
+// signal "no message ever arrived".
 func consumeOne(t *testing.T, ctx context.Context, bootstrap, topic string) []byte {
 	t.Helper()
 	cfg := sarama.NewConfig()
@@ -555,11 +575,26 @@ func consumeOne(t *testing.T, ctx context.Context, bootstrap, topic string) []by
 	require.NoError(t, err, "ConsumePartition")
 	defer pc.Close()
 
+	// Drain errors in the background so they don't race with Messages().
+	drainDone := make(chan struct{})
+	go func() {
+		defer close(drainDone)
+		for {
+			select {
+			case e, ok := <-pc.Errors():
+				if !ok {
+					return
+				}
+				t.Logf("consumeOne(%s): transient partition error: %v", topic, e)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	select {
 	case msg := <-pc.Messages():
 		return msg.Value
-	case err := <-pc.Errors():
-		t.Fatalf("partition consumer error: %v", err)
 	case <-ctx.Done():
 		t.Fatalf("timed out waiting for kafka message on %s: %v", topic, ctx.Err())
 	}

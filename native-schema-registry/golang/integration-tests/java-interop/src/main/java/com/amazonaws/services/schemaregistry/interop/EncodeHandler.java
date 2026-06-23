@@ -71,9 +71,7 @@ public final class EncodeHandler implements HttpHandler {
             String schemaName = HttpUtil.requireString(req, "schemaName");
             UUID schemaVersionId = UUID.fromString(HttpUtil.requireString(req, "schemaVersionId"));
             byte[] payload = Base64.getDecoder().decode(HttpUtil.requireString(req, "payload"));
-            String compression = req.hasNonNull("compression")
-                    ? req.get("compression").asText("NONE")
-                    : "NONE";
+            String compression = HttpUtil.optionalString(req, "compression", "NONE");
 
             store.put(schemaVersionId, new Schema(schemaDef, format, schemaName));
 

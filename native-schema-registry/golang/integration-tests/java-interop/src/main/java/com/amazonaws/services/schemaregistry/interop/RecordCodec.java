@@ -114,6 +114,60 @@ public final class RecordCodec {
                 return val.asBoolean();
             case BYTES:
                 return ByteBuffer.wrap(val.binaryValue());
+            case FIXED: {
+                byte[] raw = val.binaryValue();
+                if (raw.length != effective.getFixedSize()) {
+                    throw new IllegalArgumentException("avro FIXED " + effective.getFullName()
+                            + ": expected " + effective.getFixedSize() + " bytes, got " + raw.length);
+                }
+                return new GenericData.Fixed(effective, raw);
+            }
+            case ENUM: {
+                String sym = val.asText();
+                if (!effective.getEnumSymbols().contains(sym)) {
+                    throw new IllegalArgumentException("avro ENUM " + effective.getFullName()
+                            + ": symbol " + sym + " not in " + effective.getEnumSymbols());
+                }
+                return new GenericData.EnumSymbol(effective, sym);
+            }
+            case ARRAY: {
+                if (!val.isArray()) {
+                    throw new IllegalArgumentException("avro ARRAY field expects JSON array, got " + val.getNodeType());
+                }
+                java.util.List<Object> out = new java.util.ArrayList<>(val.size());
+                Schema elem = effective.getElementType();
+                for (JsonNode child : val) {
+                    out.add(avroCoerce(elem, child));
+                }
+                return new GenericData.Array<>(effective, out);
+            }
+            case MAP: {
+                if (!val.isObject()) {
+                    throw new IllegalArgumentException("avro MAP field expects JSON object, got " + val.getNodeType());
+                }
+                java.util.LinkedHashMap<String, Object> out = new java.util.LinkedHashMap<>();
+                Schema valueSchema = effective.getValueType();
+                java.util.Iterator<java.util.Map.Entry<String, JsonNode>> it = val.fields();
+                while (it.hasNext()) {
+                    java.util.Map.Entry<String, JsonNode> e = it.next();
+                    out.put(e.getKey(), avroCoerce(valueSchema, e.getValue()));
+                }
+                return out;
+            }
+            case RECORD: {
+                if (!val.isObject()) {
+                    throw new IllegalArgumentException("avro RECORD field expects JSON object, got " + val.getNodeType());
+                }
+                GenericData.Record nested = new GenericData.Record(effective);
+                for (Schema.Field f : effective.getFields()) {
+                    JsonNode child = val.get(f.name());
+                    if (child == null || child.isNull()) {
+                        continue;
+                    }
+                    nested.put(f.name(), avroCoerce(f.schema(), child));
+                }
+                return nested;
+            }
             default:
                 throw new IllegalArgumentException("avro coerce: unsupported field type " + effective.getType());
         }
@@ -234,31 +288,76 @@ public final class RecordCodec {
     }
 
     private static void avroPutInto(ObjectNode fields, String name, Object v) {
+        fields.set(name, avroValueToJson(v));
+    }
+
+    /**
+     * Converts an Avro generic-data value (returned by GenericRecord.get) into
+     * a Jackson JsonNode the test side can compare against. Recurses into
+     * ARRAY / MAP / RECORD / FIXED / ENUM so future matrix expansions can use
+     * nested types without re-tripping on this codec.
+     */
+    private static com.fasterxml.jackson.databind.JsonNode avroValueToJson(Object v) {
         if (v == null) {
-            fields.putNull(name);
-        } else if (v instanceof CharSequence) {
-            fields.put(name, v.toString());
-        } else if (v instanceof Integer) {
-            fields.put(name, (Integer) v);
-        } else if (v instanceof Long) {
-            fields.put(name, (Long) v);
-        } else if (v instanceof Float) {
-            fields.put(name, (Float) v);
-        } else if (v instanceof Double) {
-            fields.put(name, (Double) v);
-        } else if (v instanceof Boolean) {
-            fields.put(name, (Boolean) v);
-        } else if (v instanceof byte[]) {
-            fields.put(name, (byte[]) v);
-        } else if (v instanceof ByteBuffer) {
+            return MAPPER.nullNode();
+        }
+        if (v instanceof CharSequence) {
+            return MAPPER.getNodeFactory().textNode(v.toString());
+        }
+        if (v instanceof Integer) {
+            return MAPPER.getNodeFactory().numberNode((Integer) v);
+        }
+        if (v instanceof Long) {
+            return MAPPER.getNodeFactory().numberNode((Long) v);
+        }
+        if (v instanceof Float) {
+            return MAPPER.getNodeFactory().numberNode((Float) v);
+        }
+        if (v instanceof Double) {
+            return MAPPER.getNodeFactory().numberNode((Double) v);
+        }
+        if (v instanceof Boolean) {
+            return MAPPER.getNodeFactory().booleanNode((Boolean) v);
+        }
+        if (v instanceof byte[]) {
+            return MAPPER.getNodeFactory().binaryNode((byte[]) v);
+        }
+        if (v instanceof ByteBuffer) {
             ByteBuffer bb = (ByteBuffer) v;
             byte[] bytes = new byte[bb.remaining()];
             bb.duplicate().get(bytes);
-            fields.put(name, bytes);
-        } else {
-            // Fallback: stringify so the round-trip doesn't drop data.
-            fields.put(name, v.toString());
+            return MAPPER.getNodeFactory().binaryNode(bytes);
         }
+        if (v instanceof GenericData.Fixed) {
+            return MAPPER.getNodeFactory().binaryNode(((GenericData.Fixed) v).bytes());
+        }
+        if (v instanceof GenericData.EnumSymbol) {
+            return MAPPER.getNodeFactory().textNode(v.toString());
+        }
+        if (v instanceof java.util.List<?>) {
+            com.fasterxml.jackson.databind.node.ArrayNode arr = MAPPER.createArrayNode();
+            for (Object item : (java.util.List<?>) v) {
+                arr.add(avroValueToJson(item));
+            }
+            return arr;
+        }
+        if (v instanceof java.util.Map<?, ?>) {
+            ObjectNode obj = MAPPER.createObjectNode();
+            for (java.util.Map.Entry<?, ?> e : ((java.util.Map<?, ?>) v).entrySet()) {
+                obj.set(e.getKey().toString(), avroValueToJson(e.getValue()));
+            }
+            return obj;
+        }
+        if (v instanceof GenericRecord) {
+            GenericRecord rec = (GenericRecord) v;
+            ObjectNode obj = MAPPER.createObjectNode();
+            for (Schema.Field f : rec.getSchema().getFields()) {
+                obj.set(f.name(), avroValueToJson(rec.get(f.name())));
+            }
+            return obj;
+        }
+        // Fallback: stringify so the round-trip doesn't drop data.
+        return MAPPER.getNodeFactory().textNode(v.toString());
     }
 
     private static ObjectNode jsonToEnvelope(JsonDataWithSchema record) {

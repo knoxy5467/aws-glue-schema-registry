@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/glue"
+	"github.com/aws/aws-sdk-go-v2/service/glue/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,15 +15,19 @@ import (
 // under test is the call ORDER, which a recorder slice captures more
 // directly than mock.ExpectedCall sequencing.
 type recorderCleanupClient struct {
-	calls          []string
-	errOnSchema    map[string]error
-	errOnRegistry  map[string]error
+	calls         []string
+	errOnSchema   map[string]error
+	errOnRegistry map[string]error
+	// schemasInRegistry seeds ListSchemas responses keyed by registry
+	// name. The order is preserved across the response.
+	schemasInRegistry map[string][]string
 }
 
 func newRecorder() *recorderCleanupClient {
 	return &recorderCleanupClient{
-		errOnSchema:   map[string]error{},
-		errOnRegistry: map[string]error{},
+		errOnSchema:       map[string]error{},
+		errOnRegistry:     map[string]error{},
+		schemasInRegistry: map[string][]string{},
 	}
 }
 
@@ -48,6 +53,21 @@ func (r *recorderCleanupClient) DeleteRegistry(ctx context.Context, in *glue.Del
 		return nil, err
 	}
 	return &glue.DeleteRegistryOutput{}, nil
+}
+
+func (r *recorderCleanupClient) ListSchemas(ctx context.Context, in *glue.ListSchemasInput, _ ...func(*glue.Options)) (*glue.ListSchemasOutput, error) {
+	name := ""
+	if in.RegistryId != nil && in.RegistryId.RegistryName != nil {
+		name = *in.RegistryId.RegistryName
+	}
+	r.calls = append(r.calls, "ListSchemas:"+name)
+	names := r.schemasInRegistry[name]
+	out := &glue.ListSchemasOutput{}
+	for _, n := range names {
+		nn := n
+		out.Schemas = append(out.Schemas, types.SchemaListItem{SchemaName: &nn})
+	}
+	return out, nil
 }
 
 // TestCleanup_RunDeletesInReverseOrder is the core contract:
@@ -108,6 +128,52 @@ func TestCleanup_NoTrackedResourcesIsNoop(t *testing.T) {
 	c := newCleanupForTest(rec)
 	require.NoError(t, c.Run(context.Background()))
 	require.Empty(t, rec.calls)
+}
+
+// TestCleanup_PrefixScanResolvesSchemas verifies that
+// TrackSchemaPrefix list-and-deletes any matching schema under the
+// registry — used by tests where the actual schema name is derived
+// downstream (e.g. by a SchemaNameStrategy) and only the prefix is
+// known at test-construction time.
+func TestCleanup_PrefixScanResolvesSchemas(t *testing.T) {
+	rec := newRecorder()
+	rec.schemasInRegistry["default-registry"] = []string{
+		"unrelated-schema",
+		"gsr-go-it-foo",
+		"gsr-go-it-bar",
+		"another-unrelated",
+	}
+	c := newCleanupForTest(rec)
+	c.TrackSchemaPrefix("default-registry", "gsr-go-it-")
+	require.NoError(t, c.Run(context.Background()))
+
+	// ListSchemas runs first, then DeleteSchema for each match. Reverse
+	// insertion order is preserved across the prefix-derived list.
+	require.Contains(t, rec.calls, "ListSchemas:default-registry")
+	require.Contains(t, rec.calls, "DeleteSchema:gsr-go-it-foo")
+	require.Contains(t, rec.calls, "DeleteSchema:gsr-go-it-bar")
+	require.NotContains(t, rec.calls, "DeleteSchema:unrelated-schema")
+	require.NotContains(t, rec.calls, "DeleteSchema:another-unrelated")
+}
+
+// TestCleanup_PrefixDedupsAgainstExplicitTrack guards against double
+// deletion when a test BOTH explicitly TrackSchema's a name AND that
+// name also matches a TrackSchemaPrefix scan.
+func TestCleanup_PrefixDedupsAgainstExplicitTrack(t *testing.T) {
+	rec := newRecorder()
+	rec.schemasInRegistry["default-registry"] = []string{"gsr-go-it-shared"}
+	c := newCleanupForTest(rec)
+	c.TrackSchema("default-registry", "gsr-go-it-shared")
+	c.TrackSchemaPrefix("default-registry", "gsr-go-it-")
+	require.NoError(t, c.Run(context.Background()))
+
+	deletes := 0
+	for _, call := range rec.calls {
+		if call == "DeleteSchema:gsr-go-it-shared" {
+			deletes++
+		}
+	}
+	require.Equal(t, 1, deletes, "schema deleted twice; expected dedup")
 }
 
 // TestCleanup_DedupsSameName guards against the bug where a test

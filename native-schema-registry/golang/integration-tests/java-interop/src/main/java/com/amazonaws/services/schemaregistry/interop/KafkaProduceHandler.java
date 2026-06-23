@@ -72,10 +72,10 @@ public final class KafkaProduceHandler implements HttpHandler {
             String format = HttpUtil.requireString(req, "format");
             String schemaDef = HttpUtil.requireString(req, "schema");
             String schemaName = HttpUtil.requireString(req, "schemaName");
-            String compression = req.hasNonNull("compression") ? req.get("compression").asText("NONE") : "NONE";
+            String compression = HttpUtil.optionalString(req, "compression", "NONE");
             String bootstrap = HttpUtil.requireString(req, "bootstrap");
             String topic = HttpUtil.requireString(req, "topic");
-            String region = req.hasNonNull("region") ? req.get("region").asText(null) : null;
+            String region = HttpUtil.optionalString(req, "region", null);
             JsonNode recordEnv = req.get("record");
             if (recordEnv == null || !recordEnv.isObject()) {
                 throw new IllegalArgumentException("missing required field: record (object)");
@@ -97,6 +97,10 @@ public final class KafkaProduceHandler implements HttpHandler {
                 gsrConfigs.put(AWSSchemaRegistryConstants.PROTOBUF_MESSAGE_TYPE, "DYNAMIC_MESSAGE");
             }
 
+            // The serializer is constructed per-request — NOT cached at
+            // handler scope. Each request carries its own (region, schemaName,
+            // dataFormat, compression) tuple; caching would silently bind to
+            // the first request's tuple and contaminate subsequent runs.
             GlueSchemaRegistryKafkaSerializer kafkaSerializer = new GlueSchemaRegistryKafkaSerializer(gsrConfigs);
             byte[] framed = kafkaSerializer.serialize(topic, javaRecord);
             if (framed == null) {

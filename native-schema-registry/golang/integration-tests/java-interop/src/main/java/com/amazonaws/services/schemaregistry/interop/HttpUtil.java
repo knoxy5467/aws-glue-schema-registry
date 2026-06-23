@@ -19,7 +19,48 @@ final class HttpUtil {
         if (req == null || !req.hasNonNull(field)) {
             throw new IllegalArgumentException("missing required field: " + field);
         }
-        return req.get(field).asText();
+        JsonNode node = req.get(field);
+        if (!node.isTextual()) {
+            throw new IllegalArgumentException(
+                    "field " + field + " must be a JSON string (got " + node.getNodeType() + ")");
+        }
+        return node.asText();
+    }
+
+    /**
+     * Returns the textual value of an optional string field, or the supplied
+     * default when the field is absent / explicitly null. Fails when the
+     * field is present but is not a JSON string — this surfaces caller typos
+     * (e.g. region: 5 instead of region: "us-east-1") as 400 errors rather
+     * than silently coercing to a useless default.
+     */
+    static String optionalString(JsonNode req, String field, String defaultValue) {
+        if (req == null || !req.hasNonNull(field)) {
+            return defaultValue;
+        }
+        JsonNode node = req.get(field);
+        if (!node.isTextual()) {
+            throw new IllegalArgumentException(
+                    "field " + field + " must be a JSON string (got " + node.getNodeType() + ")");
+        }
+        return node.asText();
+    }
+
+    /**
+     * Returns the integer value of an optional int field, or the supplied
+     * default when the field is absent / explicitly null. Fails when the
+     * field is present but is not a JSON integer.
+     */
+    static int optionalInt(JsonNode req, String field, int defaultValue) {
+        if (req == null || !req.hasNonNull(field)) {
+            return defaultValue;
+        }
+        JsonNode node = req.get(field);
+        if (!node.isIntegralNumber()) {
+            throw new IllegalArgumentException(
+                    "field " + field + " must be a JSON integer (got " + node.getNodeType() + ")");
+        }
+        return node.asInt();
     }
 
     static void writeJson(HttpExchange exchange, int status, ObjectNode body) throws IOException {
