@@ -258,23 +258,26 @@ clean-dockerized:
 # Phase 4.6 — Java <-> Go interop sidecar (plan §5.5).
 #
 # java-sidecar-build packages the fat JAR via Maven and tags the Docker image
-# locally so testcontainers-go can pick it up in container mode. The Maven
-# binary is expected at $(JAVA_MVN); points at the repo-local install path
-# documented in integration-tests/java-interop/README.md, so a fresh checkout
-# doesn't need a system-wide Maven.
+# locally so testcontainers-go can pick it up in container mode.
+#
+# JAVA_MVN resolution order:
+#   1. value from the user's environment / make invocation (override wins)
+#   2. `mvn` on PATH (covers system-wide installs)
+#   3. ~/.local/opt/apache-maven-3.9.9/bin/mvn (matches README install hint)
+# If none of those exist the target errors with a clear message.
 JAVA_INTEROP_DIR     := integration-tests/java-interop
 JAVA_INTEROP_JAR     := $(JAVA_INTEROP_DIR)/target/java-interop-sidecar.jar
 JAVA_SIDECAR_IMAGE   := gsr-go-it-java-sidecar:latest
-JAVA_MVN             ?= $(HOME)/.local/opt/apache-maven-3.9.9/bin/mvn
+JAVA_MVN             ?= $(or $(shell command -v mvn 2>/dev/null),$(HOME)/.local/opt/apache-maven-3.9.9/bin/mvn)
 
 .PHONY: java-sidecar-build
 java-sidecar-build:
-	@if [ ! -x "$(JAVA_MVN)" ]; then \
+	@if [ ! -x "$(JAVA_MVN)" ] && ! command -v "$(JAVA_MVN)" >/dev/null 2>&1; then \
 		echo "ERROR: Maven not found at $(JAVA_MVN)"; \
 		echo "  Set JAVA_MVN=<path-to-mvn> or follow integration-tests/java-interop/README.md to install Maven 3.9+."; \
 		exit 1; \
 	fi
-	@echo "Building Java interop sidecar JAR..."
+	@echo "Building Java interop sidecar JAR via $(JAVA_MVN)..."
 	$(JAVA_MVN) -B -DskipTests -f $(JAVA_INTEROP_DIR)/pom.xml package
 	@echo "Building Docker image $(JAVA_SIDECAR_IMAGE)..."
 	docker build -t $(JAVA_SIDECAR_IMAGE) $(JAVA_INTEROP_DIR)
