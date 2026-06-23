@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.net.httpserver.HttpExchange;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 final class HttpUtil {
     private static final ObjectMapper MAPPER = new ObjectMapper();

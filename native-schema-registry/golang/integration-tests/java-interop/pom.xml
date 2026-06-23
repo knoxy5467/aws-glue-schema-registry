@@ -4,7 +4,8 @@
 
   A standalone fat JAR that exposes /encode and /decode HTTP endpoints
   driven by the real aws-glue-schema-registry Java library
-  (schema-registry-common + schema-registry-serde, both pinned to 1.1.25).
+  (schema-registry-common + schema-registry-serde, both pinned to 1.1.27 —
+  the schema-registry-parent version declared by the surrounding /pom.xml).
 
   The sidecar exercises ONLY the GSR wire-format layer
   (SerializationDataEncoder + GlueSchemaRegistryDeserializerDataParser).

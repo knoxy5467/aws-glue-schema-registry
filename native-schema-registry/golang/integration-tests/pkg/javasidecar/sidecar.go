@@ -539,10 +539,6 @@ func waitHealthy(ctx context.Context, sc *Sidecar, timeout time.Duration) error 
 	}
 }
 
-// compressionOrDefault validates the caller's compression choice and
-// normalizes it. Returning a Go-side error here keeps callers from
-// shipping typos like "GZIP" to the sidecar and getting an opaque 500 in
-// response — the sidecar only speaks NONE and ZLIB.
 // signalProcess sends sig to proc, addressing the process group when pgroup
 // is true and the OS supports it, and addressing the process directly
 // otherwise. Centralized here so the Stop closure stays readable.
@@ -556,6 +552,10 @@ func signalProcess(proc *os.Process, sig syscall.Signal, pgroup bool) error {
 	return syscall.Kill(proc.Pid, sig)
 }
 
+// compressionOrDefault validates the caller's compression choice and
+// normalizes it. Returning a Go-side error here keeps callers from
+// shipping typos like "GZIP" to the sidecar and getting an opaque 500 in
+// response — the sidecar only speaks NONE and ZLIB.
 func compressionOrDefault(c string) (string, error) {
 	if c == "" {
 		return "NONE", nil

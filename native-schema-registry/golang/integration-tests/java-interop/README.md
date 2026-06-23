@@ -46,8 +46,8 @@ This invocation does two things:
 1. `mvn -DskipTests package` produces a self-contained fat JAR at
    `integration-tests/java-interop/target/java-interop-sidecar.jar`
    (~65 MB; pulls in `schema-registry-common` + `schema-registry-serde`
-   pinned to **1.1.25**, the version declared by this repo's parent
-   `pom.xml`).
+   pinned to **1.1.27**, the schema-registry-parent version declared by
+   this repo's `/pom.xml`).
 2. `docker build` builds a multi-stage image (Maven 3.9 + Eclipse Temurin 17
    to compile, Eclipse Temurin 21 JRE to run) tagged
    `gsr-go-it-java-sidecar:latest`. The container-mode launcher

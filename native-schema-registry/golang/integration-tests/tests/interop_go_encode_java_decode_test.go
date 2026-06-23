@@ -123,9 +123,9 @@ func TestInterop_GoEncode_JavaDecode(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			// Each parallel subtest owns its own context. Sharing the
-			// parent's context here would canceling once the outer test
-			// function returns (subtests pause behind t.Parallel and run
-			// later, so the parent's defer cancel() races them).
+			// parent's context would cancel once the outer test function
+			// returns (subtests pause behind t.Parallel and run later,
+			// so the parent's defer cancel() races them).
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 
