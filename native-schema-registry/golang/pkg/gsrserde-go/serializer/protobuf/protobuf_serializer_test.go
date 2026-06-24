@@ -1,6 +1,7 @@
 package protobuf
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -397,12 +398,36 @@ func TestProtobufSerializer_Validate_RejectsNonProtoBytes(t *testing.T) {
 			require.Error(t, err, "non-proto bytes must be rejected")
 			var validationErr *ProtobufValidationError
 			assert.ErrorAs(t, err, &validationErr, "Should return ProtobufValidationError")
-			assert.ErrorIs(t, err, gsrcore.ErrInvalidProtobufPayload,
-				"chain must reach core.ErrInvalidProtobufPayload")
-			assert.ErrorIs(t, err, gsrcore.ErrGSR,
-				"chain must reach core.ErrGSR for unified callers")
+			// Tier-1 spec §5 S5 assertion: explicit errors.Is on the
+			// sentinel rather than testify's wrapper, so the contract is
+			// readable as the stdlib chain check downstream callers will
+			// use (e.g. the Kafka serializer adapter doing
+			// `if errors.Is(err, gsrcore.ErrInvalidProtobufPayload) { … }`).
+			assert.True(t, errors.Is(err, gsrcore.ErrInvalidProtobufPayload),
+				"errors.Is chain must reach core.ErrInvalidProtobufPayload")
+			assert.True(t, errors.Is(err, gsrcore.ErrGSR),
+				"errors.Is chain must reach core.ErrGSR for unified callers")
 		})
 	}
+}
+
+// TestProtobufSerializer_Validate_AcceptsWellFormedBytes is the paired
+// positive case for the malformed-bytes contract above: bytes produced by
+// proto.Marshal must round-trip through Validate without error. This
+// guards against an over-strict probe that rejects valid wire output.
+func TestProtobufSerializer_Validate_AcceptsWellFormedBytes(t *testing.T) {
+	config := createProtobufConfig()
+	serializer := NewProtobufSerializer(config)
+
+	wellFormed, err := proto.Marshal(&descriptorpb.FileDescriptorProto{
+		Name:    proto.String("validate_accepts_wellformed.proto"),
+		Package: proto.String("test"),
+	})
+	require.NoError(t, err, "proto.Marshal should produce well-formed bytes")
+	require.NotEmpty(t, wellFormed, "marshaled bytes must be non-empty")
+
+	err = serializer.Validate("test-schema", wellFormed)
+	assert.NoError(t, err, "well-formed protobuf bytes must pass Validate")
 }
 
 // TestProtobufSerializer_ValidateObject_PointerToStringTypedError is the
