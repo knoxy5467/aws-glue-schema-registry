@@ -1,6 +1,7 @@
 package json
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -534,6 +535,70 @@ func TestJsonSerializer_ErrorTypes(t *testing.T) {
 		assert.Contains(t, valErr.Error(), "JSON validation error")
 		assert.NotNil(t, valErr.Unwrap())
 	})
+}
+
+// TestJsonSerializer_Validate_Draft07_RoundTrip exercises the
+// santhosh-tekuri/jsonschema/v6 validator against a Draft-07 schema. The
+// draft is auto-detected from the schema document's `$schema` field. This
+// test covers the spec §5 S7 acceptance criterion: valid instance passes,
+// missing-required and minimum-violation cases fail with the
+// `errors.Is(err, ErrValidation)` chain preserved.
+func TestJsonSerializer_Validate_Draft07_RoundTrip(t *testing.T) {
+	s := NewJsonSerializer(&common.Configuration{})
+	schema := `{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+            "id": {"type": "string"},
+            "n":  {"type": "integer", "minimum": 0}
+        },
+        "required": ["id"]
+    }`
+
+	require.NoError(t, s.Validate(schema, []byte(`{"id":"x","n":5}`)),
+		"valid Draft-07 instance must pass validation")
+
+	missingRequired := s.Validate(schema, []byte(`{"n":5}`))
+	require.Error(t, missingRequired,
+		"missing required field must fail Draft-07 validation")
+	require.True(t, errors.Is(missingRequired, ErrValidation),
+		"INV-JSON-ERROR-CHAIN: validation failure must chain through ErrValidation")
+
+	minimumViolation := s.Validate(schema, []byte(`{"id":"x","n":-1}`))
+	require.Error(t, minimumViolation,
+		"minimum constraint must reject negative n")
+	require.True(t, errors.Is(minimumViolation, ErrValidation),
+		"INV-JSON-ERROR-CHAIN: validation failure must chain through ErrValidation")
+}
+
+// TestJsonSerializer_Validate_Draft202012_RoundTrip exercises a Draft
+// 2020-12 schema using `prefixItems` + `items: false`, both Draft 2020-12
+// features. The prior validator (Draft-07 max) could not validate these
+// schemas at all, so this test would have failed before the v6 swap.
+func TestJsonSerializer_Validate_Draft202012_RoundTrip(t *testing.T) {
+	s := NewJsonSerializer(&common.Configuration{})
+	schema := `{
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "array",
+        "prefixItems": [
+            {"type": "string"},
+            {"type": "integer"}
+        ],
+        "items": false
+    }`
+
+	require.NoError(t, s.Validate(schema, []byte(`["x", 5]`)),
+		"valid Draft 2020-12 instance must pass validation")
+
+	wrongType := s.Validate(schema, []byte(`["x", "y"]`))
+	require.Error(t, wrongType, "prefixItems[1] must be integer")
+	require.True(t, errors.Is(wrongType, ErrValidation),
+		"INV-JSON-ERROR-CHAIN: validation failure must chain through ErrValidation")
+
+	extraItem := s.Validate(schema, []byte(`["x", 5, "extra"]`))
+	require.Error(t, extraItem, "items:false must reject extra entries")
+	require.True(t, errors.Is(extraItem, ErrValidation),
+		"INV-JSON-ERROR-CHAIN: validation failure must chain through ErrValidation")
 }
 
 func TestJsonSerializer_ConcurrentAccess(t *testing.T) {
