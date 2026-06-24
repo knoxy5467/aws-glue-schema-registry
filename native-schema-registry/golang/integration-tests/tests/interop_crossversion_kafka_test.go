@@ -43,6 +43,8 @@ import (
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/kafkaharness"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/realglue"
 	gsravro "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/avro"
+	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
+	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/deserializer"
 	gsrjson "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer/json"
 )
 
@@ -429,6 +431,41 @@ func xverAssertJSONFields(t *testing.T, payload string) {
 // Test skeletons — PBI-3 (Cell A) and PBI-4 (Cell B) fill in the bodies.
 // ---------------------------------------------------------------------------
 
+// buildGoConfigCellA builds the Go-side Configuration for Cell A (Java→Go
+// direction). For PROTOBUF, the descriptor is derived at runtime from the
+// crossVersionProtoV1 schema text via buildDynamicProtoMessage so the test
+// does not depend on the compiled testpb package for this message type
+// (AC-11). For AVRO and JSON the configuration mirrors buildGoConfig.
+func buildGoConfigCellA(t *testing.T, region, schemaName, format, compression, v1Schema string) *common.Configuration {
+	t.Helper()
+	gsrMap := map[string]string{
+		"region":                        region,
+		"registry.name":                 "default-registry",
+		"compression":                   compression,
+		"schemaAutoRegistrationEnabled": "true",
+	}
+	configMap := map[string]interface{}{
+		common.GSRConfigPathKey: gsrMap,
+	}
+	switch format {
+	case "AVRO":
+		configMap[common.DataFormatTypeKey] = common.DataFormatAvro
+		configMap[common.AvroRecordTypeKey] = common.AvroRecordTypeGeneric
+	case "JSON":
+		configMap[common.DataFormatTypeKey] = common.DataFormatJSON
+	case "PROTOBUF":
+		// AC-11: use dynamicpb built from the v1 schema text, NOT the
+		// compiled testpb descriptor, to prove wire-format agnosticism.
+		zeroMsg, err := buildDynamicProtoMessage(v1Schema, nil)
+		require.NoError(t, err, "buildDynamicProtoMessage for PROTOBUF config (Cell A)")
+		configMap[common.DataFormatTypeKey] = common.DataFormatProtobuf
+		configMap[common.ProtobufMessageDescriptorKey] = zeroMsg.ProtoReflect().Descriptor()
+	default:
+		t.Fatalf("buildGoConfigCellA: unsupported format %q", format)
+	}
+	return common.NewConfiguration(configMap)
+}
+
 // TestInterop_CrossVersion_JavaProduce_GoConsume — Cell A direction.
 // Java sidecar produces at v1; Go consumer deserializes despite v2 existing.
 func TestInterop_CrossVersion_JavaProduce_GoConsume(t *testing.T) {
@@ -465,15 +502,57 @@ func TestInterop_CrossVersion_JavaProduce_GoConsume(t *testing.T) {
 			throwawayTopic := "gsr-go-it-xver-reg-" + suffix
 			cleanup.TrackSchema("default-registry", schemaName)
 
-			// PBI-3 fills in the Cell A logic here.
-			_ = sc
-			_ = broker
-			_ = schemaName
-			_ = topic
-			_ = throwawayTopic
-			_ = real
+			// Step 1 — Java sidecar registers v1 AND produces a v1 record to
+			// the main topic under BACKWARD compatibility.  The Java library's
+			// CreateSchema path stores v1 in Glue with the requested compat.
+			_, err := sc.KafkaProduce(ctx, javasidecar.KafkaProduceRequest{
+				Format:        tc.format,
+				Schema:        tc.v1Schema,
+				SchemaName:    schemaName,
+				Record:        tc.javaV1Record(),
+				Compression:   tc.compression,
+				Bootstrap:     broker.Bootstrap,
+				Topic:         topic,
+				Region:        real.Region,
+				Compatibility: "BACKWARD",
+			})
+			require.NoError(t, err, "Cell A: java produce v1 to main topic (%s)", tc.name)
 
-			t.Skip("Cell A not yet implemented")
+			// Step 2 — Register v2 under the same schema name via a throwaway
+			// topic.  The Java library's AlreadyExistsException →
+			// RegisterSchemaVersion fallthrough writes v2 as a new version of
+			// the existing schema rather than creating a duplicate.
+			err = registerV2ViaJava(ctx, sc, javasidecar.KafkaProduceRequest{
+				Format:        tc.format,
+				Schema:        tc.v2Schema,
+				SchemaName:    schemaName,
+				Record:        tc.javaV1Record(), // payload irrelevant; just forces the schema path
+				Compression:   tc.compression,
+				Bootstrap:     broker.Bootstrap,
+				Topic:         throwawayTopic,
+				Region:        real.Region,
+				Compatibility: "BACKWARD",
+			})
+			require.NoError(t, err, "Cell A: register v2 via throwaway topic (%s)", tc.name)
+
+			// Step 3 — Go side consumes the v1-framed bytes from the main topic.
+			framed := consumeOne(t, ctx, broker.Bootstrap, topic)
+
+			// Step 4 — Deserialize.  For PROTOBUF, buildGoConfigCellA supplies a
+			// dynamicpb descriptor derived from the v1 schema text (AC-11).
+			cfg := buildGoConfigCellA(t, real.Region, schemaName, tc.format, tc.compression, tc.v1Schema)
+			des, err := deserializer.NewDeserializer(cfg)
+			require.NoError(t, err, "Cell A: go NewDeserializer (%s)", tc.name)
+			t.Cleanup(func() { _ = des.Close() })
+
+			// Step 5 — Decode.  The Go deserializer fetches the writer schema
+			// (v1) from the GSR header version-id; v2 being present in the
+			// registry must not disrupt decoding.
+			got, err := des.Deserialize(topic, framed)
+			require.NoError(t, err, "Cell A: go Deserialize (%s)", tc.name)
+
+			// Step 6 — Assert v1 payload fields (AC-4).
+			tc.goCheck(t, got)
 		})
 	}
 }
