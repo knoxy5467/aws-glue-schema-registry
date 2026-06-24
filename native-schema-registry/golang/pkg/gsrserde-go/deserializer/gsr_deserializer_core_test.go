@@ -141,7 +141,7 @@ func TestDeserialize_NonGSRBytes_ReturnsError(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = d.Deserialize("any-topic", []byte("not GSR"))
-	require.Error(t, err)
+	require.ErrorIs(t, err, gsrcore.ErrIncompatibleData)
 }
 
 func TestDeserialize_ClosedDeserializer_ReturnsError(t *testing.T) {
