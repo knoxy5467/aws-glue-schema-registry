@@ -1,12 +1,13 @@
 package json
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/xeipuuv/gojsonschema"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 
 	gsrcore "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core"
 
@@ -155,7 +156,11 @@ func (j *JsonDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 	return string(data), nil
 }
 
-// validateAgainstSchema validates JSON data against a schema definition using gojsonschema.
+// validateAgainstSchema validates JSON data against a schema definition using
+// santhosh-tekuri/jsonschema/v6. The JSON Schema draft is auto-detected from
+// the schema document's `$schema` field; absent that, the v6 default (Draft
+// 2020-12) is used. Both Draft-07 and Draft 2020-12 schemas validate without
+// extra branching.
 //
 // Parameters:
 //
@@ -185,30 +190,54 @@ func (j *JsonDeserializer) validateAgainstSchema(schemaDefinition string, data [
 		}
 	}
 
-	// Load schema
-	schemaLoader := gojsonschema.NewStringLoader(schemaDefinition)
-
-	// Load document
-	documentLoader := gojsonschema.NewBytesLoader(data)
-
-	// Validate
-	result, err := gojsonschema.Validate(schemaLoader, documentLoader)
+	// Parse the schema document.
+	schemaRaw, err := jsonschema.UnmarshalJSON(strings.NewReader(schemaDefinition))
 	if err != nil {
 		return &JsonValidationError{
-			Message: "validation failed",
+			Message: "validation failed: invalid schema JSON",
 			Cause:   err,
 		}
 	}
 
-	if !result.Valid() {
-		// Collect validation errors
-		var errorMessages []string
-		for _, desc := range result.Errors() {
-			errorMessages = append(errorMessages, desc.String())
-		}
-
+	// Compile the schema. Pin Draft-07 as the default for schemas without an
+	// explicit `$schema` field, preserving xeipuuv/gojsonschema legacy behavior.
+	// v6's out-of-the-box default is Draft 2020-12, which would be a silent
+	// breaking change for existing GSR JSON schemas. Schemas that DO include
+	// `$schema` continue to use their declared draft (auto-detected by v6).
+	//
+	// Remote $ref safety: v6's default URLLoader is FileLoader (file:// only);
+	// http/https $ref resolution is already closed-by-default without any
+	// explicit configuration — no UseLoader call needed.
+	compiler := jsonschema.NewCompiler()
+	compiler.DefaultDraft(jsonschema.Draft7)
+	const schemaURL = "inmem:///schema.json"
+	if err := compiler.AddResource(schemaURL, schemaRaw); err != nil {
 		return &JsonValidationError{
-			Message: fmt.Sprintf("validation errors: %s", strings.Join(errorMessages, "; ")),
+			Message: "validation failed: adding schema resource",
+			Cause:   err,
+		}
+	}
+	sch, err := compiler.Compile(schemaURL)
+	if err != nil {
+		return &JsonValidationError{
+			Message: "validation failed: compiling schema",
+			Cause:   err,
+		}
+	}
+
+	// Parse the document.
+	docRaw, err := jsonschema.UnmarshalJSON(bytes.NewReader(data))
+	if err != nil {
+		return &JsonValidationError{
+			Message: "validation failed: parsing document",
+			Cause:   err,
+		}
+	}
+
+	// Validate.
+	if err := sch.Validate(docRaw); err != nil {
+		return &JsonValidationError{
+			Message: fmt.Sprintf("validation errors: %s", err.Error()),
 			Cause:   ErrValidation,
 		}
 	}

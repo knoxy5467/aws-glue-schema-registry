@@ -1,6 +1,7 @@
 package json
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -360,6 +361,82 @@ func TestJsonDeserializer_ErrorTypes(t *testing.T) {
 		assert.Contains(t, valErr.Error(), "JSON validation error")
 		assert.NotNil(t, valErr.Unwrap())
 	})
+}
+
+// TestJsonDeserializer_Validate_Draft07_RoundTrip exercises the
+// santhosh-tekuri/jsonschema/v6 validator on the deserializer path against a
+// Draft-07 schema. Symmetric with the serializer test: it goes through
+// `Deserialize` rather than a standalone `Validate`. See spec §5 S7.
+func TestJsonDeserializer_Validate_Draft07_RoundTrip(t *testing.T) {
+	cfg := &common.Configuration{}
+	d, err := NewJsonDeserializer(cfg)
+	require.NoError(t, err)
+
+	schemaDef := `{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+            "id": {"type": "string"},
+            "n":  {"type": "integer", "minimum": 0}
+        },
+        "required": ["id"]
+    }`
+	schema := &gsrcore.Schema{
+		SchemaDefinition: schemaDef,
+		DataFormat:       "JSON",
+	}
+
+	result, err := d.Deserialize([]byte(`{"id":"x","n":5}`), schema)
+	require.NoError(t, err, "valid Draft-07 instance must deserialize")
+	require.NotNil(t, result)
+
+	_, err = d.Deserialize([]byte(`{"n":5}`), schema)
+	require.Error(t, err, "missing required field must fail Draft-07 validation")
+	require.True(t, errors.Is(err, ErrValidation),
+		"INV-JSON-ERROR-CHAIN: validation failure must chain through ErrValidation")
+
+	_, err = d.Deserialize([]byte(`{"id":"x","n":-1}`), schema)
+	require.Error(t, err, "minimum constraint must reject negative n")
+	require.True(t, errors.Is(err, ErrValidation),
+		"INV-JSON-ERROR-CHAIN: validation failure must chain through ErrValidation")
+}
+
+// TestJsonDeserializer_Validate_Draft202012_RoundTrip exercises a Draft
+// 2020-12 schema on the deserializer path. The prior validator (Draft-07
+// max) could not handle `prefixItems` + `items: false` at all. See spec
+// §5 S7.
+func TestJsonDeserializer_Validate_Draft202012_RoundTrip(t *testing.T) {
+	cfg := &common.Configuration{}
+	d, err := NewJsonDeserializer(cfg)
+	require.NoError(t, err)
+
+	schemaDef := `{
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "array",
+        "prefixItems": [
+            {"type": "string"},
+            {"type": "integer"}
+        ],
+        "items": false
+    }`
+	schema := &gsrcore.Schema{
+		SchemaDefinition: schemaDef,
+		DataFormat:       "JSON",
+	}
+
+	result, err := d.Deserialize([]byte(`["x", 5]`), schema)
+	require.NoError(t, err, "valid Draft 2020-12 instance must deserialize")
+	require.NotNil(t, result)
+
+	_, err = d.Deserialize([]byte(`["x", "y"]`), schema)
+	require.Error(t, err, "prefixItems[1] must be integer")
+	require.True(t, errors.Is(err, ErrValidation),
+		"INV-JSON-ERROR-CHAIN: validation failure must chain through ErrValidation")
+
+	_, err = d.Deserialize([]byte(`["x", 5, "extra"]`), schema)
+	require.Error(t, err, "items:false must reject extra entries")
+	require.True(t, errors.Is(err, ErrValidation),
+		"INV-JSON-ERROR-CHAIN: validation failure must chain through ErrValidation")
 }
 
 func TestJsonDeserializer_ConcurrentAccess(t *testing.T) {

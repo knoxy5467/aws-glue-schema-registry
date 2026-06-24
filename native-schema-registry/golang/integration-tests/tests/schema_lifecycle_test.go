@@ -4,6 +4,7 @@ package integration_tests
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -151,11 +152,19 @@ func TestLifecycle_PreRegisteredSchemaID(t *testing.T) {
 
 // §5.3 item 16 — cache TTL eviction. After TTL, a fresh
 // GetSchemaByDefinition call is made. Hardcoded short TTL keeps the
-// wall-clock cost down — 50ms is comfortably above patrickmn/go-cache's
-// 1ms-tick resolution.
+// wall-clock cost down — 50ms is comfortably above the cache's
+// per-entry expiry resolution.
 //
 // Phase 4.7: requiresFake=true. Verifying TTL eviction requires
 // counting GetSchemaByDefinition calls; that's fake-specific.
+//
+// Phase 4.11 INV-LIFECYCLE-TTL-TIER-2 (spec line 969): the cache
+// backing-store swap to simplelru + Clock seam did NOT migrate this
+// Tier-2 test to FakeClock. It deliberately remains a wall-clock test
+// so it exercises the production code path end-to-end (RealClock,
+// real time.Sleep) — the FakeClock-driven contract lives at the
+// Tier-1 layer in pkg/gsrserde-go/core/cache_test.go and
+// pkg/gsrserde-go/core/encoder_cache_ttl_test.go.
 func TestLifecycle_CacheTTLEviction(t *testing.T) {
 	t.Parallel()
 	scenarioGate(t, false, true)
@@ -192,17 +201,55 @@ func TestLifecycle_CacheTTLEviction(t *testing.T) {
 }
 
 // §5.3 item 17 — cache size eviction. Distinct schemas beyond the
-// cache size evict the oldest. patrickmn/go-cache is TTL-only with no
-// hard size cap, so the §5.3 item 17 contract cannot be asserted
-// against the current core/cache implementation.
+// cache size evict the oldest entry (LRU). PBI-4.11-2 swapped the
+// cache backing store to hashicorp/golang-lru/v2/simplelru, which gave
+// the cache a hard size cap honoring GsrEncoderOptions.CacheSize.
 //
-// An earlier draft of this test ran a 5-schema loop and ended with
-// a t.Logf; the review correctly flagged that as a false-green —
-// a test that asserts nothing falsely raises the §5.3 coverage
-// number. Make the gap visible by t.Skip-ing with the reason. When
-// the cache gains a size cap (tracked in PHASE-4-AWS-NOTES.md /
-// future Phase 1 work), flip this to an actual eviction assertion.
+// Tier-2 contract per spec §5 S2: with CacheSize=3, register 4 distinct
+// schemas in insertion order; the 4th insert evicts the oldest (name[0]).
+// Re-encoding name[0] must then fire a fresh GetSchemaByDefinition —
+// one more than the post-fill baseline — proving the cache MISSED on
+// the oldest entry rather than returning the stale cached version.
 func TestLifecycle_CacheSizeEviction(t *testing.T) {
-	t.Skip("§5.3 item 17 not implemented: patrickmn/go-cache is TTL-only, no size cap. " +
-		"When the cache gains a size cap, replace this skip with an actual eviction assertion.")
+	t.Parallel()
+	scenarioGate(t, false, true) // fake-only assertion via CallCounts
+	h := newGlueHandle(t)
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
+		RegistryName:                  "default-registry",
+		SchemaAutoRegistrationEnabled: true,
+		CacheSize:                     3,
+	})
+	require.NoError(t, err)
+
+	// Register 4 distinct schemas — cap=3 means the first eviction
+	// happens on schema #4's insert. We then re-encode schema #1 and
+	// expect a fresh GetSchemaByDefinition (proving its cache entry
+	// was evicted, not just stale).
+	names := make([]string, 4)
+	for i := range names {
+		names[i] = randomGlueName(t, fmt.Sprintf("lifecycle-17-%d", i))
+		if h.Cleanup != nil {
+			h.Cleanup.TrackSchema("default-registry", names[i])
+		}
+		_, err := enc.Encode([]byte("p"), names[i], &gsrcore.Schema{
+			SchemaDefinition: avroSchemaLifecycle,
+			SchemaName:       names[i],
+			DataFormat:       "AVRO",
+		})
+		require.NoError(t, err)
+	}
+
+	baselineGet := h.Fake.Count("GetSchemaByDefinition")
+
+	// Re-encode the oldest — if size eviction works, this triggers
+	// GetSchemaByDefinition again (one more than baseline).
+	_, err = enc.Encode([]byte("p"), names[0], &gsrcore.Schema{
+		SchemaDefinition: avroSchemaLifecycle,
+		SchemaName:       names[0],
+		DataFormat:       "AVRO",
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, baselineGet+1, h.Fake.Count("GetSchemaByDefinition"),
+		"re-encoding the oldest entry after cap-driven eviction must re-fetch from Glue")
 }

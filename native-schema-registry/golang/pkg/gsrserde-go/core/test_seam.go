@@ -33,10 +33,19 @@ type GsrEncoderOptions struct {
 	// CacheTTLMillis is the time-to-live for the schema cache. Zero means
 	// "use the default" (matching LoadConfigFromMap behaviour).
 	CacheTTLMillis int64
+	// CacheSize is the maximum number of entries the schema cache will hold
+	// before LRU-evicting the oldest. Zero means "use DefaultCacheSize"
+	// (matching LoadConfigFromMap behaviour). Spec §3.2 / §3.3 and PBI-4.11-2.
+	CacheSize int
 	// SchemaAutoRegistrationEnabled mirrors the Java config flag and the
 	// corresponding production field; tests that exercise auto-register
 	// fall-through set it explicitly.
 	SchemaAutoRegistrationEnabled bool
+	// Clock is the time source the schema cache consumes for TTL eviction.
+	// nil means RealClock (production). Tests inject a *FakeClock here to
+	// drive TTL eviction deterministically via FakeClock.Advance. Spec
+	// §3.2 and PBI-4.11-1.
+	Clock Clock
 }
 
 // NewGsrEncoderForTest builds a *GsrEncoder wired with an injected
@@ -51,7 +60,11 @@ func NewGsrEncoderForTest(client GlueClient, opts GsrEncoderOptions) (*GsrEncode
 	if ttl == 0 {
 		ttl = DefaultCacheTTLMillis
 	}
-	cache, err := NewCache(ttl)
+	cache, err := NewCacheWithOptions(CacheOptions{
+		TTLMillis: ttl,
+		Size:      opts.CacheSize,
+		Clock:     opts.Clock,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("test seam: cache: %w", err)
 	}
@@ -73,6 +86,10 @@ func NewGsrEncoderForTest(client GlueClient, opts GsrEncoderOptions) (*GsrEncode
 type GsrDecoderOptions struct {
 	RegistryName   string
 	CacheTTLMillis int64
+	// CacheSize mirrors GsrEncoderOptions.CacheSize — see that field's comment.
+	CacheSize int
+	// Clock mirrors GsrEncoderOptions.Clock — see that field's comment.
+	Clock Clock
 }
 
 // NewGsrDecoderForTest builds a *GsrDecoder wired with an injected
@@ -85,7 +102,11 @@ func NewGsrDecoderForTest(client GlueClient, opts GsrDecoderOptions) (*GsrDecode
 	if ttl == 0 {
 		ttl = DefaultCacheTTLMillis
 	}
-	cache, err := NewCache(ttl)
+	cache, err := NewCacheWithOptions(CacheOptions{
+		TTLMillis: ttl,
+		Size:      opts.CacheSize,
+		Clock:     opts.Clock,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("test seam: cache: %w", err)
 	}

@@ -1,6 +1,7 @@
 package protobuf
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -159,6 +160,12 @@ func TestNewProtobufDeserializer_ErrorCases(t *testing.T) {
 // Pre-Phase-3 behavior: a non-nil config with a nil ProtobufMessageDescriptor
 // triggered `panic("protobuf message descriptor cannot be nil")` inside the
 // constructor — unrecoverable from typical Go control flow.
+//
+// Phase 4.11 S6 strengthens this test with the full errors.Is chain
+// assertion — the nil-descriptor sentinel must chain through
+// core.ErrInvalidProtobufPayload (the format-layer sentinel) up to
+// core.ErrGSR (the root GSR sentinel), so callers can distinguish a
+// protobuf-misconfiguration error without importing this package.
 func TestNewProtobufDeserializer_NilDescriptor_ReturnsTypedError(t *testing.T) {
 	configMap := make(map[string]interface{})
 	configMap[common.DataFormatTypeKey] = common.DataFormatProtobuf
@@ -174,8 +181,12 @@ func TestNewProtobufDeserializer_NilDescriptor_ReturnsTypedError(t *testing.T) {
 		des, err := NewProtobufDeserializer(cfg)
 		assert.Nil(t, des, "deserializer must be nil on missing descriptor")
 		require.Error(t, err, "constructor must return an error, not panic")
-		assert.ErrorIs(t, err, ErrNilDescriptor, "chain must reach the typed sentinel")
-		assert.ErrorIs(t, err, gsrcore.ErrGSR, "chain must reach core.ErrGSR")
+		require.True(t, errors.Is(err, ErrNilDescriptor),
+			"nil-descriptor must be the typed sentinel ErrNilDescriptor")
+		require.True(t, errors.Is(err, gsrcore.ErrInvalidProtobufPayload),
+			"nil-descriptor must chain through core.ErrInvalidProtobufPayload")
+		require.True(t, errors.Is(err, gsrcore.ErrGSR),
+			"all GSR-typed errors must chain through core.ErrGSR")
 	})
 }
 
