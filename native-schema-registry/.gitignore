@@ -71,6 +71,8 @@ libnativeschemaregistry*.he
 # Test artifacts
 *.test
 test-results/
+coverage.out
+coverage.html
 
 # OS generated files
 Thumbs.db
