@@ -145,7 +145,9 @@ All three formats use the same evolution strategy: v2 adds one optional/nullable
 }
 ```
 
-**Justification:** Adding a non-required property with a nullable type is BACKWARD-compatible under JSON Schema: v1 documents (missing `email`) still validate against v2 schema. The `additionalProperties: false` constraint is tightened on BOTH versions to prove that Glue's compatibility checker accepts this evolution.
+**Justification:** Adding a non-required property with a nullable type is BACKWARD-compatible under JSON Schema: v1 documents (missing `email`) still validate against v2 schema. The `additionalProperties: false` constraint is applied on BOTH versions to prove that Glue's compatibility checker accepts this strict evolution pattern.
+
+**Decision: `additionalProperties: false` (committed).** Both v1 and v2 use strict mode. This is a stronger test of Glue's compatibility engine and matches production usage patterns where schemas lock down their shape. Risk mitigation: if Glue rejects `additionalProperties: false` for any reason during implementation, the implementor MAY switch both schemas to `additionalProperties: true` without requiring a spec revision.
 
 ### 4.3 PROTOBUF
 
@@ -266,6 +268,8 @@ Two top-level test functions mirroring the Phase 4.6.5 naming convention:
 - `TestInterop_CrossVersion_JavaProduce_GoConsume(t *testing.T)` — Cell A
 - `TestInterop_CrossVersion_GoProduce_JavaConsume(t *testing.T)` — Cell B
 
+**Design note (Cell B independent registration):** The brief suggests Cell B should "reuse Cell A's registered v1+v2." This spec intentionally departs from that suggestion. Each cell independently registers its own v1 and v2 schemas via the Java sidecar using a unique suffix from `uniqueInteropSuffix(t)`. The justification is test isolation: independent registration enables `t.Parallel()` safety across all subtests, eliminates cross-cell cascading failures (Cell A schema cleanup cannot break Cell B), and gives each cell deterministic teardown via its own `cleanup.TrackSchema` call. The PBI creator and implementor should treat this as a deliberate design choice, not a deviation to fix.
+
 ### 6.3 Table-driven test shape
 
 ```go
@@ -288,6 +292,26 @@ type crossVersionCase struct {
 
 A `crossVersionMatrix()` function returns 6 cases (3 formats x 2 compressions). The schema name base distinguishes formats: `"xver-avro"`, `"xver-json"`, `"xver-proto"`.
 
+**Exact subtest names emitted by `crossVersionMatrix()`:**
+
+| `name` | format | compression |
+|--------|--------|-------------|
+| `AVRO_NONE` | AVRO | NONE |
+| `AVRO_ZLIB` | AVRO | ZLIB |
+| `JSON_NONE` | JSON | NONE |
+| `JSON_ZLIB` | JSON | ZLIB |
+| `PROTOBUF_NONE` | PROTOBUF | NONE |
+| `PROTOBUF_ZLIB` | PROTOBUF | ZLIB |
+
+Each direction function runs `t.Run(tc.name, ...)`, producing 12 total subtests:
+- `TestInterop_CrossVersion_JavaProduce_GoConsume/AVRO_NONE`
+- `TestInterop_CrossVersion_JavaProduce_GoConsume/AVRO_ZLIB`
+- ... (6 per direction)
+- `TestInterop_CrossVersion_GoProduce_JavaConsume/AVRO_NONE`
+- ... (6 per direction)
+
+These names are distinct from Phase 4.6.5's subtests (which use format-only names like `avro`, `json`, `protobuf`) and will not collide in test output.
+
 ### 6.4 Cell A flow (Java produces at v1, Go consumes)
 
 ```
@@ -299,6 +323,9 @@ A `crossVersionMatrix()` function returns 6 cases (3 formats x 2 compressions). 
    NOTE: This produce goes to a throwaway topic so it doesn't pollute Cell A's
    consumption. Alternatively, it can produce to the same topic but the Go consumer
    reads only the first message.
+   ORDERING NOTE: Registering v2 AFTER the v1 produce (step 2) is intentional and
+   semantically equivalent to registering both first. The Go consumer's read (step 4)
+   happens strictly after step 3 completes, so v2 is guaranteed to exist by read time.
 4. Go consumer: sarama poll from topic → gets v1-framed bytes.
 5. Go deserializer: Deserialize(topic, framed) → resolves v1 UUID via Glue, decodes.
 6. Assert: decoded payload matches expected v1 fields.
@@ -398,7 +425,13 @@ The throwaway topics used for "register v2" produce calls use a distinct topic n
 11. The PROTOBUF test uses `dynamicpb.Message` on the Go side to construct a v1-only message (3 fields), demonstrating that the wire format is language-agnostic regardless of the concrete message type used at serialization time.
 12. Test total is exactly 12 subtests: 2 directions x 3 formats x 2 compressions.
 
-## 9. Risks & Open Questions
+## 9. Regression Guardrails
+
+- **INV-1:** Phase 4.6.5 `interop_kafka_roundtrip_test.go` continues to pass unchanged. The `KafkaProduceHandler` compatibility field defaults to `"NONE"` when absent, preserving existing behavior.
+- **INV-2:** Cleanup prefix `gsr-go-it-xver-` does not collide with Phase 4.6.5's `gsr-go-it-interop-` prefix. Both prefixes are distinct and independently sweepable.
+- **INV-3:** No new exported symbols in `pkg/gsrserde-go/`. All new helpers (`crossVersionMatrix`, `registerV2ViaJava`, `buildDynamicProtoMessage`) live exclusively in `integration-tests/` and are test-only.
+
+## 10. Risks & Design Decisions
 
 ### Risks
 
@@ -409,15 +442,15 @@ The throwaway topics used for "register v2" produce calls use a distinct topic n
 | Kafka testcontainer startup flakiness under parallel subtests | Reuse a single Kafka broker across all subtests (same pattern as Phase 4.6.5). Unique topics per subtest prevent cross-talk. |
 | JSON Schema `additionalProperties: false` in v2 may cause Glue to reject v1 documents missing `email` | The compatibility check is on the SCHEMA level (v2 schema accepts v1 documents), not on the data level. v1 documents without `email` are valid against v2 schema because `email` is not in `required`. If this fails, fall back to `additionalProperties: true`. |
 
-### Open questions (for spec-reviewer)
+### Design Decisions (previously open questions, now resolved)
 
-1. **JSON Schema `additionalProperties` strategy:** Should both v1 and v2 use `additionalProperties: false` (strict) or `additionalProperties: true` (permissive)? The strict version is a stronger test but has a small risk of Glue rejection. The permissive version is safer but less realistic.
+1. **JSON Schema `additionalProperties: false` (committed):** Both v1 and v2 use strict mode. Resolved in §4.2 with a risk-mitigation fallback to `true` if Glue rejects it.
 
-2. **Throwaway topic for v2 registration:** The spec proposes producing v2 to a throwaway topic as the mechanism to trigger v2 registration on the Java side. An alternative is a dedicated `/register-schema` endpoint that only registers without producing. The throwaway-topic approach requires no new endpoint code (smaller diff), but creates an unused Kafka topic per subtest. Is this acceptable?
+2. **Throwaway topic for v2 registration (accepted):** The spec uses a throwaway topic (`gsr-go-it-xver-reg-{suffix}`) to trigger v2 registration via the existing `/kafka-produce` endpoint. This avoids adding a new sidecar endpoint and keeps the diff minimal. The unused Kafka topic is ephemeral (testcontainer-scoped) and costs nothing.
 
-3. **dynamicpb dependency:** The Go side needs `google.golang.org/protobuf/types/dynamicpb` for constructing the v1-only message. This is already a transitive dependency (used by the existing Protobuf serializer internally). Confirm this is acceptable for the test module.
+3. **`dynamicpb` dependency (accepted):** `google.golang.org/protobuf/types/dynamicpb` is already a transitive dependency of the Go serializer's Protobuf path. Using it in tests introduces no new dependency. It is the correct tool for constructing messages from schema definitions at runtime.
 
-## 10. Out-of-Band Considerations
+## 11. Out-of-Band Considerations
 
 ### Flakiness
 
