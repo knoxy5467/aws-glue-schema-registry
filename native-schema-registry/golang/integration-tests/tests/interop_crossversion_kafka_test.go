@@ -437,7 +437,7 @@ func xverAssertJSONFields(t *testing.T, payload string) {
 // crossVersionProtoV1 schema text via buildDynamicProtoMessage so the test
 // does not depend on the compiled testpb package for this message type
 // (AC-11). For AVRO and JSON the configuration mirrors buildGoConfig.
-func buildGoConfigCellA(t *testing.T, region, schemaName, format, compression, v1Schema string) *common.Configuration {
+func buildGoConfigCellA(t *testing.T, region, format, compression, v1Schema string) *common.Configuration {
 	t.Helper()
 	gsrMap := map[string]string{
 		"region":                        region,
@@ -541,7 +541,7 @@ func TestInterop_CrossVersion_JavaProduce_GoConsume(t *testing.T) {
 
 			// Step 4 — Deserialize.  For PROTOBUF, buildGoConfigCellA supplies a
 			// dynamicpb descriptor derived from the v1 schema text (AC-11).
-			cfg := buildGoConfigCellA(t, real.Region, schemaName, tc.format, tc.compression, tc.v1Schema)
+			cfg := buildGoConfigCellA(t, real.Region, tc.format, tc.compression, tc.v1Schema)
 			des, err := deserializer.NewDeserializer(cfg)
 			require.NoError(t, err, "Cell A: go NewDeserializer (%s)", tc.name)
 			t.Cleanup(func() { _ = des.Close() })
