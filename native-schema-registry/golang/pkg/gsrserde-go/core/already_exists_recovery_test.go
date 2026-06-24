@@ -46,6 +46,7 @@ func alreadyExistsRecoveryFixture(t *testing.T, createErr error) (*GsrEncoder, *
 		Return(&glue.RegisterSchemaVersionOutput{
 			SchemaVersionId: aws.String(recoveredID),
 			VersionNumber:   &v,
+			Status:          types.SchemaVersionStatusAvailable,
 		}, nil)
 
 	return enc, mockClient, recoveredID

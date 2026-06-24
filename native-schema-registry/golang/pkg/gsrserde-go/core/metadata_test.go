@@ -119,6 +119,7 @@ func TestEncoder_Metadata_FlushedAfterRegisterSchemaVersion(t *testing.T) {
 		Return(&glue.RegisterSchemaVersionOutput{
 			SchemaVersionId: aws.String(registeredVid),
 			VersionNumber:   &v,
+			Status:          types.SchemaVersionStatusAvailable,
 		}, nil)
 	mockClient.On("PutSchemaVersionMetadata", mock.Anything, mock.Anything).
 		Return(&glue.PutSchemaVersionMetadataOutput{}, nil)

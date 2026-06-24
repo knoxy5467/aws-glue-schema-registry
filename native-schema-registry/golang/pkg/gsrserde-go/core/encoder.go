@@ -5,11 +5,22 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/glue"
 	"github.com/aws/aws-sdk-go-v2/service/glue/types"
 	"golang.org/x/sync/singleflight"
 )
+
+// schemaEvolutionMaxAttempts is the maximum number of GetSchemaVersion poll
+// iterations. Java parity: AWSSchemaRegistryClient.java:377
+// (MAX_SCHEMA_EVOLUTION_CHECK_RETRIES = 10).
+const schemaEvolutionMaxAttempts = 10
+
+// schemaEvolutionMaxWaitInterval is the sleep duration before each
+// GetSchemaVersion poll call. Java parity: AWSSchemaRegistryClient.java:376
+// (MAX_SCHEMA_WAIT_INTERVAL_SECONDS = 3000ms).
+const schemaEvolutionMaxWaitInterval = 3 * time.Second
 
 // Deprecated: HeaderVersionByte / CompressionByte are kept as aliases so the
 // scaffolding tests in serde_test.go / edge_cases_test.go / deserializer_test.go
@@ -53,6 +64,13 @@ type GsrEncoder struct {
 	schemaAutoRegistrationEnabled bool
 	compressionType               string
 
+	// sleepFn is the sleep function used in the RegisterSchemaVersion
+	// PENDING→AVAILABLE poll loop. Production default is time.Sleep; tests
+	// override via in-package _test.go access (package-local field, no public
+	// setter — INV-2 / C-19). Java parity:
+	// AWSSchemaRegistryClient.java:373-411 (waitForSchemaEvolutionCheckToComplete).
+	sleepFn func(time.Duration)
+
 	// versionIDGroup dedups concurrent first-encode of the same schema. Java
 	// achieves this via Caffeine's LoadingCache + AsyncCacheLoader; Go's
 	// idiomatic equivalent is singleflight per cache key. Without this,
@@ -87,6 +105,7 @@ func NewGsrEncoder(configMap map[string]string) (*GsrEncoder, error) {
 		description:                   config.Description,
 		schemaAutoRegistrationEnabled: config.SchemaAutoRegistrationEnabled,
 		compressionType:               config.CompressionType,
+		sleepFn:                       time.Sleep,
 	}, nil
 }
 
@@ -314,6 +333,14 @@ func (s *GsrEncoder) fetchSchemaVersionID(schemaDefinition, schemaName, dataForm
 // putSchemaVersionMetadataBatch (INV-7). Metadata-write failures are logged
 // and intentionally NOT propagated to the caller (INV-6 / C-13 / Java
 // AWSSchemaRegistryClient.java:425).
+//
+// When RegisterSchemaVersion returns PENDING (Glue is performing a
+// compatibility check), this function polls via waitForSchemaEvolutionCheck
+// until the version reaches AVAILABLE. Java parity:
+// AWSSchemaRegistryClient.java:373-411 (waitForSchemaEvolutionCheckToComplete).
+// The metadata flush fires AFTER the poll succeeds (Java parity line 281).
+// On poll exhaustion or unexpected status, the function returns a typed error
+// and the metadata flush does NOT fire.
 func (s *GsrEncoder) registerSchemaVersion(schemaDefinition, schemaName, dataFormat, transportName string) (string, uint32, error) {
 	resp, err := s.client.RegisterSchemaVersion(context.Background(), &glue.RegisterSchemaVersionInput{
 		SchemaId: &types.SchemaId{
@@ -331,7 +358,25 @@ func (s *GsrEncoder) registerSchemaVersion(schemaDefinition, schemaName, dataFor
 		return "", 0, fmt.Errorf("no schema version ID returned")
 	}
 
-	// Cache the schema
+	schemaVersionId := *resp.SchemaVersionId
+
+	// If the version is not immediately AVAILABLE, poll until it is.
+	// Java parity: AWSSchemaRegistryClient.java:375-410 —
+	// waitForSchemaEvolutionCheckToComplete fires whenever status is not
+	// AVAILABLE after RegisterSchemaVersion. The timeout spans
+	// (MAX_ATTEMPTS + 1) × MAX_WAIT_INTERVAL to give the last attempt
+	// room to complete.
+	if resp.Status != types.SchemaVersionStatusAvailable {
+		ctx, cancel := context.WithTimeout(context.Background(),
+			schemaEvolutionMaxWaitInterval*time.Duration(schemaEvolutionMaxAttempts+1))
+		defer cancel()
+
+		if pollErr := s.waitForSchemaEvolutionCheck(ctx, schemaVersionId); pollErr != nil {
+			return "", 0, pollErr
+		}
+	}
+
+	// Cache the schema — only after the version is confirmed AVAILABLE.
 	schema := &Schema{
 		SchemaName:       schemaName,
 		SchemaDefinition: schemaDefinition,
@@ -341,17 +386,61 @@ func (s *GsrEncoder) registerSchemaVersion(schemaDefinition, schemaName, dataFor
 	s.schemaCache.Set(cacheKey, schema)
 
 	// Metadata flush (Java parity AWSSchemaRegistryClient.java:281).
-	// Errors are logged inside the helper and intentionally NOT returned —
-	// INV-6 / C-13 lock the metadata-write-non-fatal contract. The encode
-	// path receives the SchemaVersionId regardless of metadata-write outcome.
-	_ = s.putSchemaVersionMetadataBatch(context.Background(), *resp.SchemaVersionId, transportName)
+	// Fires AFTER the poll completes successfully (per spec §3.5 paragraph 1 /
+	// PBI-4.10-5 AC-6-metadata-flush-on-success). Errors are logged inside
+	// the helper and intentionally NOT returned — INV-6 / C-13 lock the
+	// metadata-write-non-fatal contract.
+	_ = s.putSchemaVersionMetadataBatch(context.Background(), schemaVersionId, transportName)
 
 	version := uint32(1) // Default fallback
 	if resp.VersionNumber != nil {
 		version = uint32(*resp.VersionNumber)
 	}
 
-	return *resp.SchemaVersionId, version, nil
+	return schemaVersionId, version, nil
+}
+
+// waitForSchemaEvolutionCheck polls GetSchemaVersion up to
+// schemaEvolutionMaxAttempts times, sleeping schemaEvolutionMaxWaitInterval
+// BEFORE each call (Java parity: AWSSchemaRegistryClient.java:380 —
+// Thread.sleep is called before the first GetSchemaVersion, mirroring the
+// Java do-while shape). Returns nil when the version reaches AVAILABLE;
+// returns a typed ErrGSR-wrapped error on unexpected status or exhaustion.
+//
+// Java citation: AWSSchemaRegistryClient.java:373-411
+// (waitForSchemaEvolutionCheckToComplete).
+func (s *GsrEncoder) waitForSchemaEvolutionCheck(ctx context.Context, schemaVersionId string) error {
+	var lastStatus types.SchemaVersionStatus
+	for i := 0; i < schemaEvolutionMaxAttempts; i++ {
+		// Sleep BEFORE the poll call — Java line 380 (Thread.sleep first).
+		// The sleepFn field is injectable for tests (INV-2 / C-19); the
+		// default is time.Sleep. Tests override the field via in-package
+		// _test.go access (package-local, no public setter).
+		s.sleepFn(schemaEvolutionMaxWaitInterval)
+
+		pollResp, err := s.client.GetSchemaVersion(ctx, &glue.GetSchemaVersionInput{
+			SchemaVersionId: &schemaVersionId,
+		})
+		if err != nil {
+			return fmt.Errorf("%w: schema evolution check failed: schemaVersionId=%s: %v",
+				ErrGSR, schemaVersionId, err)
+		}
+
+		lastStatus = pollResp.Status
+		switch pollResp.Status {
+		case types.SchemaVersionStatusAvailable:
+			return nil
+		case types.SchemaVersionStatusPending:
+			// Continue polling.
+		default:
+			// FAILURE, DELETING, or any unexpected status: abort.
+			return fmt.Errorf("%w: schema evolution check failed: schemaVersionId=%s status=%s",
+				ErrGSR, schemaVersionId, pollResp.Status)
+		}
+	}
+
+	return fmt.Errorf("%w: retries exhausted: schemaVersionId=%s status=%s",
+		ErrGSR, schemaVersionId, lastStatus)
 }
 
 // createSchema mirrors Java AWSSchemaRegistryClient.java:242 — returns the

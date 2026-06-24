@@ -4,7 +4,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/glue"
+	"github.com/aws/aws-sdk-go-v2/service/glue/types"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -38,8 +40,15 @@ type MetadataPair struct {
 type MockGlueClient struct {
 	mock.Mock
 
-	metadataMu                     sync.Mutex
-	PutSchemaVersionMetadataPairs  []MetadataPair
+	metadataMu                    sync.Mutex
+	PutSchemaVersionMetadataPairs []MetadataPair
+
+	// getSchemaVersionMu guards GetSchemaVersionCallCount against concurrent
+	// test goroutines. The poll_test.go Tier-1 tests inject a no-op sleepFn
+	// so the loop runs synchronously; the mutex is a safety net for any future
+	// parallel-encode scenario.
+	getSchemaVersionMu    sync.Mutex
+	GetSchemaVersionCalls int
 }
 
 func (m *MockGlueClient) GetSchemaByDefinition(ctx context.Context, params *glue.GetSchemaByDefinitionInput, optFns ...func(*glue.Options)) (*glue.GetSchemaByDefinitionOutput, error) {
@@ -50,7 +59,30 @@ func (m *MockGlueClient) GetSchemaByDefinition(ctx context.Context, params *glue
 	return args.Get(0).(*glue.GetSchemaByDefinitionOutput), args.Error(1)
 }
 
+// GetSchemaVersion records the call in GetSchemaVersionCalls then dispatches
+// to the configured testify expectation (if any). When NO expectation is
+// configured the method returns a default AVAILABLE response so that tests
+// which exercise paths NOT related to the poll loop (e.g.
+// already_exists_recovery_test.go, metadata_test.go) do not need to add
+// boilerplate stubs — absence-of-expectation here means "schema is
+// immediately available". Tests that DO exercise the poll loop set explicit
+// expectations via .On("GetSchemaVersion", ...).Return(...); those
+// expectations are honored normally.
 func (m *MockGlueClient) GetSchemaVersion(ctx context.Context, params *glue.GetSchemaVersionInput, optFns ...func(*glue.Options)) (*glue.GetSchemaVersionOutput, error) {
+	m.getSchemaVersionMu.Lock()
+	m.GetSchemaVersionCalls++
+	m.getSchemaVersionMu.Unlock()
+
+	if !m.hasExpectationFor("GetSchemaVersion") {
+		id := ""
+		if params != nil && params.SchemaVersionId != nil {
+			id = *params.SchemaVersionId
+		}
+		return &glue.GetSchemaVersionOutput{
+			SchemaVersionId: aws.String(id),
+			Status:          types.SchemaVersionStatusAvailable,
+		}, nil
+	}
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

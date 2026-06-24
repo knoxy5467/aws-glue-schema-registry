@@ -268,6 +268,7 @@ func (f *Fake) RegisterSchemaVersion(ctx context.Context, in *glue.RegisterSchem
 	return &glue.RegisterSchemaVersionOutput{
 		SchemaVersionId: aws.String(versionID),
 		VersionNumber:   &v,
+		Status:          types.SchemaVersionStatusAvailable,
 	}, nil
 }
 
