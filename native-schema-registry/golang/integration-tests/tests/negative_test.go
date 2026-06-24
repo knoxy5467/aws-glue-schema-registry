@@ -143,24 +143,30 @@ func TestNegative_EntityNotFoundFallsThroughToCreate(t *testing.T) {
 	require.Equal(t, 1, h.Fake.Count("GetSchemaByDefinition"), "first Glue call is GetSchemaByDefinition")
 }
 
-// §5.3 item 26 — malformed payload surfaces an error at the wire-
-// format layer (truncated, bad version byte, bad compression byte).
-// The byte-level wire-format negatives are covered by the dedicated
-// items 28-29 below; this test pins the contract that core.GsrDecoder
-// surfaces a non-nil error on a corrupted-header payload, which is
-// the most common form of "malformed payload" a producer of a wrong
-// wire-format dialect would emit.
+// TestNegative_MalformedDecodePayload is the unknown-UUID guard for §5.3
+// items 26/29 — NOT the canonical item-26 per-format sentinel coverage.
 //
-// Per-format payload-body negatives (malformed JSON / Avro / Protobuf
-// after a valid wire-format header) are covered exhaustively in
-// pkg/gsrserde-go/deserializer/{json,avro}/*_malformed_test.go and
-// pkg/gsrserde-go/core/payload_negatives_test.go — the Tier-1 layer
-// is the right home for those because they don't need a Glue seam.
-// An earlier draft of this test claimed to cover them at the
-// integration level, but the assertion path bailed at schema lookup
-// long before any format deserializer was reached; the review
-// correctly flagged that as a misleading green. Cross-reference the
-// Tier-1 coverage in the comment instead of pretending to mirror it.
+// This test feeds a GSR-framed payload whose UUID is the all-zeros value
+// and asserts that the decoder returns a non-nil error. The error origin
+// varies by backend (fakeglue: EntityNotFoundException; real Glue:
+// InvalidInputException for the all-zero UUID). In both cases the contract
+// is simply "a non-nil error is surfaced" — this is the unknown-UUID guard,
+// not a per-format sentinel test.
+//
+// Canonical item-26 Tier-2 coverage — per-format ErrMalformedJSON /
+// ErrMalformedAvro / ErrMalformedProtobuf sentinel tests that prime the
+// decoder cache and exercise the format deserializer — lives in
+// payload_negatives_test.go (TestPayloadNegatives_MalformedJSON_SurfacesSentinel,
+// TestPayloadNegatives_MalformedAvro_SurfacesSentinel,
+// TestPayloadNegatives_MalformedProtobuf_SurfacesSentinel). The earlier
+// draft of this test claimed to cover that path, but the assertion bailed
+// at schema lookup long before any format deserializer was reached; the
+// Phase 4.9 audit correctly flagged that gap. Cross-reference the
+// Tier-1 coverage in pkg/gsrserde-go/deserializer/{json,avro,protobuf}/
+// *_malformed_test.go and pkg/gsrserde-go/core/payload_negatives_test.go.
+//
+// Phase 4.12 §3.9 last paragraph — docstring-only update; test body
+// unchanged (PBI-4.12-8 AC-9).
 func TestNegative_MalformedDecodePayload(t *testing.T) {
 	t.Parallel()
 	// Phase 4.8 nit #6: gate requiresFake=true. The decoder does

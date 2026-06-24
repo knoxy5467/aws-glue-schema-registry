@@ -483,6 +483,56 @@ func TestProtobufDeserializer_ErrorWrapping(t *testing.T) {
 	assert.Contains(t, err.Error(), "protobuf deserializer: deserialization failed:", "Error should contain wrapped message")
 }
 
+// TestProtobufDeserializer_Malformed_SurfacesMalformedProtobufSentinel exercises
+// §3.9 item 26 (Protobuf). Bytes that fail proto.Unmarshal against the
+// configured message descriptor must surface the per-format
+// ErrMalformedProtobuf sentinel via errors.Is, AND retain the
+// *ProtobufDeserializationError wrapper for errors.As resolution.
+//
+// Phase 4.12 §3.9 / PBI-4.12-4 AC-1, AC-2.
+func TestProtobufDeserializer_Malformed_SurfacesMalformedProtobufSentinel(t *testing.T) {
+	config := createProtobufDeserializerConfig()
+	deserializer, err := NewProtobufDeserializer(config)
+	require.NoError(t, err, "deserializer construction must succeed")
+
+	// Bytes that look like a varint but fail proto.Unmarshal: 0x81 sets the
+	// continuation bit on the first byte, so the parser expects at least one
+	// more byte to complete the field tag — the buffer ends mid-tag and
+	// proto.Unmarshal returns an error. This is the same shape as the
+	// generateInvalidProtobufData helper used elsewhere in this file.
+	mangled := []byte{0x81, 0x82, 0x83}
+	schema := createValidProtobufSchema()
+
+	result, err := deserializer.Deserialize(mangled, schema)
+	require.Error(t, err, "malformed protobuf bytes must surface as an error")
+	assert.Nil(t, result, "result must be nil on parse failure")
+
+	// Per-format sentinel: errors.Is must resolve through the wrapper's
+	// Unwrap() to gsrcore.ErrMalformedProtobuf.
+	assert.True(t, errors.Is(err, gsrcore.ErrMalformedProtobuf),
+		"errors.Is must resolve to gsrcore.ErrMalformedProtobuf")
+
+	// Umbrella sentinel: ErrMalformedProtobuf wraps ErrGSR transitively.
+	assert.True(t, errors.Is(err, gsrcore.ErrGSR),
+		"errors.Is must resolve transitively to gsrcore.ErrGSR")
+
+	// Wrapper-type retention: callers using errors.As against the wrapper
+	// struct must still resolve. AC-2 regression guard mirroring the JSON
+	// and Avro tests.
+	var protoErr *ProtobufDeserializationError
+	require.True(t, errors.As(err, &protoErr),
+		"errors.As must resolve the *ProtobufDeserializationError wrapper")
+	assert.NotNil(t, protoErr.Cause,
+		"the underlying proto.Unmarshal error must be preserved for diagnostics")
+
+	// Pre-existing diagnostic sentinel: the inner ErrDeserializationFailed
+	// reachability and its substring must remain intact so prior assertions
+	// (TestProtobufDeserializer_ErrorWrapping, TestProtobufDeserializer_DataValidation)
+	// continue to pass without modification.
+	assert.True(t, errors.Is(err, ErrDeserializationFailed),
+		"errors.Is must still reach ErrDeserializationFailed through the inner chain")
+}
+
 func TestProtobufDeserializer_SchemaValidation(t *testing.T) {
 	config := createProtobufDeserializerConfig()
 	deserializer, err := NewProtobufDeserializer(config)

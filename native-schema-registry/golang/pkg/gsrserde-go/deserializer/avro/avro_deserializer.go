@@ -23,6 +23,12 @@ var (
 	// ErrInvalidSchema is returned when schema is invalid
 	ErrInvalidSchema = fmt.Errorf("invalid avro schema")
 
+	// ErrDeserializationFailed is returned when Avro deserialization fails due
+	// to a malformed payload. Preserved in the error chain so callers can use
+	// errors.Is(err, ErrDeserializationFailed) for cross-format parity with
+	// json.ErrDeserializationFailed and protobuf.ErrDeserializationFailed.
+	// Phase 4.12 board-fixes MAJOR-1.
+	ErrDeserializationFailed = fmt.Errorf("avro deserializer: deserialization failed")
 )
 
 // AvroDeserializationError represents an error that occurred during AVRO deserialization
@@ -40,6 +46,16 @@ func (e *AvroDeserializationError) Error() string {
 
 func (e *AvroDeserializationError) Unwrap() error {
 	return e.Cause
+}
+
+// Is supports errors.Is(avroErr, gsrcore.ErrGSR) — every AvroDeserializationError
+// is by definition a Glue Schema Registry error. Matches the parity contract
+// in pkg/gsrserde-go/core/errors.go: SerializationError, DeserializationError.
+// Note: this only fast-paths the ErrGSR match. Other targets (e.g.,
+// gsrcore.ErrMalformedAvro) flow through Unwrap() against the Cause chain.
+// Phase 4.12 §4 invariant.
+func (e *AvroDeserializationError) Is(target error) bool {
+	return target == gsrcore.ErrGSR
 }
 
 // AvroDeserializer handles deserialization of AVRO messages using goavro.
@@ -102,12 +118,21 @@ func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 		}
 	}
 
-	// Unmarshal the data using hamba/avro
+	// Unmarshal the data using hamba/avro.
+	//
+	// Phase 4.12 §3.9: this is THE binary-decode failure path — the hamba/avro
+	// library reports that the payload bytes are not valid Avro binary against
+	// the writer schema. Wrap the Cause with gsrcore.ErrMalformedAvro so
+	// callers can resolve errors.Is(err, gsrcore.ErrMalformedAvro) (and
+	// transitively errors.Is(err, gsrcore.ErrGSR)) through the wrapper's
+	// Unwrap() chain. The underlying hamba/avro error is preserved further
+	// down the chain for diagnostic continuity. Schema-parse failures above
+	// are NOT wrapped — those are schema problems, not malformed payloads.
 	var result interface{}
 	if err := hambaavro.Unmarshal(avroSchema, data, &result); err != nil {
 		return nil, &AvroDeserializationError{
 			Message: "failed to deserialize AVRO data",
-			Cause:   err,
+			Cause:   fmt.Errorf("%w: %w: %w", gsrcore.ErrMalformedAvro, ErrDeserializationFailed, err),
 		}
 	}
 

@@ -100,3 +100,45 @@ func TestErrIncompatibleData_ChainsThroughFmtErrorf(t *testing.T) {
 	assert.True(t, errors.Is(wrapped, ErrIncompatibleData))
 	assert.True(t, errors.Is(wrapped, ErrGSR))
 }
+
+// TestErrors_NewMalformedSentinels_ChainToErrGSR locks the sentinel-shape
+// invariants for the three Phase 4.12 §3.9 / §4 per-format sentinels:
+//   - each sentinel resolves to ErrGSR via errors.Is (so umbrella callers
+//     still match), AND
+//   - the sibling sentinels do NOT cross-resolve (Avro is not Protobuf, etc.),
+//     which guards against a future refactor that accidentally collapses the
+//     three sentinels into a single chain.
+//
+// The wrapper-struct half of AC-3 (errors.Is(&FormatDeserializationError{
+// Cause: ErrMalformed<Format>}, ErrMalformed<Format>)) cannot live here
+// because the core module is published independently from the deserializer
+// packages and importing them would introduce a dependency cycle. Those
+// assertions live in each deserializer's own *_test.go file added by
+// PBI-4.12-1.
+func TestErrors_NewMalformedSentinels_ChainToErrGSR(t *testing.T) {
+	cases := []struct {
+		name     string
+		sentinel error
+		siblings []error
+	}{
+		{"ErrMalformedJSON", ErrMalformedJSON, []error{ErrMalformedAvro, ErrMalformedProtobuf}},
+		{"ErrMalformedAvro", ErrMalformedAvro, []error{ErrMalformedJSON, ErrMalformedProtobuf}},
+		{"ErrMalformedProtobuf", ErrMalformedProtobuf, []error{ErrMalformedJSON, ErrMalformedAvro}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.True(t, errors.Is(tc.sentinel, ErrGSR),
+				"%s must chain to ErrGSR via errors.Is", tc.name)
+			for _, sibling := range tc.siblings {
+				assert.False(t, errors.Is(tc.sentinel, sibling),
+					"%s must NOT cross-resolve to sibling sentinel %v", tc.name, sibling)
+			}
+			// And the inverse: wrapping the sentinel preserves both matches.
+			wrapped := fmt.Errorf("deserializer: %w", tc.sentinel)
+			assert.True(t, errors.Is(wrapped, tc.sentinel),
+				"%s wrapped via fmt.Errorf must still errors.Is back to itself", tc.name)
+			assert.True(t, errors.Is(wrapped, ErrGSR),
+				"%s wrapped via fmt.Errorf must transitively reach ErrGSR", tc.name)
+		})
+	}
+}
