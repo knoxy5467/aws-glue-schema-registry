@@ -7,15 +7,19 @@
 - Base commit: 0a95eae (golang-mrknox)
 - Go module root: native-schema-registry/golang/
 - Auditor: swarm-implementor
-- Code-review status: Findings applied in commit 93222a7 (§1.1 endpoint constant line-number correction, carry-forward from PBI-1 review); 2 NIT findings deferred — see §4.
+- Code-review status: `/code-review` plugin contraindicated by AC10 (PR required); substituted cumulative multi-perspective review per IMPL_RESULT; findings applied in 93222a7 (and 623654c follow-up); 2 NIT findings deferred — see §4.
 
 ## Summary counters
 
 | Category | Implemented | Stubbed | Missing | Total |
 |---|---:|---:|---:|---:|
-| Java parity (config + client + facades) | 17 | 16 | 6 | 39 |
+| Java parity (config + client + facades) | 17 | 17 | 5 | 39 |
 | Format-layer Phase 3 stubs (3 rows) | 2 | 1 | 0 | 3 |
 | §5.3 test coverage (special-attention items) | Tier-1: 12 Y / 5 N · Tier-2: 17 Y / 0 N | — | Tier-1∧Tier-2 N: 0 | 17 |
+
+## TL;DR
+
+17 implemented / 17 stubbed / 5 missing across 39 Java surfaces; format layer 2/3 done; 1 multi-phase carry-over (JSON-Schema migration); see §4 for deferred findings.
 
 ## 1. Java parity audit
 
@@ -40,7 +44,7 @@ Go counterpart: `native-schema-registry/golang/pkg/gsrserde-go/core/config.go` (
 | `common/.../GlueSchemaRegistryConfiguration.java:56` (field), `:262-271` (validateAndSetSchemaAutoRegistrationSetting) | `schemaAutoRegistrationEnabled` config key → boolean; default `false`; parsed via `Boolean.parseBoolean` (only `"true"` is true). | `pkg/gsrserde-go/core/config.go:28` (constant), `:163-166` (parse), `:190` (assignment), `:210-212` (`parseBool`) | Implemented | |
 | `common/.../GlueSchemaRegistryConfiguration.java:57` (field), `:273-285` (validateAndSetTags) | `tags` config key → `Map<String,String>` of resource tags propagated to `CreateSchema`; throws when not a `HashMap`. | `pkg/gsrserde-go/core/config.go:34` (constant), `:203` (`collectPrefixedMap`), `:216-224` (impl) | Implemented | Go diverges: instead of a single `Map<String,String>` key, callers pass `tags.<key>=<value>` flat-map entries which Go expands into `Config.Tags`. Same external behavior — values flow into `CreateSchema.Tags` (`encoder.go:353`). |
 | `common/.../GlueSchemaRegistryConfiguration.java:58` (field), `:287-296` (validateAndSetMetadata) | `metadata` config key → `Map<String,String>` of schema-version metadata propagated into `PutSchemaVersionMetadata`; throws when not a `HashMap`. | `pkg/gsrserde-go/core/config.go:35` (constant), `:204` (`collectPrefixedMap`), `:216-224` (impl) | Stubbed | Go parses `metadata.<key>=<value>` into `Config.Metadata` but the field is never consumed — `CreateSchema` and `RegisterSchemaVersion` call sites in `encoder.go` ignore it, and there is no Go call site for `PutSchemaVersionMetadata`. |
-| `common/.../GlueSchemaRegistryConfiguration.java:59` (field), `:109-120` (validateAndSetSecondaryDeserializer) | `secondaryDeserializer` config key → fully-qualified class name for fallback deserializer; accepts `String` or `Class`; throws on other types. | `pkg/gsrserde-go/core/config.go:36` (constant), `:197` (assignment) | Missing | Go parses the value into `Config.SecondaryDeserializer` but no Go decoder fallback path consumes it; no secondary-deserializer chain exists. |
+| `common/.../GlueSchemaRegistryConfiguration.java:59` (field), `:109-120` (validateAndSetSecondaryDeserializer) | `secondaryDeserializer` config key → fully-qualified class name for fallback deserializer; accepts `String` or `Class`; throws on other types. | `pkg/gsrserde-go/core/config.go:36` (constant), `:197` (assignment) | Stubbed | Go parses the value into `Config.SecondaryDeserializer` but no Go decoder fallback path consumes it; no secondary-deserializer chain exists. |
 | `common/.../GlueSchemaRegistryConfiguration.java:60` (field), `:199-209` (validateAndSetProxyUrl) | `proxyUrl` config key → `URI` parsed and installed onto the HTTP client; throws on invalid URI. | `pkg/gsrserde-go/core/config.go:24` (constant), `:112-119` (parse + install on transport), `:186` (assignment) | Implemented | |
 | `common/.../GlueSchemaRegistryConfiguration.java:66` (field, default `"default"`), `:127-131` (validateAndSetUserAgent) | `userAgentApp` config key → application name appended to AWS User-Agent; default `"default"`. | `pkg/gsrserde-go/core/config.go:37` (constant), `:106-111` (install middleware), `:198` (assignment) | Stubbed | Go does NOT apply the `"default"` default — when the key is absent `Config.UserAgentApp` stays empty and the `glue-schema-registry-go/<ua>` middleware key is not added (only added when the user explicitly sets the key). |
 | `common/.../GlueSchemaRegistryConfiguration.java:68` (field), `:298-310` (validateAndSetJacksonSerializationFeatures) | `jacksonSerializationFeatures` config key → `List<SerializationFeature>` for Jackson JSON encoder; no default; throws when not a `List`. | Missing | Missing | Java-only — Go uses `encoding/json` and the JSON Schema validator (`xeipuuv/gojsonschema`); there is no Jackson surface to forward feature flags to. |
@@ -107,10 +111,12 @@ Go counterpart: `native-schema-registry/golang/pkg/gsrserde-go/deserializer/gsr_
 
 Tier-1 = unit tests under `native-schema-registry/golang/pkg/gsrserde-go/.../*_test.go`. Tier-2 = integration tests under `native-schema-registry/golang/integration-tests/tests/*_test.go`. All file paths in citations are relative to `native-schema-registry/golang/`. Every `Y` cell carries `file:TestFuncName:line`. Cell line numbers point to the `func Test...` declaration line. Cited tests verified by `grep -n '^func Test' <file>` at HEAD.
 
+Tier-2 Y means a test file exists at the cited file:line that targets this scenario; it does NOT guarantee the test runs and passes — see §4 for tests currently `t.Skip`-ed.
+
 | Item # | Item description | Tier-1 covered (Y/N + file:TestFuncName:line) | Tier-2 covered (Y/N + file:TestFuncName:line) | Notes |
 |---|---|---|---|---|
 | 16 | Cache TTL eviction: after TTL, a fresh `GetSchemaVersion` call is made. | Y, `pkg/gsrserde-go/core/cache_test.go:TestCacheTTL:8` | Y, `integration-tests/tests/schema_lifecycle_test.go:TestLifecycle_CacheTTLEviction:159` | Tier-1 covers the bare cache TTL-eviction behavior on the `Cache` interface; Tier-2 covers TTL eviction observed via the encoder's GetSchemaByDefinition recount on the fakeglue backend. |
-| 17 | Cache size eviction: distinct schemas beyond `cacheSize` evict the oldest. | Y, `pkg/gsrserde-go/core/cache_test.go:TestCacheSize:60` | Y, `integration-tests/tests/schema_lifecycle_test.go:TestLifecycle_CacheSizeEviction:205` | Tier-1 test is a basic-functionality stand-in (the file's own comment notes `go-cache doesn't have built-in size limits`), so the size-eviction contract is not actually asserted. Tier-2 test is `t.Skip`-ed pending a cache size cap. |
+| 17 | Cache size eviction: distinct schemas beyond `cacheSize` evict the oldest. | Y, `pkg/gsrserde-go/core/cache_test.go:TestCacheSize:60` (stand-in; size-eviction contract not asserted) | Y, `integration-tests/tests/schema_lifecycle_test.go:TestLifecycle_CacheSizeEviction:205` | Tier-1 test is a basic-functionality stand-in (the file's own comment notes `go-cache doesn't have built-in size limits`), so the size-eviction contract is not actually asserted. Tier-2 test is `t.Skip`-ed pending a cache size cap. |
 | 18 | BACKWARD evolution v1→v2: producer publishes v1, consumer with v2 reads successfully. | N | Y, `integration-tests/tests/compatibility_test.go:TestCompatibility_BackwardV1ToV2:108` | Tier-2 covers wire-flow under the BACKWARD setting; Tier-1 has no compat-evolution test. |
 | 19 | BACKWARD_ALL across three versions. | N | Y, `integration-tests/tests/compatibility_test.go:TestCompatibility_BackwardAll_ThreeVersions:126` | Tier-2 only; `requiresFake=true` since the assertion uses fakeglue `Snapshot()`. |
 | 20 | FORWARD evolution v2→v1. | N | Y, `integration-tests/tests/compatibility_test.go:TestCompatibility_ForwardV2ToV1:153` | Tier-2 only; backend-agnostic per the test's own docstring. |
