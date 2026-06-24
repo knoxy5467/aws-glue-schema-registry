@@ -24,6 +24,10 @@ type GsrEncoderOptions struct {
 	// CacheTTLMillis is the time-to-live for the schema cache. Zero means
 	// "use the default" (matching LoadConfigFromMap behaviour).
 	CacheTTLMillis int64
+	// CacheSize is the maximum number of entries the schema cache will hold
+	// before LRU-evicting the oldest. Zero means "use DefaultCacheSize"
+	// (matching LoadConfigFromMap behaviour). Spec §3.2 / §3.3 and PBI-4.11-2.
+	CacheSize int
 	// SchemaAutoRegistrationEnabled mirrors the Java config flag and the
 	// corresponding production field; tests that exercise auto-register
 	// fall-through set it explicitly.
@@ -49,6 +53,7 @@ func NewGsrEncoderForTest(client GlueClient, opts GsrEncoderOptions) (*GsrEncode
 	}
 	cache, err := NewCacheWithOptions(CacheOptions{
 		TTLMillis: ttl,
+		Size:      opts.CacheSize,
 		Clock:     opts.Clock,
 	})
 	if err != nil {
@@ -70,6 +75,8 @@ func NewGsrEncoderForTest(client GlueClient, opts GsrEncoderOptions) (*GsrEncode
 type GsrDecoderOptions struct {
 	RegistryName   string
 	CacheTTLMillis int64
+	// CacheSize mirrors GsrEncoderOptions.CacheSize — see that field's comment.
+	CacheSize int
 	// Clock mirrors GsrEncoderOptions.Clock — see that field's comment.
 	Clock Clock
 }
@@ -86,6 +93,7 @@ func NewGsrDecoderForTest(client GlueClient, opts GsrDecoderOptions) (*GsrDecode
 	}
 	cache, err := NewCacheWithOptions(CacheOptions{
 		TTLMillis: ttl,
+		Size:      opts.CacheSize,
 		Clock:     opts.Clock,
 	})
 	if err != nil {

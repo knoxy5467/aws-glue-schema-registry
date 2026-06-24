@@ -63,30 +63,42 @@ func TestCacheInterface(t *testing.T) {
 	}
 }
 
-func TestCacheSize(t *testing.T) {
-	// Note: go-cache doesn't have built-in size limits.
-	// This test verifies basic functionality only. Size-cap enforcement
-	// lands in PBI-4.11-2 (LRU swap); see spec §3.3.
-	cache, err := NewCache(60000)
-	if err != nil {
-		t.Fatalf("Failed to create cache: %v", err)
-	}
+// TestCache_SizeEvictsOldestEntry asserts §5.3 item 17 / spec §5 S2: with
+// CacheSize=N and N+1 distinct inserts (no intervening Gets), the LRU-oldest
+// entry is evicted on the N+1 insert. The test deliberately does not call
+// Get between inserts because simplelru promotes on Get, which would
+// reshuffle the LRU order and make the eviction non-deterministic.
+//
+// Uses production RealClock — the size-cap scenario is orthogonal to the
+// TTL seam (per spec round-2 reconciliation, the size-cap test does not
+// inject FakeClock).
+func TestCache_SizeEvictsOldestEntry(t *testing.T) {
+	cache, err := NewCacheWithOptions(CacheOptions{
+		TTLMillis: 60_000,
+		Size:      3,
+	})
+	require.NoError(t, err)
 	defer cache.Close()
 
-	// Add items
-	cache.Set("key1", &Schema{SchemaName: "schema1"})
-	cache.Set("key2", &Schema{SchemaName: "schema2"})
-	cache.Set("key3", &Schema{SchemaName: "schema3"})
+	cache.Set("k1", &Schema{SchemaName: "s1"})
+	cache.Set("k2", &Schema{SchemaName: "s2"})
+	cache.Set("k3", &Schema{SchemaName: "s3"})
 
-	// All should exist (go-cache doesn't enforce size limits)
-	if _, exists := cache.Get("key1"); !exists {
-		t.Error("key1 should exist")
+	// All three present before the cap is exceeded.
+	for _, k := range []string{"k1", "k2", "k3"} {
+		_, ok := cache.Get(k)
+		require.Truef(t, ok, "%s should be present before cap exceeded", k)
 	}
-	if _, exists := cache.Get("key2"); !exists {
-		t.Error("key2 should exist")
-	}
-	if _, exists := cache.Get("key3"); !exists {
-		t.Error("key3 should exist")
+
+	// Insert a fourth — k1 (oldest by insertion under no intervening Gets)
+	// must be evicted by LRU.
+	cache.Set("k4", &Schema{SchemaName: "s4"})
+
+	_, ok := cache.Get("k1")
+	require.False(t, ok, "oldest entry (k1) must be evicted when cap exceeded")
+	for _, k := range []string{"k2", "k3", "k4"} {
+		_, ok := cache.Get(k)
+		require.Truef(t, ok, "%s should still be present after eviction of oldest", k)
 	}
 }
 
