@@ -1,0 +1,4 @@
+# Allow *.log in this directory — the parent .gitignore ignores *.log globally,
+# but test-artifacts/ is a first-class deliverable directory where log files
+# from real-AWS test runs are committed for developer inspection.
+!*.log

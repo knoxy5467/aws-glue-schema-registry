@@ -1,0 +1,10 @@
+TestNegative_EntityNotFound_FallsThroughToCreate_Real
+timestamp:         2026-06-24T22:25:29Z
+account:           850995546034
+region:            us-west-2
+registry:          default-registry
+schema_name:       gsr-go-it-neg-25-real-1782339929-4381cc4551f799a0
+version_uuid:      996288fc-0fa0-47e6-b309-b555017eda6d
+create_schema_count: 2
+duration_ms:       2005
+result:            PASS
