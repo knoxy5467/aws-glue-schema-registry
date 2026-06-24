@@ -23,6 +23,12 @@ var (
 	// ErrInvalidSchema is returned when schema is invalid
 	ErrInvalidSchema = fmt.Errorf("invalid avro schema")
 
+	// ErrDeserializationFailed is returned when Avro deserialization fails due
+	// to a malformed payload. Preserved in the error chain so callers can use
+	// errors.Is(err, ErrDeserializationFailed) for cross-format parity with
+	// json.ErrDeserializationFailed and protobuf.ErrDeserializationFailed.
+	// Phase 4.12 board-fixes MAJOR-1.
+	ErrDeserializationFailed = fmt.Errorf("avro deserializer: deserialization failed")
 )
 
 // AvroDeserializationError represents an error that occurred during AVRO deserialization
@@ -126,7 +132,7 @@ func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 	if err := hambaavro.Unmarshal(avroSchema, data, &result); err != nil {
 		return nil, &AvroDeserializationError{
 			Message: "failed to deserialize AVRO data",
-			Cause:   fmt.Errorf("%w: %w", gsrcore.ErrMalformedAvro, err),
+			Cause:   fmt.Errorf("%w: %w: %w", gsrcore.ErrMalformedAvro, ErrDeserializationFailed, err),
 		}
 	}
 

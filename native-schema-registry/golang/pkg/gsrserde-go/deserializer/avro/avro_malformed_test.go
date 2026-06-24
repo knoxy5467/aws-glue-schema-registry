@@ -49,6 +49,40 @@ func TestAvroDeserializer_MalformedBytes_SurfacesTypedError(t *testing.T) {
 		"the underlying hamba/avro parse error must be preserved for diagnostics")
 }
 
+// TestAvroDeserializer_Malformed_PreservesErrDeserializationFailed asserts
+// cross-format parity for ErrDeserializationFailed (board-fixes MAJOR-1).
+// All three deserializers (JSON, Avro, Protobuf) must preserve their
+// per-format ErrDeserializationFailed sentinel so callers can discriminate
+// "deserialization failed" from "generic GSR error" using errors.Is without
+// importing each format package. This test covers the Avro format.
+func TestAvroDeserializer_Malformed_PreservesErrDeserializationFailed(t *testing.T) {
+	cfg := &common.Configuration{}
+	des, err := NewAvroDeserializer(cfg)
+	require.NoError(t, err)
+
+	// Same 5-byte malformed varint payload used in the sentinel test above.
+	schema := &gsrcore.Schema{
+		SchemaName:       "TestRecord",
+		SchemaDefinition: `{"type":"record","name":"TestRecord","fields":[{"name":"message","type":"string"}]}`,
+		DataFormat:       "AVRO",
+	}
+	mangled := []byte{0xFE, 0xFF, 0xFF, 0xFF, 0x0F}
+
+	_, deserErr := des.Deserialize(mangled, schema)
+	require.Error(t, deserErr, "malformed Avro must surface as an error")
+
+	// Cross-format parity assertion: errors.Is must resolve to the per-format
+	// ErrDeserializationFailed sentinel (MAJOR-1 board fix).
+	assert.True(t, errors.Is(deserErr, ErrDeserializationFailed),
+		"errors.Is must resolve to avro.ErrDeserializationFailed on malformed-payload errors")
+
+	// Umbrella sentinel must still resolve (regression guard).
+	assert.True(t, errors.Is(deserErr, gsrcore.ErrMalformedAvro),
+		"errors.Is must also resolve to gsrcore.ErrMalformedAvro")
+	assert.True(t, errors.Is(deserErr, gsrcore.ErrGSR),
+		"errors.Is must also resolve transitively to gsrcore.ErrGSR")
+}
+
 // TestAvroDeserializer_Malformed_SurfacesMalformedAvroSentinel exercises
 // §3.9 item 26 (Avro). The supplied bytes fail Avro binary decode against
 // a record schema; the deserializer must surface the per-format

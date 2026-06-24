@@ -42,6 +42,7 @@ package gsrserde
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -140,7 +141,10 @@ func TestEncoder_Throttling_AssertsRetryCount(t *testing.T) {
 			so.MaxAttempts = 3
 		})
 		o.APIOptions = append(o.APIOptions, func(stack *middleware.Stack) error {
-			return stack.Finalize.Add(counter.middleware(), middleware.After)
+			if err := stack.Finalize.Add(counter.middleware(), middleware.After); err != nil {
+				return fmt.Errorf("aws sdk retry middleware registration failed: %w", err)
+			}
+			return nil
 		})
 	})
 

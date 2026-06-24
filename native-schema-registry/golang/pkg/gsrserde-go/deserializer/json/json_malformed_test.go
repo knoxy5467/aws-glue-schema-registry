@@ -66,6 +66,39 @@ func TestJsonDeserializer_Malformed_SurfacesMalformedJSONSentinel(t *testing.T) 
 		"the underlying parse error must be preserved for diagnostics")
 }
 
+// TestJsonDeserializer_Malformed_PreservesErrDeserializationFailed asserts
+// cross-format parity for ErrDeserializationFailed (board-fixes MAJOR-1).
+// All three deserializers (JSON, Avro, Protobuf) must preserve their
+// per-format ErrDeserializationFailed sentinel so callers can discriminate
+// "deserialization failed" from "generic GSR error" using errors.Is without
+// importing each format package. This test covers the JSON format.
+func TestJsonDeserializer_Malformed_PreservesErrDeserializationFailed(t *testing.T) {
+	cfg := &common.Configuration{}
+	des, err := NewJsonDeserializer(cfg)
+	require.NoError(t, err)
+
+	malformed := []byte(`{"x":}`)
+
+	schema := &gsrcore.Schema{
+		SchemaDefinition: `{"type":"object"}`,
+		DataFormat:       "JSON",
+	}
+
+	_, deserErr := des.Deserialize(malformed, schema)
+	require.Error(t, deserErr, "malformed JSON must surface as an error")
+
+	// Cross-format parity assertion: errors.Is must resolve to the per-format
+	// ErrDeserializationFailed sentinel (MAJOR-1 board fix).
+	assert.True(t, errors.Is(deserErr, ErrDeserializationFailed),
+		"errors.Is must resolve to json.ErrDeserializationFailed on malformed-payload errors")
+
+	// Umbrella sentinel must still resolve (regression guard).
+	assert.True(t, errors.Is(deserErr, gsrcore.ErrMalformedJSON),
+		"errors.Is must also resolve to gsrcore.ErrMalformedJSON")
+	assert.True(t, errors.Is(deserErr, gsrcore.ErrGSR),
+		"errors.Is must also resolve transitively to gsrcore.ErrGSR")
+}
+
 // TestJsonDeserializer_NonUtf8_SurfacesMalformedJsonError exercises §5.3
 // item 27. The supplied bytes are valid JSON syntax shape but contain a
 // lone 0xFF byte that doesn't form a valid UTF-8 code point — encoding/json

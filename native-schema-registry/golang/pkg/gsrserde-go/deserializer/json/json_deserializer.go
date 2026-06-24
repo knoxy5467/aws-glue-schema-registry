@@ -28,6 +28,13 @@ var (
 
 	// ErrInvalidSchema is returned when schema is invalid
 	ErrInvalidSchema = fmt.Errorf("invalid JSON schema")
+
+	// ErrDeserializationFailed is returned when JSON deserialization fails due
+	// to a malformed payload. Preserved in the error chain so callers can use
+	// errors.Is(err, ErrDeserializationFailed) for cross-format parity with
+	// avro.ErrDeserializationFailed and protobuf.ErrDeserializationFailed.
+	// Phase 4.12 board-fixes MAJOR-1.
+	ErrDeserializationFailed = fmt.Errorf("JSON deserializer: deserialization failed")
 )
 
 // JsonDeserializationError represents an error that occurred during JSON deserialization
@@ -137,7 +144,7 @@ func (j *JsonDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 	if !utf8.Valid(data) {
 		return nil, &JsonDeserializationError{
 			Message: "data is not valid JSON: non-UTF-8 bytes",
-			Cause:   fmt.Errorf("%w: %w", gsrcore.ErrMalformedJSON, ErrInvalidJsonData),
+			Cause:   fmt.Errorf("%w: %w: %w", gsrcore.ErrMalformedJSON, ErrDeserializationFailed, ErrInvalidJsonData),
 		}
 	}
 
@@ -151,7 +158,7 @@ func (j *JsonDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return nil, &JsonDeserializationError{
 			Message: "data is not valid JSON",
-			Cause:   fmt.Errorf("%w: %w", gsrcore.ErrMalformedJSON, err),
+			Cause:   fmt.Errorf("%w: %w: %w", gsrcore.ErrMalformedJSON, ErrDeserializationFailed, err),
 		}
 	}
 

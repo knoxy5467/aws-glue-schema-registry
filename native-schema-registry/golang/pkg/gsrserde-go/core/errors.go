@@ -55,9 +55,11 @@ var ErrSchemaAutoRegistrationDisabled = fmt.Errorf("%w: schema auto-registration
 var ErrInvalidProtobufPayload = fmt.Errorf("%w: value is not a valid protobuf message", ErrGSR)
 
 // ErrMalformedJSON is the per-format sentinel for a JSON payload that fails
-// the JSON deserializer's malformed-payload contract (non-UTF-8, syntactic
-// failure, or schema-validation failure). Wraps ErrGSR so callers can
-// errors.Is at either granularity. Phase 4.12 §3.9 item 26 / §4.
+// the JSON deserializer's malformed-payload contract: syntactic parse failures
+// (encoding/json rejection) and non-UTF-8 payloads. Does NOT cover
+// schema-validation failures — those surface as *JsonValidationError without
+// ErrMalformedJSON in the chain. Wraps ErrGSR so callers can errors.Is at
+// either granularity. Phase 4.12 §3.9 item 26 / §4 / board-fixes MAJOR-1.
 var ErrMalformedJSON = fmt.Errorf("%w: malformed JSON", ErrGSR)
 
 // ErrMalformedAvro is the per-format sentinel for an Avro payload that fails
