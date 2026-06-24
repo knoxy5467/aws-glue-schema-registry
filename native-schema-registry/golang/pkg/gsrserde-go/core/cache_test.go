@@ -1,6 +1,7 @@
 package gsrserde
 
 import (
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -10,6 +11,35 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+// TestCache_TTLEvictsAgainstWallClock verifies that the production RealClock path
+// (i.e., nil Clock → defaults to RealClock in NewCacheWithOptions) actually evicts
+// entries after their TTL elapses on the real wall clock. FakeClock tests cover the
+// TTL logic under controlled time; this test exercises the wiring between cache.go
+// and time.Now() so a nil-Clock edge case does not go un-exercised.
+//
+// The TTL is set to 50ms; the test sleeps 75ms to absorb scheduler jitter (~25ms
+// slack). This is a single-goroutine timing assertion so it is race-safe under -race.
+func TestCache_TTLEvictsAgainstWallClock(t *testing.T) {
+	// RealClock is the production path: Clock: nil causes NewCacheWithOptions to
+	// default to RealClock (clock.go).
+	cache, err := NewCacheWithOptions(CacheOptions{TTLMillis: 50})
+	require.NoError(t, err)
+	defer cache.Close()
+
+	cache.Set("wc", &Schema{SchemaName: "wall-clock"})
+
+	// Entry must be present immediately after Set.
+	v, ok := cache.Get("wc")
+	require.True(t, ok, "entry must exist immediately after Set on real-clock path")
+	require.Equal(t, "wall-clock", v.(*Schema).SchemaName)
+
+	// Sleep past TTL + slack to let the wall clock advance.
+	time.Sleep(75 * time.Millisecond)
+
+	_, ok = cache.Get("wc")
+	require.False(t, ok, "entry must be evicted after TTL elapses on real-clock path")
+}
 
 // TestCache_TTLEvictsAfterAdvancePastTTL replaces the prior wall-clock
 // TestCacheTTL (which slept 150ms). Per spec §5 S1 and PBI-4.11-1, the
@@ -188,4 +218,44 @@ func TestDecoder_TTLEviction_TriggersFreshGetSchemaVersion(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(2), getCalls.Load(),
 		"after TTL eviction a fresh GetSchemaVersion must fire")
+}
+
+// TestCache_DefaultSizeMatchesJava asserts that NewCache(ttlMillis) (the legacy
+// no-size constructor) creates a cache whose default size matches Java GSR's
+// Caffeine `maximumSize` default of 200 (GlueSchemaRegistryConfiguration.java:50
+// `private int cacheSize = 200`). This is a regression guard against silent
+// breaking changes to DefaultCacheSize.
+//
+// Concretely: insert 250 entries (= Java default 200 + 50 overflow); verify the
+// 50 LRU-oldest entries (k0..k49) are evicted and the 200 most-recent are
+// retained. No Gets are performed between inserts to preserve insertion order.
+func TestCache_DefaultSizeMatchesJava(t *testing.T) {
+	const javaDefault = 200 // must equal DefaultCacheSize in config.go
+	const overshoot = 50    // insert this many beyond the cap
+	const total = javaDefault + overshoot
+
+	// NewCache uses DefaultCacheSize (=200) — the legacy path callers use.
+	// Use a very long TTL so entries never expire by time during this test.
+	cache, err := NewCache(int64(24 * 60 * 60 * 1000))
+	require.NoError(t, err)
+	defer cache.Close()
+
+	keys := make([]string, total)
+	for i := 0; i < total; i++ {
+		keys[i] = fmt.Sprintf("key-%04d", i)
+		cache.Set(keys[i], &Schema{SchemaName: keys[i]})
+	}
+
+	// LRU-oldest (first 50 inserted) must be evicted.
+	for i := 0; i < overshoot; i++ {
+		_, ok := cache.Get(keys[i])
+		require.Falsef(t, ok, "key-%04d: LRU-oldest entry must be evicted when cap=%d exceeded",
+			i, javaDefault)
+	}
+
+	// The 200 most-recently inserted entries must be retained.
+	for i := overshoot; i < total; i++ {
+		_, ok := cache.Get(keys[i])
+		require.Truef(t, ok, "key-%04d: entry must be retained within cap=%d", i, javaDefault)
+	}
 }

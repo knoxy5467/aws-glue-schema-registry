@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -599,6 +600,37 @@ func TestJsonSerializer_Validate_Draft202012_RoundTrip(t *testing.T) {
 	require.Error(t, extraItem, "items:false must reject extra entries")
 	require.True(t, errors.Is(extraItem, ErrValidation),
 		"INV-JSON-ERROR-CHAIN: validation failure must chain through ErrValidation")
+}
+
+// TestJsonSerializer_Validate_HTTPRefFailsClosed verifies SSRF safety: a schema
+// containing a `$ref` pointing at an external http:// URL must fail at compile
+// time without making any outbound network request.
+//
+// v6's default URLLoader is FileLoader (file:// only). http:// URLs are not in
+// the metaschema bundle and not in the FileLoader domain, so v6 returns
+// LoadURLError{Err: "no URLLoader set"} immediately — the test completes in
+// microseconds (no TCP connect, no DNS lookup).
+//
+// Assert strategy: the test must complete in < 1s total (generous deadline
+// absorbs test infra overhead; real SSRF would hit a network timeout of
+// seconds). An error from compiler.Compile is also required.
+func TestJsonSerializer_Validate_HTTPRefFailsClosed(t *testing.T) {
+	schemaWithHTTPRef := `{
+		"type": "object",
+		"properties": {
+			"name": {"$ref": "http://attacker.example.com/schema.json"}
+		}
+	}`
+
+	s := NewJsonSerializer(&common.Configuration{})
+
+	start := time.Now()
+	err := s.Validate(schemaWithHTTPRef, []byte(`{"name": "test"}`))
+	elapsed := time.Since(start)
+
+	require.Error(t, err, "schema with external http:// $ref must fail closed")
+	require.Less(t, elapsed, time.Second,
+		"SSRF safety: compile must fail fast without outbound network call (elapsed=%v)", elapsed)
 }
 
 func TestJsonSerializer_ConcurrentAccess(t *testing.T) {

@@ -238,7 +238,9 @@ func TestEncoder_GetSchemaVersionId_Singleflight_CreateSchemaExactlyOnce(t *test
 	// `atomic.LoadInt64(&createCalls) == 1` form; atomic.Int64.Load() is the
 	// idiomatic Go ≥ 1.19 spelling and is the equivalent helper the legacy
 	// SingleflightDeduplicates test above uses.
-	assert.Equal(t, int64(1), createCalls.Load(),
+	// require (not assert) so a failure aborts immediately and the test
+	// message is unambiguous — final-board finding MAJOR #3.
+	require.Equal(t, int64(1), createCalls.Load(),
 		"singleflight must collapse %d concurrent CreateSchema calls to exactly 1; saw %d",
 		N, createCalls.Load())
 }

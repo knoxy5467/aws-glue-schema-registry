@@ -223,8 +223,17 @@ func (j *JsonSerializer) Validate(schemaDefinition string, data []byte) error {
 		}
 	}
 
-	// Compile the schema. v6 auto-detects the draft from `$schema`.
+	// Compile the schema. Pin Draft-07 as the default for schemas without an
+	// explicit `$schema` field, preserving xeipuuv/gojsonschema legacy behavior.
+	// v6's out-of-the-box default is Draft 2020-12, which would be a silent
+	// breaking change for existing GSR JSON schemas. Schemas that DO include
+	// `$schema` continue to use their declared draft (auto-detected by v6).
+	//
+	// Remote $ref safety: v6's default URLLoader is FileLoader (file:// only);
+	// http/https $ref resolution is already closed-by-default without any
+	// explicit configuration — no UseLoader call needed.
 	compiler := jsonschema.NewCompiler()
+	compiler.DefaultDraft(jsonschema.Draft7)
 	const schemaURL = "inmem:///schema.json"
 	if err := compiler.AddResource(schemaURL, schemaRaw); err != nil {
 		return &JsonValidationError{

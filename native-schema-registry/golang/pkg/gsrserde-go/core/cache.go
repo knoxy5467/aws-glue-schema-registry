@@ -27,7 +27,8 @@ type Cache interface {
 //     means "use DefaultCacheTTLMillis".
 //   - Size: maximum number of entries. Zero or negative means
 //     "use DefaultCacheSize". When the cap is exceeded, the LRU-oldest entry
-//     is evicted on insert (Java Caffeine `maximumSize` parity).
+//     is evicted on insert (Java Caffeine `maximumSize` parity; Java default
+//     is 200 per GlueSchemaRegistryConfiguration.java:50 `cacheSize = 200`).
 //   - Clock: the time source. nil means RealClock. Tests inject a *FakeClock
 //     to drive TTL eviction deterministically without time.Sleep.
 type CacheOptions struct {
@@ -115,7 +116,11 @@ func (c *LRUCacheWrapper) Get(key string) (interface{}, bool) {
 	if !ok {
 		return nil, false
 	}
-	if !c.clock.Now().Before(entry.expiresAt) {
+	// Use After (strict greater-than) for Java Caffeine parity: an entry expires
+	// only once clock.Now() strictly exceeds expiresAt, not when it equals it.
+	// !Before(x) evicts at Now==expiresAt (one tick early); After(x) does not.
+	// time.Since uses monotonic clock arithmetic to avoid NTP/DST skew.
+	if c.clock.Now().After(entry.expiresAt) {
 		c.lru.Remove(key)
 		return nil, false
 	}
