@@ -102,12 +102,17 @@ public final class KafkaProduceHandler implements HttpHandler {
             // handler scope. Each request carries its own (region, schemaName,
             // dataFormat, compression) tuple; caching would silently bind to
             // the first request's tuple and contaminate subsequent runs.
-            GlueSchemaRegistryKafkaSerializer kafkaSerializer = new GlueSchemaRegistryKafkaSerializer(gsrConfigs);
-            byte[] framed = kafkaSerializer.serialize(topic, javaRecord);
-            if (framed == null) {
-                throw new IllegalStateException(
-                        "GlueSchemaRegistryKafkaSerializer.serialize returned null for non-null record"
-                        + " (format=" + format + ", topic=" + topic + ")");
+            // Wrapped in try-with-resources because GlueSchemaRegistryKafkaSerializer
+            // implements Closeable and holds internal Glue client resources.
+            byte[] framed;
+            try (GlueSchemaRegistryKafkaSerializer kafkaSerializer =
+                         new GlueSchemaRegistryKafkaSerializer(gsrConfigs)) {
+                framed = kafkaSerializer.serialize(topic, javaRecord);
+                if (framed == null) {
+                    throw new IllegalStateException(
+                            "GlueSchemaRegistryKafkaSerializer.serialize returned null for non-null record"
+                            + " (format=" + format + ", topic=" + topic + ")");
+                }
             }
 
             // Plain bytes producer — Kafka is just transport here.

@@ -23,6 +23,21 @@
 // THIS BILLS AWS.  Gated by AWS_INTEGRATION=1 + GSR_GLUE=real +
 // GSR_INTEROP_MODE=local.  Cleanup prefix: gsr-go-it-xver- (distinct from
 // the Phase 4.6.5 prefix to avoid cleanup interference).
+//
+// ── Scope & Non-goals (spec §2) ──────────────────────────────────────────────
+//
+// These tests prove "v2 registered + v1 decoded by writer-schema lookup": the
+// GSR header carries the version-id of the schema used to write the record, and
+// the consumer fetches THAT schema (v1) from Glue to deserialize — regardless
+// of which version is currently "latest" in the registry.  This is writer-schema
+// lookup, NOT reader-schema projection.
+//
+// Reader-schema projection (resolving a record written at version N against a
+// reader-provided schema at version M, a.k.a. Avro schema-evolution "read as
+// if") is a Go-side capability gap deferred to Phase 5.  These tests are
+// therefore NOT a substitute for a Java-style reader-schema projection test once
+// that capability lands.  See spec §2 (Scope & Non-goals) for the full
+// rationale.
 
 package integration_tests
 
@@ -33,6 +48,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/glue"
+	"github.com/aws/aws-sdk-go-v2/service/glue/types"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -373,8 +390,11 @@ func buildDynamicProtoMessage(schemaDef string, fields map[string]interface{}) (
 	})
 
 	fileDescs, err := parser.ParseFiles("schema.proto")
-	if err != nil || len(fileDescs) == 0 {
+	if err != nil {
 		return nil, fmt.Errorf("buildDynamicProtoMessage: parse proto definition: %w", err)
+	}
+	if len(fileDescs) == 0 {
+		return nil, fmt.Errorf("buildDynamicProtoMessage: parse proto definition: empty descriptor list")
 	}
 	msgTypes := fileDescs[0].GetMessageTypes()
 	if len(msgTypes) == 0 {
@@ -536,6 +556,22 @@ func TestInterop_CrossVersion_JavaProduce_GoConsume(t *testing.T) {
 			})
 			require.NoError(t, err, "Cell A: register v2 via throwaway topic (%s)", tc.name)
 
+			// Step 2b — Assert Glue stored the schema with BACKWARD compatibility.
+			// Uses GetSchema directly against the Glue API to confirm the compat
+			// setting that the Java sidecar's CreateSchema request carried (MAJOR-2).
+			schemaResp, err := real.GetSchema(ctx, &glue.GetSchemaInput{
+				SchemaId: &types.SchemaId{
+					RegistryName: &[]string{"default-registry"}[0],
+					SchemaName:   &schemaName,
+				},
+			})
+			if err != nil {
+				t.Fatalf("Cell A: GetSchema failed for %q: %v", schemaName, err)
+			}
+			if schemaResp.Compatibility != types.CompatibilityBackward {
+				t.Fatalf("Cell A: expected BACKWARD compatibility, got %q (%s)", schemaResp.Compatibility, tc.name)
+			}
+
 			// Step 3 — Go side consumes the v1-framed bytes from the main topic.
 			framed := consumeOne(t, ctx, broker.Bootstrap, topic)
 
@@ -676,6 +712,22 @@ func TestInterop_CrossVersion_GoProduce_JavaConsume(t *testing.T) {
 				Compatibility: "BACKWARD",
 			})
 			require.NoError(t, err, "Cell B: register v2 via Java (%s)", tc.name)
+
+			// Step 2c — Assert Glue stored the schema with BACKWARD compatibility.
+			// Uses GetSchema directly against the Glue API to confirm the compat
+			// setting that the Java sidecar's CreateSchema request carried (MAJOR-2).
+			schemaBResp, err := real.GetSchema(ctx, &glue.GetSchemaInput{
+				SchemaId: &types.SchemaId{
+					RegistryName: &[]string{"default-registry"}[0],
+					SchemaName:   &schemaName,
+				},
+			})
+			if err != nil {
+				t.Fatalf("Cell B: GetSchema failed for %q: %v", schemaName, err)
+			}
+			if schemaBResp.Compatibility != types.CompatibilityBackward {
+				t.Fatalf("Cell B: expected BACKWARD compatibility, got %q (%s)", schemaBResp.Compatibility, tc.name)
+			}
 
 			// Step 3 — Go serializer encodes v1 record.
 			// buildGoConfigCellB supplies a dynamicpb descriptor for PROTOBUF (AC-11).
