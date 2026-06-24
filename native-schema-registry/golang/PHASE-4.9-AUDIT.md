@@ -96,7 +96,12 @@ Go counterpart: `native-schema-registry/golang/pkg/gsrserde-go/deserializer/gsr_
 
 ## 2. Format-layer stub audit
 
-<to be populated in PBI-2>
+| Component | Phase 3 expected outcome | Current state (file:line evidence) | Verdict |
+|---|---|---|---|
+| `protobuf.ProtobufSerializer.Validate` — `native-schema-registry/golang/pkg/gsrserde-go/serializer/protobuf/protobuf_serializer.go:242` | Replace the null-check-only stub with real proto-wire validation (walk bytes via `protowire`/`proto.Unmarshal` to reject non-proto payloads). | At `protobuf_serializer.go:263`: `_, _, n := protowire.ConsumeField(data[i:])` — the body walks the input field-by-field; `protobuf_serializer.go:264-266` reacts to a negative consumer length by returning a typed `*ProtobufValidationError` whose cause is `protowire.ParseError(n)` chained through `ErrValidation`. | Done |
+| `protobuf.ProtobufDeserializer.NewProtobufDeserializer` — `native-schema-registry/golang/pkg/gsrserde-go/deserializer/protobuf/protobuf_deserializer.go:61` | Replace the panic-on-nil-descriptor stub with a typed error return so callers can recover. | At `protobuf_deserializer.go:66`: `return nil, ErrNilDescriptor` — the constructor now returns a typed sentinel (chained through `core.ErrInvalidProtobufPayload`) when the descriptor is nil; line `:63` returns `common.ErrNilConfig` when config itself is nil. No `panic(` call remains in this constructor body (lines 61-72). | Done |
+| `JSON-Schema library` choice — referenced from `native-schema-registry/golang/go.mod:12`, `native-schema-registry/golang/pkg/gsrserde-go/serializer/json/json_serializer.go:8`, `native-schema-registry/golang/pkg/gsrserde-go/deserializer/json/json_deserializer.go:9` | Migrate the JSON-Schema validator from `github.com/xeipuuv/gojsonschema` (Draft-04/06/07) to `github.com/santhosh-tekuri/jsonschema/v6` (Draft 2020-12). | At `go.mod:12`: `github.com/xeipuuv/gojsonschema v1.2.0` is the direct dependency declared by the module. At `json_serializer.go:8` and `json_deserializer.go:9`: `"github.com/xeipuuv/gojsonschema"` is the import path used by the JSON validate path. `grep -RIn 'xeipuuv/gojsonschema\|santhosh-tekuri/jsonschema' native-schema-registry/golang/` returns no `santhosh-tekuri/jsonschema` reference in the main Go module (the only `santhosh-tekuri/jsonschema/v5` hit lives in `integration-tests/go.sum:264` as an indirect transitive). | Still stub |
+
 
 ## 3. §5.3 test-coverage audit
 
