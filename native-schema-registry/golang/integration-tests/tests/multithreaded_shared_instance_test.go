@@ -6,7 +6,6 @@ package integration_tests
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -67,16 +66,24 @@ func TestMultiThreadedShared_NoRaces_NoDoubleRegister(t *testing.T) {
 	bootstrap := resolveKafkaBroker(broker)
 
 	// Build the Configuration shared by serializer + deserializer.
-	// Mirrors MultiThreadedIntegrationSuite.TestConcurrentSerialization
-	// — single source of config truth via gsr.properties so the test
-	// inherits the real-AWS region / registry / auto-register flag
-	// that the existing suite already validates.
-	gsrConfigAbsolutePath, err := filepath.Abs("./gsr.properties")
-	require.NoError(t, err, "absolute path of gsr.properties")
+	// Inline-map pattern matches the working real-AWS integration tests
+	// (round_trip_test.go, interop_kafka_roundtrip_test.go,
+	// interop_crossversion_kafka_test.go). The earlier `filepath.Abs(./gsr.properties)`
+	// pattern silently failed: validateAndSetGsrConfig only honors
+	// map[string]string under GSRConfigPathKey, so the string path was
+	// dropped by the type assertion and SchemaAutoRegistrationEnabled
+	// defaulted to false — making encode fail on first hit. The strict
+	// auto-register check at encoder.go:292 was added by Phase 4.5 and
+	// surfaced this latent bug under real-Glue.
+	gsrMap := map[string]string{
+		"region":                        defaultAWSRegion,
+		"registry.name":                 testRegistryName,
+		"schemaAutoRegistrationEnabled": "true",
+	}
 	configMap := map[string]interface{}{
 		common.DataFormatTypeKey:            common.DataFormatProtobuf,
 		common.ProtobufMessageDescriptorKey: (&testpb.TestMessage{}).ProtoReflect().Descriptor(),
-		common.GSRConfigPathKey:             gsrConfigAbsolutePath,
+		common.GSRConfigPathKey:             gsrMap,
 	}
 	cfg := common.NewConfiguration(configMap)
 

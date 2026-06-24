@@ -253,3 +253,67 @@ func TestLifecycle_CacheSizeEviction(t *testing.T) {
 	require.Equal(t, baselineGet+1, h.Fake.Count("GetSchemaByDefinition"),
 		"re-encoding the oldest entry after cap-driven eviction must re-fetch from Glue")
 }
+
+// §5.3 item 17 — _Real companion. Validates the size-eviction contract
+// against real Glue (account 850995546034) without depending on a Glue-side
+// call counter (real Glue has none). Uses gsrcore.EncoderCacheHas — the
+// read-side mirror of PrimeEncoderCache (test_seam.go) — to inspect the
+// encoder's in-process LRU directly.
+//
+// Contract under test (PBI-4.11-2 + 4.11-board-fixes #3): with CacheSize=3,
+// inserting a 4th distinct schema must evict the oldest in-memory entry
+// (name[0]). Re-encoding name[0] then re-populates the cache.
+//
+// This complements the fake-gated TestLifecycle_CacheSizeEviction (which
+// asserts the same contract via fakeglue's GetSchemaByDefinitionCount):
+// here we observe the LRU directly so the assertion is meaningful under
+// GSR_GLUE=real where the fakeglue counter does not exist.
+//
+// Non-tautology: replacing simplelru with an unbounded map would leave
+// names[0] cached after 4 inserts → first assertion fails. Replacing Set
+// with a no-op at capacity would leave names[3] uncached → second assertion
+// fails. The chained assertion shape wedges specifically on the LRU-cap
+// behavior under test.
+func TestLifecycle_CacheSizeEviction_Real(t *testing.T) {
+	t.Parallel()
+	scenarioGate(t, true, false)
+	h := newGlueHandle(t)
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
+		RegistryName:                  testRegistryName,
+		SchemaAutoRegistrationEnabled: true,
+		CacheSize:                     3,
+	})
+	require.NoError(t, err)
+
+	names := make([]string, 4)
+	for i := range names {
+		names[i] = randomGlueName(t, fmt.Sprintf("lifecycle-17-real-%d", i))
+		if h.Cleanup != nil {
+			h.Cleanup.TrackSchema(testRegistryName, names[i])
+		}
+		_, err := enc.Encode([]byte("p"), names[i], &gsrcore.Schema{
+			SchemaDefinition: avroSchemaLifecycle,
+			SchemaName:       names[i],
+			DataFormat:       "AVRO",
+		})
+		require.NoError(t, err)
+	}
+
+	// After 4 inserts at CacheSize=3, the oldest (names[0]) was evicted.
+	require.False(t, gsrcore.EncoderCacheHas(enc, names[0], "AVRO"),
+		"oldest entry must be evicted after Nth insert at CacheSize=3")
+	require.True(t, gsrcore.EncoderCacheHas(enc, names[3], "AVRO"),
+		"newest entry must be present after its insert")
+
+	// Re-encoding the evicted name re-populates the cache (and evicts a
+	// different entry — names[1] becomes the new oldest).
+	_, err = enc.Encode([]byte("p"), names[0], &gsrcore.Schema{
+		SchemaDefinition: avroSchemaLifecycle,
+		SchemaName:       names[0],
+		DataFormat:       "AVRO",
+	})
+	require.NoError(t, err)
+
+	require.True(t, gsrcore.EncoderCacheHas(enc, names[0], "AVRO"),
+		"re-encoded entry must be present in cache after re-insert")
+}

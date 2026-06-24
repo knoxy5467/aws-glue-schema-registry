@@ -200,9 +200,12 @@ func crossVersionMatrix() []crossVersionCase {
 		require.True(t, ok, "AVRO consumer: expected map[string]any, got %T", got)
 		require.Equal(t, xverID, m["id"])
 		require.Equal(t, xverName, m["name"])
-		age, ok := m["age"].(int32)
-		require.True(t, ok, "AVRO age: expected int32, got %T (%v)", m["age"], m["age"])
-		require.Equal(t, int32(xverAge), age)
+		// hamba/avro/v2 maps Avro `int` (32-bit on the wire) to Go `int`
+		// when decoding into interface{} — see codec_generic.go genericReceiver.
+		// Matches the canonical assertion in pkg/gsrserde-go/deserializer/avro/avro_deserializer_test.go.
+		age, ok := m["age"].(int)
+		require.True(t, ok, "AVRO age: expected int, got %T (%v)", m["age"], m["age"])
+		require.Equal(t, xverAge, age)
 	}
 	avroJavaCheck := func(t *testing.T, env map[string]any) {
 		t.Helper()

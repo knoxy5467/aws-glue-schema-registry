@@ -135,3 +135,15 @@ func PrimeEncoderCache(e *GsrEncoder, schemaName, dataFormat string, schema *Sch
 	defer e.mutex.Unlock()
 	e.schemaCache.Set(fmt.Sprintf("%s:%s", schemaName, dataFormat), schema)
 }
+
+// EncoderCacheHas is the read-side mirror of PrimeEncoderCache. Returns true
+// iff the encoder's schemaCache currently holds an entry under the given
+// (schemaName, dataFormat) key. Used by integration tests that need to
+// observe LRU eviction behavior on real-Glue without depending on a Glue-side
+// call counter.
+func EncoderCacheHas(e *GsrEncoder, schemaName, dataFormat string) bool {
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+	_, ok := e.schemaCache.Get(fmt.Sprintf("%s:%s", schemaName, dataFormat))
+	return ok
+}
