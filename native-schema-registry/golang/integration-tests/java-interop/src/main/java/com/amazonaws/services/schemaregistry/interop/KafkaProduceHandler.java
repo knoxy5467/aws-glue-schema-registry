@@ -76,6 +76,7 @@ public final class KafkaProduceHandler implements HttpHandler {
             String bootstrap = HttpUtil.requireString(req, "bootstrap");
             String topic = HttpUtil.requireString(req, "topic");
             String region = HttpUtil.optionalString(req, "region", null);
+            String compatibility = HttpUtil.optionalString(req, "compatibility", "NONE");
             JsonNode recordEnv = req.get("record");
             if (recordEnv == null || !recordEnv.isObject()) {
                 throw new IllegalArgumentException("missing required field: record (object)");
@@ -91,7 +92,7 @@ public final class KafkaProduceHandler implements HttpHandler {
             gsrConfigs.put(AWSSchemaRegistryConstants.SCHEMA_NAME, schemaName);
             gsrConfigs.put(AWSSchemaRegistryConstants.DATA_FORMAT, format);
             gsrConfigs.put(AWSSchemaRegistryConstants.COMPRESSION_TYPE, compression);
-            gsrConfigs.put(AWSSchemaRegistryConstants.COMPATIBILITY_SETTING, "NONE");
+            gsrConfigs.put(AWSSchemaRegistryConstants.COMPATIBILITY_SETTING, compatibility);
             gsrConfigs.put(AWSSchemaRegistryConstants.SCHEMA_AUTO_REGISTRATION_SETTING, true);
             if ("PROTOBUF".equals(format)) {
                 gsrConfigs.put(AWSSchemaRegistryConstants.PROTOBUF_MESSAGE_TYPE, "DYNAMIC_MESSAGE");
@@ -101,12 +102,17 @@ public final class KafkaProduceHandler implements HttpHandler {
             // handler scope. Each request carries its own (region, schemaName,
             // dataFormat, compression) tuple; caching would silently bind to
             // the first request's tuple and contaminate subsequent runs.
-            GlueSchemaRegistryKafkaSerializer kafkaSerializer = new GlueSchemaRegistryKafkaSerializer(gsrConfigs);
-            byte[] framed = kafkaSerializer.serialize(topic, javaRecord);
-            if (framed == null) {
-                throw new IllegalStateException(
-                        "GlueSchemaRegistryKafkaSerializer.serialize returned null for non-null record"
-                        + " (format=" + format + ", topic=" + topic + ")");
+            // Wrapped in try-with-resources because GlueSchemaRegistryKafkaSerializer
+            // implements Closeable and holds internal Glue client resources.
+            byte[] framed;
+            try (GlueSchemaRegistryKafkaSerializer kafkaSerializer =
+                         new GlueSchemaRegistryKafkaSerializer(gsrConfigs)) {
+                framed = kafkaSerializer.serialize(topic, javaRecord);
+                if (framed == null) {
+                    throw new IllegalStateException(
+                            "GlueSchemaRegistryKafkaSerializer.serialize returned null for non-null record"
+                            + " (format=" + format + ", topic=" + topic + ")");
+                }
             }
 
             // Plain bytes producer — Kafka is just transport here.

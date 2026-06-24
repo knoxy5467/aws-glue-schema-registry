@@ -440,14 +440,15 @@ type DecodeResponse struct {
 //	PROTOBUF : {"messageTypeFullName": "<test.TestMessage>",
 //	            "fieldsJson": "<json>"}
 type KafkaProduceRequest struct {
-	Format      string
-	Schema      string
-	SchemaName  string
-	Record      map[string]any // per-format envelope; see above
-	Compression string
-	Bootstrap   string
-	Topic       string
-	Region      string // optional; sidecar falls back to AWS_REGION / us-east-2
+	Format        string
+	Schema        string
+	SchemaName    string
+	Record        map[string]any // per-format envelope; see above
+	Compression   string
+	Bootstrap     string
+	Topic         string
+	Region        string // optional; sidecar falls back to AWS_REGION / us-east-2
+	Compatibility string // optional; sidecar defaults to "NONE" when absent
 }
 
 // KafkaProduceResponse reports what the sidecar produced.
@@ -535,6 +536,9 @@ func (s *Sidecar) KafkaProduce(ctx context.Context, req KafkaProduceRequest) (*K
 	}
 	if req.Region != "" {
 		body["region"] = req.Region
+	}
+	if req.Compatibility != "" {
+		body["compatibility"] = req.Compatibility
 	}
 	var raw struct {
 		SchemaVersionID string `json:"schemaVersionId"`
