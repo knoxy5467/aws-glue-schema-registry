@@ -40,6 +40,7 @@ Five PBIs decompose the spec into: (1) sidecar compatibility extension with regr
 **size:** M (50-100 lines across 2 files)
 **depends_on:** none
 **parallelizable_with:** none
+**atomicity:** atomic: yes, self-testable: yes, isolated: yes
 
 ### Directive
 
@@ -73,6 +74,7 @@ This PBI adds an optional `compatibility` field to the Java sidecar's `/kafka-pr
 3. `grep -n "Compatibility" pkg/javasidecar/sidecar.go` shows the new struct field and conditional body inclusion.
 4. Confirm no changes to any file in `pkg/gsrserde-go/`.
 5. `go build ./...` from `integration-tests/` compiles cleanly.
+6. Phase 4.6.5 regression smoke: `AWS_INTEGRATION=1 GSR_GLUE=real GSR_INTEROP_MODE=local go test -v -run "TestInterop_Kafka" ./tests/ -tags integration -timeout 600s` passes (confirms sidecar change is backward-compatible with existing interop tests).
 
 ### Risks / Open Questions
 
@@ -88,6 +90,7 @@ This PBI adds an optional `compatibility` field to the Java sidecar's `/kafka-pr
 **size:** L (200+ lines)
 **depends_on:** PBI-4.13-1
 **parallelizable_with:** none
+**atomicity:** atomic: yes, self-testable: yes (compiles + skip stubs), isolated: yes
 
 ### Directive
 
@@ -152,6 +155,7 @@ This PBI creates the new test file `interop_crossversion_kafka_test.go` with: bu
 **size:** M (100-150 lines)
 **depends_on:** PBI-4.13-2
 **parallelizable_with:** PBI-4.13-4
+**atomicity:** atomic: yes, self-testable: yes, isolated: yes (disjoint function from PBI-4)
 
 ### Directive
 
@@ -206,6 +210,7 @@ This PBI implements the full Cell A logic inside `TestInterop_CrossVersion_JavaP
 **size:** M (100-150 lines)
 **depends_on:** PBI-4.13-2
 **parallelizable_with:** PBI-4.13-3
+**atomicity:** atomic: yes, self-testable: yes, isolated: yes (disjoint function from PBI-3)
 
 ### Directive
 
@@ -250,6 +255,7 @@ This PBI implements the full Cell B logic inside `TestInterop_CrossVersion_GoPro
 
 - Go serializer's `schemaAutoRegistrationEnabled=true` with an already-existing schema name should resolve to the existing v1 UUID via `GetSchemaByDefinition`. If the library's behavior differs (e.g., it calls `CreateSchema` and gets `AlreadyExistsException` but doesn't fall through), this will surface as a test failure in the FIRST subtest.
 - For PROTOBUF, Go must use `buildDynamicProtoMessage` (from PBI-2) and configure the serializer with the CrossVersionMessage descriptor instead of testpb.TestMessage descriptor. This requires a variant of `buildGoConfig` or inline config for the proto case.
+- Sidecar port sharing inherited from PBI-2's `startInteropSidecar` setup (same pattern as Phase 4.6.5); no per-cell port allocation needed.
 
 ---
 
@@ -260,10 +266,11 @@ This PBI implements the full Cell B logic inside `TestInterop_CrossVersion_GoPro
 **size:** S (< 50 lines of changes, mostly verification commands)
 **depends_on:** PBI-4.13-3, PBI-4.13-4
 **parallelizable_with:** none
+**atomicity:** atomic: yes, self-testable: yes, isolated: yes
 
 ### Directive
 
-This PBI runs the full test suite to confirm all 12 subtests pass end-to-end, verifies regression invariants (INV-1, INV-2, INV-3), and confirms cleanup removes all `gsr-go-it-xver-` schemas. It does NOT add new code unless minor fixes are needed for integration issues discovered during the cumulative run. It does NOT modify Phase 4.6.5 tests.
+This PBI runs the full test suite to confirm all 12 subtests pass end-to-end, verifies regression invariants (INV-1, INV-2, INV-3), and confirms cleanup removes all `gsr-go-it-xver-` schemas. Polish limited to <10 lines net diff; any larger fix escalates back to the owning PBI. It does NOT modify Phase 4.6.5 tests.
 
 ### Context Pointer
 
