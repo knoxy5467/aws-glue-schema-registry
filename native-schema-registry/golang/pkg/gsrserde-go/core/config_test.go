@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -65,13 +66,45 @@ func TestConfig_Endpoint(t *testing.T) {
 }
 
 func TestConfig_ProxyURL_PopulatesHTTPClient(t *testing.T) {
-	cfg, err := LoadConfigFromMap(map[string]string{ConfigKeyProxyURL: "http://proxy.local:8888"})
+	const proxyURL = "http://proxy.local:8888"
+	cfg, err := LoadConfigFromMap(map[string]string{ConfigKeyProxyURL: proxyURL})
 	require.NoError(t, err)
-	assert.Equal(t, "http://proxy.local:8888", cfg.ProxyURL)
-	// Side effect: aws.Config.HTTPClient is non-nil (the default chain
-	// installs an HTTP client lazily, so a non-nil here means the proxy
-	// option ran).
-	assert.NotNil(t, cfg.AWSConfig.HTTPClient)
+	assert.Equal(t, proxyURL, cfg.ProxyURL)
+
+	// Asserting `cfg.AWSConfig.HTTPClient != nil` alone is brittle — the SDK
+	// default chain can install a client lazily. Walk the captured client
+	// down to its *http.Transport and invoke transport.Proxy(req) to prove
+	// the configured URL actually flows through the transport chain (spec
+	// §3.9 / AC-11). The keeps-existing-name constraint (INV-11 / C-20)
+	// is why this is an in-place extension, not a new test.
+	httpClient, ok := cfg.AWSConfig.HTTPClient.(*http.Client)
+	require.True(t, ok, "expected aws.Config.HTTPClient to be *http.Client, got %T", cfg.AWSConfig.HTTPClient)
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "expected http.Client.Transport to be *http.Transport, got %T", httpClient.Transport)
+	require.NotNil(t, transport.Proxy, "expected transport.Proxy to be non-nil when proxyUrl is configured")
+
+	// http.ProxyURL ignores the request URL and returns the configured URL
+	// for every request, so any non-nil *url.URL on the probe is fine.
+	probeURL, err := url.Parse("https://glue.us-east-1.amazonaws.com/")
+	require.NoError(t, err)
+	got, err := transport.Proxy(&http.Request{URL: probeURL})
+	require.NoError(t, err)
+	require.NotNil(t, got, "transport.Proxy returned nil URL for configured proxyUrl")
+	assert.Equal(t, proxyURL, got.String())
+}
+
+// TestConfig_ProxyURL_AbsentNoProxyInstalled covers the negative path of
+// the proxy wiring: when `proxyUrl` is absent, LoadConfigFromMap does NOT
+// install a custom HTTPClient, so cfg.AWSConfig.HTTPClient stays nil and
+// the SDK falls back to its own default chain. Pairs with
+// TestConfig_ProxyURL_PopulatesHTTPClient to fully bracket the proxy
+// branch in config.go (spec §3.9, AC-11/AC-12 negative). Also referenced
+// by PBI-4.10-7's per-config-key audit meta-test.
+func TestConfig_ProxyURL_AbsentNoProxyInstalled(t *testing.T) {
+	cfg, err := LoadConfigFromMap(map[string]string{})
+	require.NoError(t, err)
+	assert.Empty(t, cfg.ProxyURL)
+	assert.Nil(t, cfg.AWSConfig.HTTPClient, "expected no HTTPClient installed when proxyUrl is absent")
 }
 
 func TestConfig_ProxyURL_InvalidErrors(t *testing.T) {
