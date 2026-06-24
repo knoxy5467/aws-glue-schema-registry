@@ -76,6 +76,7 @@ public final class KafkaProduceHandler implements HttpHandler {
             String bootstrap = HttpUtil.requireString(req, "bootstrap");
             String topic = HttpUtil.requireString(req, "topic");
             String region = HttpUtil.optionalString(req, "region", null);
+            String compatibility = HttpUtil.optionalString(req, "compatibility", "NONE");
             JsonNode recordEnv = req.get("record");
             if (recordEnv == null || !recordEnv.isObject()) {
                 throw new IllegalArgumentException("missing required field: record (object)");
@@ -91,7 +92,7 @@ public final class KafkaProduceHandler implements HttpHandler {
             gsrConfigs.put(AWSSchemaRegistryConstants.SCHEMA_NAME, schemaName);
             gsrConfigs.put(AWSSchemaRegistryConstants.DATA_FORMAT, format);
             gsrConfigs.put(AWSSchemaRegistryConstants.COMPRESSION_TYPE, compression);
-            gsrConfigs.put(AWSSchemaRegistryConstants.COMPATIBILITY_SETTING, "NONE");
+            gsrConfigs.put(AWSSchemaRegistryConstants.COMPATIBILITY_SETTING, compatibility);
             gsrConfigs.put(AWSSchemaRegistryConstants.SCHEMA_AUTO_REGISTRATION_SETTING, true);
             if ("PROTOBUF".equals(format)) {
                 gsrConfigs.put(AWSSchemaRegistryConstants.PROTOBUF_MESSAGE_TYPE, "DYNAMIC_MESSAGE");
