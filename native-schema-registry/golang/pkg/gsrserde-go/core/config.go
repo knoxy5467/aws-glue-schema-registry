@@ -40,6 +40,17 @@ const (
 	ConfigKeyAssumeRoleSessionName       = "assumeRoleSessionName"
 	ConfigKeySchemaNameGenerationClass   = "schemaNameGenerationClass"
 
+	// TransportMetadataKey is the canonical schema-version metadata key under
+	// which the per-call `transportName` (Kafka topic, queue name, etc.) is
+	// recorded for downstream Glue analytics. String-identical to Java
+	// `AWSSchemaRegistryConstants.java:157` (`TRANSPORT_METADATA_KEY =
+	// "x-amz-meta-transport"`). The encoder's metadata-flush helper always
+	// injects this entry — even when `transportName == ""` — to match the
+	// unconditional `metadata.put(...)` at Java
+	// `GlueSchemaRegistrySerializationFacade.java:90-95`. Pinned by spec §3.4
+	// (AC-9, AC-9b) and INV-7 (always-on transport metadata).
+	TransportMetadataKey = "x-amz-meta-transport"
+
 	// Defaults — Java
 	// common/src/main/java/com/amazonaws/services/schemaregistry/utils/AWSSchemaRegistryConstants.java
 	DefaultRegistryName       = "default-registry"

@@ -2,6 +2,7 @@ package gsrserde
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/service/glue"
 	"github.com/stretchr/testify/mock"
@@ -15,11 +16,30 @@ import (
 // does not implement GlueClient" at test-compile time. That's intentional:
 // growing the interface forces a corresponding growth of the fake.
 //
+// PutSchemaVersionMetadataPairs is an out-of-band recorder for the
+// (MetadataKey, MetadataValue) pair captured on every
+// PutSchemaVersionMetadata call. The encoder's metadata-batch helper
+// iterates sequentially under a single mutex (INV-9), but tests that
+// exercise it from multiple goroutines (or that assert no-call from the
+// cache-hit fast path) still need a race-free recorder — hence the
+// dedicated mutex. Set-equality assertions on the recorded slice cover
+// the AC-4 / AC-5 / AC-9 / AC-9b cases without coupling to call order
+// (spec §3.4(d) — the sequential-for-loop choice keeps order stable in
+// practice but ordering is NOT part of the contract).
+//
 // Compile-time check that MockGlueClient satisfies GlueClient.
 var _ GlueClient = (*MockGlueClient)(nil)
 
+type MetadataPair struct {
+	Key   string
+	Value string
+}
+
 type MockGlueClient struct {
 	mock.Mock
+
+	metadataMu                     sync.Mutex
+	PutSchemaVersionMetadataPairs  []MetadataPair
 }
 
 func (m *MockGlueClient) GetSchemaByDefinition(ctx context.Context, params *glue.GetSchemaByDefinitionInput, optFns ...func(*glue.Options)) (*glue.GetSchemaByDefinitionOutput, error) {
@@ -55,11 +75,75 @@ func (m *MockGlueClient) RegisterSchemaVersion(ctx context.Context, params *glue
 }
 
 func (m *MockGlueClient) PutSchemaVersionMetadata(ctx context.Context, params *glue.PutSchemaVersionMetadataInput, optFns ...func(*glue.Options)) (*glue.PutSchemaVersionMetadataOutput, error) {
+	// Capture the (MetadataKey, MetadataValue) pair into the order-independent
+	// recorder BEFORE consulting the testify expectation. Tests assert on the
+	// recorder slice via set equality (AC-4 / AC-5 / AC-9 / AC-9b); the testify
+	// `.On("PutSchemaVersionMetadata", ...).Return(...)` configuration is what
+	// decides success / error per call. The two channels are independent: the
+	// recorder captures every invocation regardless of the configured return.
+	if params != nil && params.MetadataKeyValue != nil {
+		var k, v string
+		if params.MetadataKeyValue.MetadataKey != nil {
+			k = *params.MetadataKeyValue.MetadataKey
+		}
+		if params.MetadataKeyValue.MetadataValue != nil {
+			v = *params.MetadataKeyValue.MetadataValue
+		}
+		m.metadataMu.Lock()
+		m.PutSchemaVersionMetadataPairs = append(m.PutSchemaVersionMetadataPairs, MetadataPair{Key: k, Value: v})
+		m.metadataMu.Unlock()
+	}
+	// Default to success when no explicit expectation is configured. The
+	// metadata flush is INV-6 / C-13 fire-and-forget for the encoder; many
+	// pre-existing Tier-1 tests trigger CreateSchema / RegisterSchemaVersion
+	// success but do NOT care about the metadata flush. Forcing each of them
+	// to add a `.On("PutSchemaVersionMetadata", ...)` stub would either
+	// require renames (forbidden by INV-11) or scatter unrelated wiring into
+	// every test fixture. Tests that DO assert metadata behavior set
+	// explicit expectations the way they already do for other GlueClient
+	// methods; absence-of-expectation here means "no-op success".
+	if !m.hasExpectationFor("PutSchemaVersionMetadata") {
+		return &glue.PutSchemaVersionMetadataOutput{}, nil
+	}
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*glue.PutSchemaVersionMetadataOutput), args.Error(1)
+}
+
+// hasExpectationFor reports whether any `.On(method, ...)` expectation was
+// configured for the named mock method. Used by PutSchemaVersionMetadata to
+// distinguish "test stubbed this; honor the stub" from "test ignored this;
+// return success".
+func (m *MockGlueClient) hasExpectationFor(method string) bool {
+	for i := range m.ExpectedCalls {
+		if m.ExpectedCalls[i].Method == method {
+			return true
+		}
+	}
+	return false
+}
+
+// MetadataCallCount returns the number of recorded PutSchemaVersionMetadata
+// invocations regardless of success / failure outcome. Tests use this to
+// assert call counts without relying on testify's call-history (which
+// records the call args, not the captured pair).
+func (m *MockGlueClient) MetadataCallCount() int {
+	m.metadataMu.Lock()
+	defer m.metadataMu.Unlock()
+	return len(m.PutSchemaVersionMetadataPairs)
+}
+
+// MetadataPairs returns a copy of the recorded pairs in invocation order.
+// The set-equality assertions in metadata_test.go convert this to a set
+// before comparing — the spec does NOT pin call order (§3.4(d)).
+func (m *MockGlueClient) MetadataPairs() []MetadataPair {
+	m.metadataMu.Lock()
+	defer m.metadataMu.Unlock()
+	out := make([]MetadataPair, len(m.PutSchemaVersionMetadataPairs))
+	copy(out, m.PutSchemaVersionMetadataPairs)
+	return out
 }
 
 func (m *MockGlueClient) QuerySchemaVersionMetadata(ctx context.Context, params *glue.QuerySchemaVersionMetadataInput, optFns ...func(*glue.Options)) (*glue.QuerySchemaVersionMetadataOutput, error) {

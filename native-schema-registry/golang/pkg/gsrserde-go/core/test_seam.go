@@ -20,6 +20,12 @@ type GsrEncoderOptions struct {
 	Compatibility   string
 	Description     string
 	Tags            map[string]string
+	// Metadata is the parsed `metadata.<key>=<value>` map flushed to Glue via
+	// PutSchemaVersionMetadata after a successful CreateSchema /
+	// RegisterSchemaVersion (Java parity at AWSSchemaRegistryClient.java:264
+	// and :281). Tests that exercise the metadata-flush path populate this;
+	// otherwise the encoder only flushes the always-on transport entry.
+	Metadata        map[string]string
 	CompressionType string
 	// CacheTTLMillis is the time-to-live for the schema cache. Zero means
 	// "use the default" (matching LoadConfigFromMap behaviour).
@@ -51,6 +57,7 @@ func NewGsrEncoderForTest(client GlueClient, opts GsrEncoderOptions) (*GsrEncode
 		registryName:                  opts.RegistryName,
 		compatibility:                 opts.Compatibility,
 		tags:                          opts.Tags,
+		metadata:                      opts.Metadata,
 		schemaCache:                   cache,
 		description:                   opts.Description,
 		schemaAutoRegistrationEnabled: opts.SchemaAutoRegistrationEnabled,

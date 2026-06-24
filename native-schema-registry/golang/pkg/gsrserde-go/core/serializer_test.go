@@ -156,7 +156,7 @@ func TestSerializer_CreateSchema_Success(t *testing.T) {
 			LatestSchemaVersion: &latestVersion,
 		}, nil)
 
-	versionID, version, err := serializer.createSchema("test-schema", "JSON", "test-definition")
+	versionID, version, err := serializer.createSchema("test-schema", "JSON", "test-definition", "")
 
 	assert.NoError(t, err)
 	// createSchema must return the UUID from CreateSchemaOutput.SchemaVersionId
@@ -179,7 +179,7 @@ func TestSerializer_CreateSchema_Error(t *testing.T) {
 	mockClient.On("CreateSchema", mock.Anything, mock.Anything).Return(
 		nil, errors.New("creation failed"))
 
-	_, _, err := serializer.createSchema("test-schema", "JSON", "test-definition")
+	_, _, err := serializer.createSchema("test-schema", "JSON", "test-definition", "")
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create schema")
@@ -203,7 +203,7 @@ func TestSerializer_GetSchemaVersionIdByDefinition_Cached(t *testing.T) {
 	}
 	cache.Set("test-schema:JSON", schema)
 
-	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test", "test-schema", "JSON")
+	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test", "test-schema", "JSON", "")
 
 	assert.NoError(t, err)
 	assert.Equal(t, cachedVersionID, schemaID)

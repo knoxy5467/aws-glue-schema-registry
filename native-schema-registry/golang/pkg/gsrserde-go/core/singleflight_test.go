@@ -49,7 +49,7 @@ func TestEncoder_GetSchemaVersionId_SingleflightDeduplicates(t *testing.T) {
 	for i := 0; i < N; i++ {
 		go func() {
 			defer wg.Done()
-			id, _, err := encoder.getSchemaVersionIdByDefinition("def", "schema", "JSON")
+			id, _, err := encoder.getSchemaVersionIdByDefinition("def", "schema", "JSON", "")
 			assert.NoError(t, err)
 			assert.Equal(t, schemaVersionId, id)
 		}()
@@ -81,7 +81,7 @@ func TestEncoder_GetSchemaVersionId_CachedAfterFirstCall(t *testing.T) {
 		}, nil)
 
 	// Warm the cache.
-	_, _, err := encoder.getSchemaVersionIdByDefinition("def", "schema", "JSON")
+	_, _, err := encoder.getSchemaVersionIdByDefinition("def", "schema", "JSON", "")
 	require.NoError(t, err)
 
 	// 100 cached lookups — none should reach Glue.
@@ -95,7 +95,7 @@ func TestEncoder_GetSchemaVersionId_CachedAfterFirstCall(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		go func() {
 			defer wg.Done()
-			id, _, err := encoder.getSchemaVersionIdByDefinition("def", "schema", "JSON")
+			id, _, err := encoder.getSchemaVersionIdByDefinition("def", "schema", "JSON", "")
 			assert.NoError(t, err)
 			assert.Equal(t, schemaVersionId, id)
 		}()
@@ -170,7 +170,7 @@ func TestEncoder_SchemaNameDataFormatCacheKeyHits(t *testing.T) {
 		SchemaVersionID:  testUUIDString,
 	})
 
-	id, _, err := encoder.getSchemaVersionIdByDefinition("def", "schema", "JSON")
+	id, _, err := encoder.getSchemaVersionIdByDefinition("def", "schema", "JSON", "")
 	require.NoError(t, err)
 	assert.Equal(t, testUUIDString, id)
 	assert.Empty(t, mockClient.Calls, "cached path must not invoke Glue")

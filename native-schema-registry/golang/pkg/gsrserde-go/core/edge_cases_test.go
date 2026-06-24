@@ -44,7 +44,7 @@ func TestSerializer_GetSchemaVersionIdByDefinition_CreateSchemaPath(t *testing.T
 			LatestSchemaVersion: &latestVersion,
 		}, nil)
 
-	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test-definition", "test-schema", "JSON")
+	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test-definition", "test-schema", "JSON", "")
 
 	require.NoError(t, err)
 	assert.Equal(t, createdSchemaVersionID, schemaID)
@@ -76,7 +76,7 @@ func TestSerializer_GetSchemaVersionIdByDefinition_GetSchemaSuccess(t *testing.T
 			Status:          types.SchemaVersionStatusAvailable,
 		}, nil)
 
-	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test-definition", "test-schema", "JSON")
+	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test-definition", "test-schema", "JSON", "")
 
 	require.NoError(t, err)
 	assert.Equal(t, schemaVersionId, schemaID)
@@ -117,7 +117,7 @@ func TestSerializer_GetSchemaVersionIdByDefinition_GetSchemaUnavailable(t *testi
 			LatestSchemaVersion: &latestVersion,
 		}, nil)
 
-	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test-definition", "test-schema", "JSON")
+	schemaID, version, err := serializer.getSchemaVersionIdByDefinition("test-definition", "test-schema", "JSON", "")
 
 	require.NoError(t, err)
 	assert.Equal(t, createdSchemaVersionID, schemaID)

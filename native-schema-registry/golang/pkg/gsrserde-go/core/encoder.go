@@ -42,6 +42,12 @@ type GsrEncoder struct {
 	registryName                  string
 	compatibility                 string
 	tags                          map[string]string
+	// metadata carries the configured `metadata.<key>=<value>` entries that
+	// LoadConfigFromMap parsed off the configMap. It is flushed to Glue via
+	// `putSchemaVersionMetadataBatch` after a successful CreateSchema OR
+	// RegisterSchemaVersion (Java parity at AWSSchemaRegistryClient.java:264
+	// and :281). The cache-hit fast path does NOT flush metadata (INV-1).
+	metadata                      map[string]string
 	schemaCache                   Cache
 	description                   string
 	schemaAutoRegistrationEnabled bool
@@ -76,6 +82,7 @@ func NewGsrEncoder(configMap map[string]string) (*GsrEncoder, error) {
 		registryName:                  config.RegistryName,
 		compatibility:                 config.Compatibility,
 		tags:                          config.Tags,
+		metadata:                      config.Metadata,
 		schemaCache:                   cache,
 		description:                   config.Description,
 		schemaAutoRegistrationEnabled: config.SchemaAutoRegistrationEnabled,
@@ -100,7 +107,7 @@ func (s *GsrEncoder) Encode(data []byte, transportName string, schema *Schema) (
 		return nil, NewSerializationError("schema cannot be nil")
 	}
 
-	schemaVersionID, _, err := s.getSchemaVersionIdByDefinition(schema.SchemaDefinition, schema.SchemaName, schema.DataFormat)
+	schemaVersionID, _, err := s.getSchemaVersionIdByDefinition(schema.SchemaDefinition, schema.SchemaName, schema.DataFormat, transportName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get schema: %w", err)
 	}
@@ -163,11 +170,19 @@ type versionIDLookupResult struct {
 	Version         uint32
 }
 
-func (s *GsrEncoder) getSchemaVersionIdByDefinition(schemaDefinition, schemaName, dataFormat string) (string, uint32, error) {
+// transportName is threaded per-call (not stashed on the encoder) because
+// the encoder may serve concurrent Encode invocations with different
+// transports; a per-call parameter is the only race-safe path (spec §3.4(c)
+// Option A — Option B "stash on encoder" was rejected). The cache-hit fast
+// path ignores transportName entirely — INV-1 / C-10 lock the
+// metadata-flush to the cache-MISS branches that produce a new schema
+// version (CreateSchema success, RegisterSchemaVersion success).
+func (s *GsrEncoder) getSchemaVersionIdByDefinition(schemaDefinition, schemaName, dataFormat, transportName string) (string, uint32, error) {
 	cacheKey := fmt.Sprintf("%s:%s", schemaName, dataFormat)
 
 	// Fast path: cache hit. Read-lock so concurrent encoders don't serialize
-	// on the cached path.
+	// on the cached path. Metadata flush is intentionally skipped here
+	// (INV-1) — metadata is written once per schema-version, not per encode.
 	s.mutex.RLock()
 	cached, exists := s.schemaCache.Get(cacheKey)
 	s.mutex.RUnlock()
@@ -191,7 +206,7 @@ func (s *GsrEncoder) getSchemaVersionIdByDefinition(schemaDefinition, schemaName
 		}
 		s.mutex.Unlock()
 
-		return s.fetchSchemaVersionID(schemaDefinition, schemaName, dataFormat, cacheKey)
+		return s.fetchSchemaVersionID(schemaDefinition, schemaName, dataFormat, transportName, cacheKey)
 	})
 	if err != nil {
 		return "", 0, err
@@ -204,7 +219,7 @@ func (s *GsrEncoder) getSchemaVersionIdByDefinition(schemaDefinition, schemaName
 // actually talks to Glue. Extracted from the singleflight callback for
 // readability — it must NOT be called outside the singleflight wrapper
 // (parallel callers without dedup would defeat the whole point).
-func (s *GsrEncoder) fetchSchemaVersionID(schemaDefinition, schemaName, dataFormat, cacheKey string) (*versionIDLookupResult, error) {
+func (s *GsrEncoder) fetchSchemaVersionID(schemaDefinition, schemaName, dataFormat, transportName, cacheKey string) (*versionIDLookupResult, error) {
 	processedDefinition := schemaDefinition
 
 	getResp, err := s.client.GetSchemaByDefinition(context.Background(), &glue.GetSchemaByDefinitionInput{
@@ -259,7 +274,7 @@ func (s *GsrEncoder) fetchSchemaVersionID(schemaDefinition, schemaName, dataForm
 		return nil, fmt.Errorf("%w: schema %q not registered", ErrSchemaAutoRegistrationDisabled, schemaName)
 	}
 
-	schemaVersionId, version, err := s.createSchema(schemaName, dataFormat, schemaDefinition)
+	schemaVersionId, version, err := s.createSchema(schemaName, dataFormat, schemaDefinition, transportName)
 	if err != nil {
 		// If schema already exists (race with another producer), register a new version.
 		// Phase 4.5 bug 3 fix: match the typed SDK error rather than its
@@ -271,7 +286,7 @@ func (s *GsrEncoder) fetchSchemaVersionID(schemaDefinition, schemaName, dataForm
 		// matches only the genuine typed Glue error.
 		var alreadyExists *types.AlreadyExistsException
 		if errors.As(err, &alreadyExists) {
-			id, ver, regErr := s.registerSchemaVersion(schemaDefinition, schemaName, dataFormat)
+			id, ver, regErr := s.registerSchemaVersion(schemaDefinition, schemaName, dataFormat, transportName)
 			if regErr != nil {
 				return nil, regErr
 			}
@@ -292,7 +307,14 @@ func (s *GsrEncoder) fetchSchemaVersionID(schemaDefinition, schemaName, dataForm
 	return &versionIDLookupResult{SchemaVersionID: schemaVersionId, Version: version}, nil
 }
 
-func (s *GsrEncoder) registerSchemaVersion(schemaDefinition, schemaName, dataFormat string) (string, uint32, error) {
+// registerSchemaVersion is the fallback Glue write fired when CreateSchema
+// returns AlreadyExistsException (concurrent producer race) — Java parity at
+// AWSSchemaRegistryClient.java:281. On success we flush the configured
+// metadata + the always-on (TransportMetadataKey, transportName) entry via
+// putSchemaVersionMetadataBatch (INV-7). Metadata-write failures are logged
+// and intentionally NOT propagated to the caller (INV-6 / C-13 / Java
+// AWSSchemaRegistryClient.java:425).
+func (s *GsrEncoder) registerSchemaVersion(schemaDefinition, schemaName, dataFormat, transportName string) (string, uint32, error) {
 	resp, err := s.client.RegisterSchemaVersion(context.Background(), &glue.RegisterSchemaVersionInput{
 		SchemaId: &types.SchemaId{
 			RegistryName: &s.registryName,
@@ -300,15 +322,15 @@ func (s *GsrEncoder) registerSchemaVersion(schemaDefinition, schemaName, dataFor
 		},
 		SchemaDefinition: &schemaDefinition,
 	})
-	
+
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to register schema version: %w", err)
 	}
-	
+
 	if resp.SchemaVersionId == nil {
 		return "", 0, fmt.Errorf("no schema version ID returned")
 	}
-	
+
 	// Cache the schema
 	schema := &Schema{
 		SchemaName:       schemaName,
@@ -317,12 +339,18 @@ func (s *GsrEncoder) registerSchemaVersion(schemaDefinition, schemaName, dataFor
 	}
 	cacheKey := fmt.Sprintf("%s:%s:%s", schemaDefinition, schemaName, dataFormat)
 	s.schemaCache.Set(cacheKey, schema)
-	
+
+	// Metadata flush (Java parity AWSSchemaRegistryClient.java:281).
+	// Errors are logged inside the helper and intentionally NOT returned —
+	// INV-6 / C-13 lock the metadata-write-non-fatal contract. The encode
+	// path receives the SchemaVersionId regardless of metadata-write outcome.
+	_ = s.putSchemaVersionMetadataBatch(context.Background(), *resp.SchemaVersionId, transportName)
+
 	version := uint32(1) // Default fallback
 	if resp.VersionNumber != nil {
 		version = uint32(*resp.VersionNumber)
 	}
-	
+
 	return *resp.SchemaVersionId, version, nil
 }
 
@@ -334,7 +362,7 @@ func (s *GsrEncoder) registerSchemaVersion(schemaDefinition, schemaName, dataFor
 // We also return the version number for the caller that propagates it through
 // the encoder's (versionID, versionNumber, error) return — the wire-format
 // header carries the UUID; the version number is informational.
-func (s *GsrEncoder) createSchema(schemaName, dataFormat, schemaDefinition string) (string, uint32, error) {
+func (s *GsrEncoder) createSchema(schemaName, dataFormat, schemaDefinition, transportName string) (string, uint32, error) {
 	// Convert tags map to AWS SDK format
 	var tags map[string]string
 	if len(s.tags) > 0 {
@@ -360,6 +388,11 @@ func (s *GsrEncoder) createSchema(schemaName, dataFormat, schemaDefinition strin
 	if createResp.SchemaVersionId == nil {
 		return "", 0, fmt.Errorf("CreateSchema returned no SchemaVersionId")
 	}
+
+	// Metadata flush (Java parity AWSSchemaRegistryClient.java:264).
+	// Errors are logged inside the helper and intentionally NOT returned —
+	// INV-6 / C-13 lock the metadata-write-non-fatal contract.
+	_ = s.putSchemaVersionMetadataBatch(context.Background(), *createResp.SchemaVersionId, transportName)
 
 	version := uint32(1)
 	if createResp.LatestSchemaVersion != nil {

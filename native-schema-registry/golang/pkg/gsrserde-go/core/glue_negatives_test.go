@@ -94,7 +94,7 @@ func TestEncoder_Throttling_SurfacesAsErrGSRChain(t *testing.T) {
 	mockClient.On("CreateSchema", mock.Anything, mock.Anything).
 		Return((*glue.CreateSchemaOutput)(nil), throttle)
 
-	_, _, err := enc.getSchemaVersionIdByDefinition("def", "schema", "JSON")
+	_, _, err := enc.getSchemaVersionIdByDefinition("def", "schema", "JSON", "")
 	require.Error(t, err, "throttling must surface as an error")
 
 	// The original smithy error must remain in the chain so callers can
@@ -116,7 +116,7 @@ func TestEncoder_IAMDenied_PreservesTypedSDKError(t *testing.T) {
 	mockClient.On("CreateSchema", mock.Anything, mock.Anything).
 		Return((*glue.CreateSchemaOutput)(nil), denied)
 
-	_, _, err := enc.getSchemaVersionIdByDefinition("def", "schema-iam", "JSON")
+	_, _, err := enc.getSchemaVersionIdByDefinition("def", "schema-iam", "JSON", "")
 	require.Error(t, err, "AccessDenied must surface as an error")
 
 	var ade *types.AccessDeniedException
@@ -147,7 +147,7 @@ func TestEncoder_EntityNotFound_AutoRegisterTrue_FallsThroughToCreateSchema(t *t
 			LatestSchemaVersion: ptrInt64(1),
 		}, nil)
 
-	id, _, err := enc.getSchemaVersionIdByDefinition("def-auto", "schema-auto", "JSON")
+	id, _, err := enc.getSchemaVersionIdByDefinition("def-auto", "schema-auto", "JSON", "")
 	require.NoError(t, err, "auto-register fall-through must succeed when CreateSchema is wired")
 	assert.Equal(t, createdVersionID, id, "encoder must return the newly-created version UUID")
 
@@ -170,7 +170,7 @@ func TestEncoder_EntityNotFound_AutoRegisterFalse_SurfacesSentinel(t *testing.T)
 		Return((*glue.GetSchemaByDefinitionOutput)(nil), newEntityNotFoundError())
 	// CreateSchema deliberately not wired — mock panics if invoked.
 
-	_, _, err := enc.getSchemaVersionIdByDefinition("def-noauto", "schema-noauto", "JSON")
+	_, _, err := enc.getSchemaVersionIdByDefinition("def-noauto", "schema-noauto", "JSON", "")
 	require.Error(t, err)
 	require.True(t, errors.Is(err, ErrSchemaAutoRegistrationDisabled),
 		"auto-register=false + unknown schema must surface ErrSchemaAutoRegistrationDisabled (got %T: %v)", err, err)
@@ -201,7 +201,7 @@ func TestEncoder_CompatibilityRejection_SurfacesTypedError(t *testing.T) {
 	mockClient.On("CreateSchema", mock.Anything, mock.Anything).
 		Return((*glue.CreateSchemaOutput)(nil), invalid)
 
-	_, _, err := enc.getSchemaVersionIdByDefinition("def-incompat", "schema-incompat", "JSON")
+	_, _, err := enc.getSchemaVersionIdByDefinition("def-incompat", "schema-incompat", "JSON", "")
 	require.Error(t, err, "incompatible schema change must surface as an error")
 
 	var iie *types.InvalidInputException
