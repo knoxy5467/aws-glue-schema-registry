@@ -35,7 +35,10 @@ func NewGsrDecoder(configMap map[string]string) (*GsrDecoder, error) {
 
 	client := glue.NewFromConfig(config.AWSConfig)
 
-	cache, err := NewCache(config.TimeToLiveMillis)
+	cache, err := NewCacheWithOptions(CacheOptions{
+		TTLMillis: config.TimeToLiveMillis,
+		Size:      config.CacheSize,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cache: %w", err)
 	}
