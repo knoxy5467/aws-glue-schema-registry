@@ -280,6 +280,7 @@ func TestLifecycle_CacheSizeEviction_Real(t *testing.T) {
 	h := newGlueHandle(t)
 	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
 		RegistryName:                  testRegistryName,
+		Compatibility:                 "BACKWARD",
 		SchemaAutoRegistrationEnabled: true,
 		CacheSize:                     3,
 	})
