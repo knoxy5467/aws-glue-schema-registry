@@ -145,9 +145,22 @@ func (pd *ProtobufDeserializer) Deserialize(data []byte, schema *gsrcore.Schema)
 	// Create a new dynamic message instance
 	dynamicMessage := dynamicpb.NewMessage(pd.messageDescriptor)
 
-	// Unmarshal the protobuf data
+	// Unmarshal the protobuf data.
+	//
+	// Phase 4.12 §3.9 item 26 (Protobuf): wrap the proto.Unmarshal failure
+	// in the *ProtobufDeserializationError struct (introduced by PBI-4.12-1
+	// for JSON / Avro parity) and embed gsrcore.ErrMalformedProtobuf in the
+	// Cause chain so callers can resolve errors.Is(err, ErrMalformedProtobuf)
+	// (and transitively errors.Is(err, ErrGSR)) through the wrapper's
+	// Unwrap(). The pre-existing ErrDeserializationFailed sentinel and its
+	// "protobuf deserializer: deserialization failed:" diagnostic substring
+	// are preserved inside the same Cause chain so prior errors.Is /
+	// error-message regression assertions stay green.
 	if err := proto.Unmarshal(data, dynamicMessage); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrDeserializationFailed, err)
+		return nil, &ProtobufDeserializationError{
+			Message: "failed to deserialize Protobuf data",
+			Cause:   fmt.Errorf("%w: %w: %v", gsrcore.ErrMalformedProtobuf, ErrDeserializationFailed, err),
+		}
 	}
 
 	return dynamicMessage, nil
