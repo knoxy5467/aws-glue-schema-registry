@@ -2,6 +2,7 @@ package gsrserde
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -39,6 +40,17 @@ const (
 	ConfigKeyAssumeRoleSessionName       = "assumeRoleSessionName"
 	ConfigKeySchemaNameGenerationClass   = "schemaNameGenerationClass"
 
+	// TransportMetadataKey is the canonical schema-version metadata key under
+	// which the per-call `transportName` (Kafka topic, queue name, etc.) is
+	// recorded for downstream Glue analytics. String-identical to Java
+	// `AWSSchemaRegistryConstants.java:157` (`TRANSPORT_METADATA_KEY =
+	// "x-amz-meta-transport"`). The encoder's metadata-flush helper always
+	// injects this entry — even when `transportName == ""` — to match the
+	// unconditional `metadata.put(...)` at Java
+	// `GlueSchemaRegistrySerializationFacade.java:90-95`. Pinned by spec §3.4
+	// (AC-9, AC-9b) and INV-7 (always-on transport metadata).
+	TransportMetadataKey = "x-amz-meta-transport"
+
 	// Defaults — Java
 	// common/src/main/java/com/amazonaws/services/schemaregistry/utils/AWSSchemaRegistryConstants.java
 	DefaultRegistryName       = "default-registry"
@@ -47,6 +59,11 @@ const (
 	DefaultCacheTTLMillis     = int64(24 * 60 * 60 * 1000) // 24 hours
 	DefaultCacheSize          = 200
 	DefaultAssumeRoleSession  = "aws-glue-schema-registry-go"
+	// DefaultUserAgentApp mirrors Java
+	// common/src/main/java/com/amazonaws/services/schemaregistry/common/configs/GlueSchemaRegistryConfiguration.java:66
+	// (`userAgentApp = "default"`). Used by the always-on User-Agent middleware
+	// when the `userAgentApp` configMap key is absent.
+	DefaultUserAgentApp       = "default"
 )
 
 // Config holds the parsed configuration for the GSR Go client.
@@ -75,7 +92,22 @@ type Config struct {
 	ProtobufMessageType   string
 	SecondaryDeserializer string
 	UserAgentApp          string
+	// EffectiveUserAgentApp carries the resolved value used by the User-Agent
+	// middleware: equals UserAgentApp when raw is non-empty, otherwise
+	// DefaultUserAgentApp. Raw UserAgentApp is preserved (INV-3 / C-15) so
+	// callers introspecting raw input can still distinguish default from
+	// explicit. Mirrors Java's distinction between the public getter (empty
+	// when not set) and the wire stamp (always non-empty).
+	EffectiveUserAgentApp string
 	AssumeRoleArn         string
+	// AssumeRoleSessionName holds the *resolved* session name handed to
+	// stscreds.AssumeRoleOptions when AssumeRoleArn is set: the raw
+	// `assumeRoleSessionName` value when supplied, otherwise
+	// DefaultAssumeRoleSession. When AssumeRoleArn is empty the AssumeRole
+	// path is dormant and this field preserves raw input semantics (empty
+	// when the key is absent). Acts as a Tier-1 test seam (INV-4 / C-16)
+	// because stscreds.AssumeRoleProvider's options field is unexported and
+	// the resolved value cannot otherwise be observed in unit tests.
 	AssumeRoleSessionName string
 	SchemaNameGenerationClass string
 
@@ -103,12 +135,25 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 	if region != "" {
 		loadOpts = append(loadOpts, config.WithRegion(region))
 	}
-	if userAgent := configMap[ConfigKeyUserAgentApp]; userAgent != "" {
-		ua := userAgent
-		loadOpts = append(loadOpts, config.WithAPIOptions([]func(*smithymiddleware.Stack) error{
-			awsmiddleware.AddUserAgentKey("glue-schema-registry-go/" + ua),
-		}))
+	// User-Agent middleware is ALWAYS-ON, mirroring Java which always installs
+	// the GSR user-agent under `userAgentApp` with default `"default"`. Raw
+	// configMap value (empty when absent) is preserved on Config.UserAgentApp
+	// per INV-3 / C-15; the resolved value used by the middleware lives on
+	// Config.EffectiveUserAgentApp.
+	//
+	// AddUserAgentKeyValue is used instead of AddUserAgentKey because the
+	// SDK's key-only helper sanitizes the `/` separator (RFC 7230 token
+	// rules), producing "glue-schema-registry-go-default". The key/value
+	// helper preserves the `/` (`key + "/" + value`) so the emitted header
+	// is "glue-schema-registry-go/<effective>" — wire-format parity with
+	// Java which stamps "aws-glue-schema-registry-java/<app>".
+	effectiveUserAgent := configMap[ConfigKeyUserAgentApp]
+	if effectiveUserAgent == "" {
+		effectiveUserAgent = DefaultUserAgentApp
 	}
+	loadOpts = append(loadOpts, config.WithAPIOptions([]func(*smithymiddleware.Stack) error{
+		awsmiddleware.AddUserAgentKeyValue("glue-schema-registry-go", effectiveUserAgent),
+	}))
 	if proxy := configMap[ConfigKeyProxyURL]; proxy != "" {
 		proxyURL, err := url.Parse(proxy)
 		if err != nil {
@@ -123,16 +168,23 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		return nil, err
 	}
 
+	// Resolve the AssumeRole session name once so the SAME value reaches both
+	// stscreds.AssumeRoleOptions and Config.AssumeRoleSessionName — the field
+	// serves as a Tier-1 test seam proving the override reached the STS path
+	// (spec §3.8 / INV-4 / C-16). Resolution only kicks in when an ARN is
+	// configured; without an ARN the AssumeRole path is dormant and the field
+	// preserves raw input semantics.
+	resolvedSession := configMap[ConfigKeyAssumeRoleSessionName]
+	if resolvedSession == "" && configMap[ConfigKeyAssumeRoleArn] != "" {
+		resolvedSession = DefaultAssumeRoleSession
+	}
+
 	// AssumeRole wrap, mirroring Java GlueSchemaRegistryConfiguration's
 	// optional STS credential chain.
 	if arn := configMap[ConfigKeyAssumeRoleArn]; arn != "" {
-		session := configMap[ConfigKeyAssumeRoleSessionName]
-		if session == "" {
-			session = DefaultAssumeRoleSession
-		}
 		stsClient := sts.NewFromConfig(cfg)
 		cfg.Credentials = aws.NewCredentialsCache(stscreds.NewAssumeRoleProvider(stsClient, arn, func(o *stscreds.AssumeRoleOptions) {
-			o.RoleSessionName = session
+			o.RoleSessionName = resolvedSession
 		}))
 	}
 
@@ -147,17 +199,30 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 
 	compatibility := DefaultCompatibility
 	if v := configMap[ConfigKeyCompatibility]; v != "" {
+		if err := validateCompatibility(v); err != nil {
+			return nil, err
+		}
 		compatibility = v
 	}
 
 	compressionType := DefaultCompressionType
 	// Accept both the Java key "compression" and the historical Go key
 	// "compressionType". Java wins if both are set.
+	compressionExplicit := false
 	if v := configMap["compressionType"]; v != "" {
 		compressionType = v
+		compressionExplicit = true
 	}
 	if v := configMap[ConfigKeyCompressionType]; v != "" {
 		compressionType = v
+		compressionExplicit = true
+	}
+	// Validate only when an explicit non-empty value was supplied; absent
+	// keys fall through to DefaultCompressionType.
+	if compressionExplicit {
+		if err := validateCompressionType(compressionType); err != nil {
+			return nil, err
+		}
 	}
 
 	autoRegister := false
@@ -167,16 +232,32 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 
 	ttl := DefaultCacheTTLMillis
 	if v := configMap[ConfigKeyCacheTTLMillis]; v != "" {
-		if parsed, err := strconv.ParseInt(v, 10, 64); err == nil {
-			ttl = parsed
+		parsed, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidCacheTTL, v)
 		}
+		ttl = parsed
 	}
 
 	cacheSize := DefaultCacheSize
 	if v := configMap[ConfigKeyCacheSize]; v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil {
-			cacheSize = parsed
+		parsed, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidCacheSize, v)
 		}
+		cacheSize = parsed
+	}
+
+	// Synthesize the default description AFTER region + registryName have been
+	// resolved so the registry-name segment reflects the post-default fallback
+	// (e.g. "default-registry"), not the raw configMap value. Mirrors Java
+	// GlueSchemaRegistryConfiguration.java:343-352. The prefix string
+	// "DEFAULT-DESCRIPTION" is exact (no casing change). When region is empty
+	// (no key set) the resulting string is "DEFAULT-DESCRIPTION--<registryName>"
+	// (two dashes) — matches Java's use of whatever string region resolved to.
+	description := configMap[ConfigKeyDescription]
+	if description == "" {
+		description = fmt.Sprintf("DEFAULT-DESCRIPTION-%s-%s", region, registryName)
 	}
 
 	return &Config{
@@ -186,7 +267,7 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		ProxyURL:                      configMap[ConfigKeyProxyURL],
 		RegistryName:                  registryName,
 		Compatibility:                 compatibility,
-		Description:                   configMap[ConfigKeyDescription],
+		Description:                   description,
 		SchemaAutoRegistrationEnabled: autoRegister,
 		CompressionType:               compressionType,
 		TimeToLiveMillis:              ttl,
@@ -196,8 +277,9 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		ProtobufMessageType:       configMap[ConfigKeyProtobufMessageType],
 		SecondaryDeserializer:     configMap[ConfigKeySecondaryDeserializer],
 		UserAgentApp:              configMap[ConfigKeyUserAgentApp],
+		EffectiveUserAgentApp:     effectiveUserAgent,
 		AssumeRoleArn:             configMap[ConfigKeyAssumeRoleArn],
-		AssumeRoleSessionName:     configMap[ConfigKeyAssumeRoleSessionName],
+		AssumeRoleSessionName:     resolvedSession,
 		SchemaNameGenerationClass: configMap[ConfigKeySchemaNameGenerationClass],
 
 		Tags:     collectPrefixedMap(configMap, ConfigKeyTagsPrefix),
@@ -221,4 +303,48 @@ func collectPrefixedMap(configMap map[string]string, prefix string) map[string]s
 		}
 	}
 	return out
+}
+
+// validCompressionTypes is the set Java's
+// AWSSchemaRegistryConstants.COMPRESSION enum accepts.
+var validCompressionTypes = map[string]struct{}{
+	"NONE": {},
+	"ZLIB": {},
+}
+
+// validateCompressionType rejects values outside the Java enum. The check is
+// case-insensitive on the upper-case-normalized value to match Java's
+// COMPRESSION.valueOf-after-toUpperCase shape, but the stored field preserves
+// the caller's casing. Empty input is the caller's responsibility — this
+// helper is only invoked on explicit non-empty values.
+func validateCompressionType(value string) error {
+	if _, ok := validCompressionTypes[strings.ToUpper(value)]; !ok {
+		return fmt.Errorf("%w: %q (want one of NONE, ZLIB)", ErrInvalidCompressionType, value)
+	}
+	return nil
+}
+
+// validCompatibilities is the case-exact set Java's
+// software.amazon.awssdk.services.glue.model.Compatibility enum emits via
+// knownValues(); see GlueSchemaRegistryConfiguration.java:173-178.
+var validCompatibilities = map[string]struct{}{
+	"NONE":         {},
+	"DISABLED":     {},
+	"BACKWARD":     {},
+	"BACKWARD_ALL": {},
+	"FORWARD":      {},
+	"FORWARD_ALL": {},
+	"FULL":         {},
+	"FULL_ALL":     {},
+}
+
+// validateCompatibility rejects values not in the Java enum set. The match is
+// CASE-EXACT — lowercase variants like "backward" and typos like "FORWARDS"
+// MUST be rejected (Java's Compatibility.valueOf is case-sensitive on the
+// known-values list).
+func validateCompatibility(value string) error {
+	if _, ok := validCompatibilities[value]; !ok {
+		return fmt.Errorf("%w: %q", ErrInvalidCompatibility, value)
+	}
+	return nil
 }

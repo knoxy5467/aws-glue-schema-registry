@@ -41,7 +41,7 @@ func TestEncoder_GetSchemaError_AccessDenied_DoesNotFallThrough(t *testing.T) {
 		Return((*glue.GetSchemaByDefinitionOutput)(nil), newAccessDeniedError())
 	// CreateSchema intentionally not wired — mock will panic if invoked.
 
-	_, _, err := enc.getSchemaVersionIdByDefinition("def-acd", "schema-acd", "JSON")
+	_, _, err := enc.getSchemaVersionIdByDefinition("def-acd", "schema-acd", "JSON", "")
 	require.Error(t, err, "AccessDenied must surface as an error")
 
 	var ade *types.AccessDeniedException
@@ -60,7 +60,7 @@ func TestEncoder_GetSchemaError_Throttling_DoesNotFallThrough(t *testing.T) {
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).
 		Return((*glue.GetSchemaByDefinitionOutput)(nil), newThrottlingError())
 
-	_, _, err := enc.getSchemaVersionIdByDefinition("def-thr", "schema-thr", "JSON")
+	_, _, err := enc.getSchemaVersionIdByDefinition("def-thr", "schema-thr", "JSON", "")
 	require.Error(t, err)
 
 	var apiErr smithy.APIError
@@ -81,7 +81,7 @@ func TestEncoder_GetSchemaError_InvalidInput_DoesNotFallThrough(t *testing.T) {
 	mockClient.On("GetSchemaByDefinition", mock.Anything, mock.Anything).
 		Return((*glue.GetSchemaByDefinitionOutput)(nil), invalid)
 
-	_, _, err := enc.getSchemaVersionIdByDefinition("def-inv", "schema-inv", "JSON")
+	_, _, err := enc.getSchemaVersionIdByDefinition("def-inv", "schema-inv", "JSON", "")
 	require.Error(t, err)
 
 	var iie *types.InvalidInputException
@@ -109,7 +109,7 @@ func TestEncoder_GetSchemaError_EntityNotFound_StillFallsThrough(t *testing.T) {
 			LatestSchemaVersion: ptrInt64(1),
 		}, nil)
 
-	id, _, err := enc.getSchemaVersionIdByDefinition("def-enf", "schema-enf", "JSON")
+	id, _, err := enc.getSchemaVersionIdByDefinition("def-enf", "schema-enf", "JSON", "")
 	require.NoError(t, err)
 	require.Equal(t, createdVersionID, id)
 

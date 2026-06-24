@@ -33,7 +33,7 @@ func TestEncoder_AutoRegisterDisabled_UnknownSchemaReturnsSentinel(t *testing.T)
 		Return((*glue.GetSchemaByDefinitionOutput)(nil), newEntityNotFoundError())
 	// CreateSchema deliberately not wired — mock panics if called.
 
-	_, _, err := enc.getSchemaVersionIdByDefinition("def-auto-off", "schema-auto-off", "JSON")
+	_, _, err := enc.getSchemaVersionIdByDefinition("def-auto-off", "schema-auto-off", "JSON", "")
 	require.Error(t, err, "auto-register=false + unknown schema must error")
 	require.True(t, errors.Is(err, ErrSchemaAutoRegistrationDisabled),
 		"error must wrap ErrSchemaAutoRegistrationDisabled (got %T: %v)", err, err)
@@ -59,7 +59,7 @@ func TestEncoder_AutoRegisterEnabled_UnknownSchemaCreates(t *testing.T) {
 			LatestSchemaVersion: ptrInt64(1),
 		}, nil)
 
-	id, _, err := enc.getSchemaVersionIdByDefinition("def-auto-on", "schema-auto-on", "JSON")
+	id, _, err := enc.getSchemaVersionIdByDefinition("def-auto-on", "schema-auto-on", "JSON", "")
 	require.NoError(t, err)
 	require.Equal(t, createdID, id)
 

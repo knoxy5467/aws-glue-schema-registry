@@ -62,6 +62,20 @@ type Fake struct {
 	// ForceGetVersionError, when non-nil, makes GetSchemaVersion
 	// return this error verbatim.
 	ForceGetVersionError error
+
+	// ForceRegisterPending, when true, makes RegisterSchemaVersion return
+	// Status=PENDING instead of AVAILABLE. Pair with ForcePendingCount to
+	// script a "N PENDING responses then AVAILABLE" sequence via the
+	// GetSchemaVersion poll loop — mirroring the Tier-1 mock approach in
+	// poll_test.go for integration-level Tier-2 scenarios (spec §5.2 PBI-11).
+	ForceRegisterPending bool
+
+	// ForcePendingCount is the number of GetSchemaVersion calls that will
+	// return Status=PENDING before switching to AVAILABLE. Decremented on
+	// each call. When it reaches zero, subsequent GetSchemaVersion calls
+	// return the normal AVAILABLE response (unless ForceGetVersionError is
+	// set). Only meaningful when ForceRegisterPending=true triggers the poll.
+	ForcePendingCount int
 }
 
 type storedSchema struct {
@@ -159,6 +173,21 @@ func (f *Fake) GetSchemaVersion(ctx context.Context, in *glue.GetSchemaVersionIn
 		return nil, f.ForceGetVersionError
 	}
 
+	// Script "N PENDING then AVAILABLE" for poll-path Tier-2 tests (spec §5.2
+	// PBI-11). The counter is decremented under the mutex so concurrent callers
+	// each see the correct sequence without races.
+	if f.ForcePendingCount > 0 {
+		f.ForcePendingCount--
+		id := ""
+		if in.SchemaVersionId != nil {
+			id = *in.SchemaVersionId
+		}
+		return &glue.GetSchemaVersionOutput{
+			SchemaVersionId: aws.String(id),
+			Status:          types.SchemaVersionStatusPending,
+		}, nil
+	}
+
 	id := ""
 	if in.SchemaVersionId != nil {
 		id = *in.SchemaVersionId
@@ -173,6 +202,7 @@ func (f *Fake) GetSchemaVersion(ctx context.Context, in *glue.GetSchemaVersionIn
 		SchemaDefinition: aws.String(stored.schemaDefinition),
 		DataFormat:       stored.dataFormat,
 		SchemaArn:        aws.String(arn),
+		Status:           types.SchemaVersionStatusAvailable,
 	}, nil
 }
 
@@ -265,9 +295,14 @@ func (f *Fake) RegisterSchemaVersion(ctx context.Context, in *glue.RegisterSchem
 	}
 
 	v := int64(2)
+	status := types.SchemaVersionStatusAvailable
+	if f.ForceRegisterPending {
+		status = types.SchemaVersionStatusPending
+	}
 	return &glue.RegisterSchemaVersionOutput{
 		SchemaVersionId: aws.String(versionID),
 		VersionNumber:   &v,
+		Status:          status,
 	}, nil
 }
 

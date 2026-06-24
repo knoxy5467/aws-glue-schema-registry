@@ -46,6 +46,7 @@ func alreadyExistsRecoveryFixture(t *testing.T, createErr error) (*GsrEncoder, *
 		Return(&glue.RegisterSchemaVersionOutput{
 			SchemaVersionId: aws.String(recoveredID),
 			VersionNumber:   &v,
+			Status:          types.SchemaVersionStatusAvailable,
 		}, nil)
 
 	return enc, mockClient, recoveredID
@@ -60,7 +61,7 @@ func TestEncoder_AlreadyExists_TypedErrorWithSubstring_RecoversViaRegister(t *te
 	createErr := &types.AlreadyExistsException{Message: aws.String("Schema already exists")}
 	enc, mockClient, recoveredID := alreadyExistsRecoveryFixture(t, createErr)
 
-	gotID, gotVer, err := enc.getSchemaVersionIdByDefinition("def-1", "schema-1", "JSON")
+	gotID, gotVer, err := enc.getSchemaVersionIdByDefinition("def-1", "schema-1", "JSON", "")
 	require.NoError(t, err)
 	require.Equal(t, recoveredID, gotID)
 	require.Equal(t, uint32(2), gotVer)
@@ -93,7 +94,7 @@ func TestEncoder_AlreadyExists_TypedErrorWithoutSubstring_RecoversViaRegister(t 
 
 	enc, mockClient, recoveredID := alreadyExistsRecoveryFixture(t, createErr)
 
-	gotID, gotVer, err := enc.getSchemaVersionIdByDefinition("def-2", "schema-2", "JSON")
+	gotID, gotVer, err := enc.getSchemaVersionIdByDefinition("def-2", "schema-2", "JSON", "")
 	require.NoError(t, err)
 	require.Equal(t, recoveredID, gotID)
 	require.Equal(t, uint32(2), gotVer)
@@ -123,7 +124,7 @@ func TestEncoder_AlreadyExists_UnrelatedTypedError_DoesNotRecover(t *testing.T) 
 	// mock's MethodCalled will fail loudly if the encoder fires this
 	// path against an unrelated typed error.
 
-	_, _, err := enc.getSchemaVersionIdByDefinition("def-3", "schema-3", "JSON")
+	_, _, err := enc.getSchemaVersionIdByDefinition("def-3", "schema-3", "JSON", "")
 	require.Error(t, err, "unrelated typed error must NOT be recovered via RegisterSchemaVersion")
 
 	mockClient.AssertNotCalled(t, "RegisterSchemaVersion", mock.Anything, mock.Anything)

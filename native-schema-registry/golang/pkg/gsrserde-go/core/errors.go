@@ -54,6 +54,35 @@ var ErrSchemaAutoRegistrationDisabled = fmt.Errorf("%w: schema auto-registration
 // when an object is not an instance of com.google.protobuf.Message.
 var ErrInvalidProtobufPayload = fmt.Errorf("%w: value is not a valid protobuf message", ErrGSR)
 
+// Configuration parse-time validation sentinels. These are returned by
+// LoadConfigFromMap when an inbound configMap value is syntactically or
+// semantically out of range. Java throws at config construction time; Go
+// mirrors that by failing the parse with a typed error rather than silently
+// falling back to the default.
+//
+// Java parity: GlueSchemaRegistryConfiguration constructor validation in
+// common/src/main/java/com/amazonaws/services/schemaregistry/common/configs/GlueSchemaRegistryConfiguration.java
+// (compression: validateAndSetCompressionType; compatibility: known-enum check
+// at lines 173-178; numeric parses: NumberFormatException paths).
+
+// ErrInvalidCompressionType wraps rejections of the `compression` /
+// `compressionType` config key. Accepted set: {"NONE", "ZLIB"}.
+var ErrInvalidCompressionType = fmt.Errorf("%w: invalid compression type", ErrGSR)
+
+// ErrInvalidCompatibility wraps rejections of the `compatibility` config key.
+// Accepted set is case-exact per Java's Compatibility enum:
+// {"NONE", "DISABLED", "BACKWARD", "BACKWARD_ALL", "FORWARD", "FORWARD_ALL",
+//  "FULL", "FULL_ALL"}.
+var ErrInvalidCompatibility = fmt.Errorf("%w: invalid compatibility", ErrGSR)
+
+// ErrInvalidCacheTTL wraps rejections of the `timeToLiveMillis` config key
+// when the value is non-empty but cannot be parsed as an int64.
+var ErrInvalidCacheTTL = fmt.Errorf("%w: invalid timeToLiveMillis", ErrGSR)
+
+// ErrInvalidCacheSize wraps rejections of the `cacheSize` config key when the
+// value is non-empty but cannot be parsed as an int.
+var ErrInvalidCacheSize = fmt.Errorf("%w: invalid cacheSize", ErrGSR)
+
 // SerializationError wraps a failure that originated inside Encode. It carries
 // the original error so errors.Unwrap, errors.Is, and errors.As all chain
 // through to the underlying cause (sentinel, SDK error, parser error, …).
