@@ -3,18 +3,22 @@
 
 package integration_tests
 
-// Tier-2 metadata-lifecycle cells — spec §3.11 cells 1 and 2.
+// Tier-2 metadata-lifecycle cells — spec §3.11 cells 1-2 + spec §5.2 cell 3.
 //
-// Both cells require real AWS Glue (account 850995546034).
+// Cells 1 and 2 require real AWS Glue (account 850995546034).
 // Gate: scenarioGate(t, requiresReal=true, false) + AWS_INTEGRATION=1 + GSR_GLUE=real.
 //
+// Cell 3 uses fakeglue and does NOT require real AWS.
+// Gate: scenarioGate(t, requiresReal=false, requiresFake=true).
+//
 // Default `go test ./...` (no -tags integration) does NOT compile or execute
-// either test (INV-10, AC-16, C-6).
+// any of these tests (INV-10, AC-16, C-6).
 
 import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/glue"
 	"github.com/aws/aws-sdk-go-v2/service/glue/types"
 	"github.com/stretchr/testify/require"
@@ -163,6 +167,78 @@ func TestMetadataLifecycle_QueryMetadataAndTagsFlow(t *testing.T) {
 			"QuerySchemaTags result must contain configured tag %q=%q", k, v)
 	}
 	t.Logf("✅ Cell 2 passed: meta=%v tags=%v", configuredMetadata, configuredTags)
+}
+
+// TestMetadataLifecycle_PollPendingToAvailable — spec §5.2 PBI-11 / Cell 3.
+//
+// Uses fakeglue (not real Glue) to verify the PENDING→AVAILABLE poll loop
+// without AWS billing. The fakeglue ForcePending affordance scripts:
+//
+//	RegisterSchemaVersion returns PENDING → GetSchemaVersion called N times
+//	with PENDING → GetSchemaVersion returns AVAILABLE → Encode succeeds.
+//
+// The test forces CreateSchema to return AlreadyExistsException so the encoder
+// falls into the registerSchemaVersion path (the only path that can see
+// PENDING from Glue). ForcePendingCount=2 means 2 PENDING poll responses
+// before AVAILABLE; the encoder must call GetSchemaVersion exactly 3 times.
+//
+// sleepFn runs at its default (time.Sleep × 3 s per attempt) — 2 PENDING
+// responses × 3 s ≤ 6 s, well within the 90-s scenario timeout.
+//
+// Gate: scenarioGate(t, requiresReal=false, requiresFake=true) — this cell
+// uses the fakeglue backend; GSR_GLUE=real skips it.
+//
+// AC-20, spec §5.2.
+func TestMetadataLifecycle_PollPendingToAvailable(t *testing.T) {
+	scenarioGate(t, false, true)
+	h := newGlueHandle(t)
+
+	// ForceCreateError → AlreadyExistsException routes Encode into the
+	// registerSchemaVersion (poll) path rather than the createSchema path.
+	h.Fake.ForceCreateError = &types.AlreadyExistsException{
+		Message: aws.String("schema already exists (forced for poll-path test)"),
+	}
+	// Script 2 PENDING responses from GetSchemaVersion before AVAILABLE.
+	h.Fake.ForceRegisterPending = true
+	h.Fake.ForcePendingCount = 2
+
+	const pendingCount = 2
+
+	enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
+		RegistryName:                  "default-registry",
+		Compatibility:                 "NONE",
+		SchemaAutoRegistrationEnabled: true,
+	})
+	require.NoError(t, err, "NewGsrEncoderForTest should succeed")
+
+	schemaName := randomGlueName(t, "poll-pending")
+
+	_, encodeErr := enc.Encode([]byte(`{"id":"poll-1"}`), schemaName, &gsrcore.Schema{
+		SchemaDefinition: metadataLifecycleSchema,
+		SchemaName:       schemaName,
+		DataFormat:       "AVRO",
+	})
+	require.NoError(t, encodeErr,
+		"Cell 3: Encode must succeed after PENDING→AVAILABLE poll resolves")
+
+	// Poll loop calls GetSchemaVersion pendingCount times returning PENDING,
+	// then once more returning AVAILABLE — total = pendingCount + 1.
+	gotVersionCalls := h.Fake.Count("GetSchemaVersion")
+	require.Equal(t, pendingCount+1, gotVersionCalls,
+		"Cell 3: GetSchemaVersion must be called exactly %d times (%d PENDING + 1 AVAILABLE), got %d",
+		pendingCount+1, pendingCount, gotVersionCalls)
+
+	require.Equal(t, 1, h.Fake.Count("RegisterSchemaVersion"),
+		"Cell 3: RegisterSchemaVersion must be called exactly once")
+
+	// AC-14: metadata flush must fire AFTER the poll resolves. Even with no
+	// configured metadata, the encoder always flushes the always-on
+	// TransportMetadataKey entry (INV-7 / PBI-4.10-4).
+	require.GreaterOrEqual(t, h.Fake.Count("PutSchemaVersionMetadata"), 1,
+		"Cell 3: metadata flush (PutSchemaVersionMetadata) must fire after poll resolves to AVAILABLE")
+
+	t.Logf("✅ Cell 3 passed: poll loop resolved after %d PENDING responses (GetSchemaVersion called %d times)",
+		pendingCount, gotVersionCalls)
 }
 
 // strPtr returns a pointer to the given string. Used only in this file to
