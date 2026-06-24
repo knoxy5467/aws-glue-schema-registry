@@ -7,7 +7,7 @@
 - Base commit: 0a95eae (golang-mrknox)
 - Go module root: native-schema-registry/golang/
 - Auditor: swarm-implementor
-- Code-review status: <populated in PBI-4>
+- Code-review status: Findings applied in commit 93222a7 (§1.1 endpoint constant line-number correction, carry-forward from PBI-1 review); 2 NIT findings deferred — see §4.
 
 ## Summary counters
 
@@ -131,7 +131,9 @@ Tier-1 = unit tests under `native-schema-registry/golang/pkg/gsrserde-go/.../*_t
 
 - **Audit-meta:** §3 Item 17 (Cache size eviction) is marked Tier-1 `Y` but the Tier-1 test (`pkg/gsrserde-go/core/cache_test.go:TestCacheSize:60`) is a basic-functionality stand-in — its own in-file comment notes `go-cache doesn't have built-in size limits`, so the size-eviction contract is not actually asserted. The Tier-2 counterpart (`integration-tests/tests/schema_lifecycle_test.go:TestLifecycle_CacheSizeEviction:205`) is `t.Skip`-ed pending a cache size cap. Net effect: row counted as covered in §3 by the row-presence rule, but behavioral coverage of the size-eviction contract is absent. Surfaced for Phase 4.10 reassessment, not remediated here. (Origin: PBI-3 row authoring; preserved through PBI-4 audit closeout.)
 - **Audit-meta (Path A consequence):** Several §1 rows carry `untested` qualifiers in the Notes column (e.g. §1.1 row 3 — region SDK-default fallback path). Per the chosen Path A from PBI-1 AC10a, these stay Status=Implemented/Stubbed with the gap annotated in Notes rather than being downgraded. Behavioral coverage of these `untested` paths is a Phase 4.10 concern. (Origin: PBI-1 spec-deviation note, recorded in §5.)
-- **/code-review deferred findings:** _populated by PBI-4 follow-up commit after `/code-review` runs against `0a95eae..HEAD`._
+- **/code-review deferred findings (cumulative scope `0a95eae..HEAD`):**
+  - NIT — §3 Item 17 Tier-1 marked `Y` despite the row's own Notes acknowledging the cited test (`pkg/gsrserde-go/core/cache_test.go:TestCacheSize:60`) is a basic-functionality stand-in that does not assert the size-eviction contract. Deferred (not downgraded) because (a) the §3 NIT was raised and accepted by the PBI-3 impl-reviewer in round 1, and (b) downgrading the row mid-audit would change §3 counts already locked in by PBI-3. Behavioral remediation belongs to Phase 4.10. (Origin: `/code-review` against §3 row 17.)
+  - NIT — §3 Item 26 Tier-1 cell cites only `avro_malformed_test.go` despite the row covering Avro + JSON + Protobuf; the JSON and Protobuf citations live in the Notes column instead. Deferred because the Notes column does carry the full citation set and the cell-style was approved by the PBI-3 impl-reviewer in round 1. (Origin: `/code-review` against §3 row 26 presentation.)
 
 ## 5. Methodology used
 
