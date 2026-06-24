@@ -25,6 +25,26 @@ const (
 	JSONObjectTypeKey = "jsonObjectType"
 	// GSRConfigPathKey is the configuration key for GSR configuration path.
 	GSRConfigPathKey = "gsrConfigPath"
+
+	// AvroSpecificTypeKey is the configuration key for a caller-provided
+	// reflect.Type used by the Avro deserializer when AvroRecordType ==
+	// AvroRecordTypeSpecific. The value must be a reflect.Type for the target
+	// Go struct. When absent (nil), SPECIFIC_RECORD deserialization returns
+	// ErrMissingAvroSpecificType at the first Deserialize call.
+	AvroSpecificTypeKey = "avroSpecificType"
+
+	// ProtobufMessageTypeKey is the configuration key for selecting the
+	// protobuf deserialization dispatch mode (POJO vs DYNAMIC_MESSAGE).
+	// String value is validated at LoadConfigFromMap time; the resolved
+	// ProtobufMessageType enum is carried on common.Configuration.
+	ProtobufMessageTypeKey = "protobufMessageType"
+
+	// ProtobufPOJOTypeKey is the configuration key for a caller-provided
+	// proto.Message instance used by the protobuf deserializer when
+	// ProtobufMessageType == ProtobufMessageTypePOJO. The value must be a
+	// proto.Message. When absent (nil), POJO deserialization returns
+	// ErrMissingProtobufPOJOType at the first Deserialize call.
+	ProtobufPOJOTypeKey = "protobufPOJOType"
 )
 
 // DataFormat represents the data format for serialization/deserialization.

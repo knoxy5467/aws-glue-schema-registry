@@ -34,7 +34,6 @@ const (
 	ConfigKeyProtobufMessageType         = "protobufMessageType"
 	ConfigKeyTagsPrefix                  = "tags."
 	ConfigKeyMetadataPrefix              = "metadata."
-	ConfigKeySecondaryDeserializer       = "secondaryDeserializer"
 	ConfigKeyUserAgentApp                = "userAgentApp"
 	ConfigKeyAssumeRoleArn               = "assumeRoleArn"
 	ConfigKeyAssumeRoleSessionName       = "assumeRoleSessionName"
@@ -70,11 +69,15 @@ const (
 //
 // Java reference: GlueSchemaRegistryConfiguration.java.
 //
-// Fields with no Go-side use yet (AvroRecordType, ProtobufMessageType,
-// JacksonSerializationFeatures, JacksonDeserializationFeatures) are parsed
-// and held here so callers can forward them when the format-layer adapters
-// land in Phase 3 — keeping the config surface stable beats re-introducing
-// the keys later.
+// Fields AvroRecordType and ProtobufMessageType are validated at parse time
+// (LoadConfigFromMap) and held here for consumption by the format-layer
+// deserializers (PBI-02, PBI-03). Invalid enum values are rejected with
+// ErrInvalidAvroRecordType / ErrInvalidProtobufMessageType respectively,
+// mirroring Java's config-constructor throw.
+//
+// Note: Config.SecondaryDeserializer was removed as of Phase 4.14. Passing
+// the "secondaryDeserializer" key in a configMap is a no-op (silently
+// ignored). See pkg/gsrserde-go/deserializer package docs for rationale.
 type Config struct {
 	AWSConfig                     aws.Config
 	Region                        string
@@ -90,7 +93,6 @@ type Config struct {
 
 	AvroRecordType        string
 	ProtobufMessageType   string
-	SecondaryDeserializer string
 	UserAgentApp          string
 	// EffectiveUserAgentApp carries the resolved value used by the User-Agent
 	// middleware: equals UserAgentApp when raw is non-empty, otherwise
@@ -248,6 +250,31 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		cacheSize = parsed
 	}
 
+	// Validate avroRecordType enum at config-construction time, mirroring
+	// Java's config-constructor throw. Empty string means "use default
+	// (GENERIC_RECORD)" — valid and passes through unchanged.
+	avroRecordType := configMap[ConfigKeyAvroRecordType]
+	if avroRecordType != "" {
+		if err := validateAvroRecordType(avroRecordType); err != nil {
+			return nil, err
+		}
+	}
+
+	// Validate protobufMessageType enum at config-construction time. Empty
+	// string means "use default (auto-dispatch / DYNAMIC_MESSAGE behavior)".
+	protobufMessageType := configMap[ConfigKeyProtobufMessageType]
+	if protobufMessageType != "" {
+		if err := validateProtobufMessageType(protobufMessageType); err != nil {
+			return nil, err
+		}
+	}
+
+	// secondaryDeserializer key is silently ignored (INV-SECONDARY-NOOP).
+	// Java's fallback-deserializer chain is intentionally not implemented;
+	// the key is consumed here to prevent it from leaking into AdditionalProperties
+	// or causing a parse error. See package docs on deserializer for rationale.
+	_ = configMap["secondaryDeserializer"]
+
 	// Synthesize the default description AFTER region + registryName have been
 	// resolved so the registry-name segment reflects the post-default fallback
 	// (e.g. "default-registry"), not the raw configMap value. Mirrors Java
@@ -273,9 +300,8 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		TimeToLiveMillis:              ttl,
 		CacheSize:                     cacheSize,
 
-		AvroRecordType:            configMap[ConfigKeyAvroRecordType],
-		ProtobufMessageType:       configMap[ConfigKeyProtobufMessageType],
-		SecondaryDeserializer:     configMap[ConfigKeySecondaryDeserializer],
+		AvroRecordType:            avroRecordType,
+		ProtobufMessageType:       protobufMessageType,
 		UserAgentApp:              configMap[ConfigKeyUserAgentApp],
 		EffectiveUserAgentApp:     effectiveUserAgent,
 		AssumeRoleArn:             configMap[ConfigKeyAssumeRoleArn],
@@ -320,6 +346,43 @@ var validCompressionTypes = map[string]struct{}{
 func validateCompressionType(value string) error {
 	if _, ok := validCompressionTypes[strings.ToUpper(value)]; !ok {
 		return fmt.Errorf("%w: %q (want one of NONE, ZLIB)", ErrInvalidCompressionType, value)
+	}
+	return nil
+}
+
+// validAvroRecordTypes is the case-exact set Java's AvroRecordType enum emits
+// via AvroRecordType.valueOf. Case-exact per Java: "GENERIC_RECORD" and
+// "SPECIFIC_RECORD" are valid; lowercase or alternate forms are not.
+var validAvroRecordTypes = map[string]struct{}{
+	"GENERIC_RECORD":  {},
+	"SPECIFIC_RECORD": {},
+}
+
+// validateAvroRecordType rejects values outside the Java AvroRecordType enum.
+// The match is CASE-EXACT — lowercase variants and typos MUST be rejected.
+// Empty input is the caller's responsibility — this helper is only invoked on
+// explicit non-empty values.
+func validateAvroRecordType(value string) error {
+	if _, ok := validAvroRecordTypes[value]; !ok {
+		return fmt.Errorf("%w: %q (want one of GENERIC_RECORD, SPECIFIC_RECORD)", ErrInvalidAvroRecordType, value)
+	}
+	return nil
+}
+
+// validProtobufMessageTypes is the case-exact set Java's ProtobufMessageType
+// enum emits. Case-exact per Java: "POJO" and "DYNAMIC_MESSAGE" are valid.
+var validProtobufMessageTypes = map[string]struct{}{
+	"POJO":            {},
+	"DYNAMIC_MESSAGE": {},
+}
+
+// validateProtobufMessageType rejects values outside the Java
+// ProtobufMessageType enum. CASE-EXACT — lowercase variants and typos MUST
+// be rejected. Empty input is the caller's responsibility — only invoked on
+// explicit non-empty values.
+func validateProtobufMessageType(value string) error {
+	if _, ok := validProtobufMessageTypes[value]; !ok {
+		return fmt.Errorf("%w: %q (want one of POJO, DYNAMIC_MESSAGE)", ErrInvalidProtobufMessageType, value)
 	}
 	return nil
 }
