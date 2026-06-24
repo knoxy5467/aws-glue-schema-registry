@@ -780,6 +780,37 @@ func TestAvroDeserializer_SpecificRecord_MissingType(t *testing.T) {
 	assert.Contains(t, err.Error(), "SPECIFIC_RECORD requires AvroSpecificType")
 }
 
+// TestAvroDeserializer_SpecificRecord_PointerType verifies the pointer-type guard
+// (board MINOR-3 / C1): when a caller registers AvroSpecificType as a pointer type
+// (reflect.TypeOf(&avroTestRecord{})) instead of the value type, the deserializer
+// must normalize it to the element type before calling reflect.New — producing a
+// *avroTestRecord result identical to the value-type case, rather than **avroTestRecord
+// which hamba/avro cannot populate.
+// Phase 4.14 board-fixes.
+func TestAvroDeserializer_SpecificRecord_PointerType(t *testing.T) {
+	// Register the POINTER type (common caller mistake) — should produce same
+	// result as registering the value type.
+	config := common.NewConfiguration(map[string]interface{}{
+		common.DataFormatTypeKey:   common.DataFormatAvro,
+		common.AvroRecordTypeKey:   common.AvroRecordTypeSpecific,
+		common.AvroSpecificTypeKey: reflect.TypeOf(&avroTestRecord{}), // pointer type
+	})
+	d, err := NewAvroDeserializer(config)
+	require.NoError(t, err)
+
+	avroData, err := createAvroData(avroTestRecordSchema, map[string]interface{}{"name": "dave"})
+	require.NoError(t, err)
+
+	result, err := d.Deserialize(avroData, &gsrcore.Schema{SchemaDefinition: avroTestRecordSchema})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// Must return *avroTestRecord — same as if the value type were registered.
+	typed, ok := result.(*avroTestRecord)
+	require.True(t, ok, "pointer-type registration must yield *avroTestRecord, got %T", result)
+	assert.Equal(t, "dave", typed.Name)
+}
+
 // BenchmarkAvroDeserializer_Deserialize benchmarks the deserialization performance
 func BenchmarkAvroDeserializer_Deserialize(b *testing.B) {
 	config := createAvroConfig()

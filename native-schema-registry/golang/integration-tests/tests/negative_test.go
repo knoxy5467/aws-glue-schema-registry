@@ -380,8 +380,8 @@ func (s *spyGlueClient) GetTags(ctx context.Context, params *glue.GetTagsInput, 
 // §5.3 item 25 — _Real companion.
 //
 // Exercises the EntityNotFound auto-register fall-through path against real
-// AWS Glue (account 850995546034, region us-east-1). The companion fake-gated
-// test is TestNegative_EntityNotFoundFallsThroughToCreate above.
+// AWS Glue (account 850995546034, region determined by local AWS config). The
+// companion fake-gated test is TestNegative_EntityNotFoundFallsThroughToCreate above.
 //
 // Flow (spec Architecture §4):
 //  A. Encode with schema A on enc1 → GetSchemaByDefinition (EntityNotFound) →
@@ -460,9 +460,15 @@ func TestNegative_EntityNotFound_FallsThroughToCreate_Real(t *testing.T) {
 	require.NoError(t, err, "Step C: out-of-band DeleteSchema must succeed")
 
 	// Wait for deletion propagation: poll until GetSchemaByDefinition returns
-	// EntityNotFound (or any error other than "still exists with AVAILABLE
-	// status"). Capped at 30 s to keep the test from running indefinitely.
+	// EntityNotFoundException (schema is gone). Capped at 30 s to keep the
+	// test from running indefinitely.
+	//
+	// We break ONLY on EntityNotFoundException — the definitive "schema is gone"
+	// signal. Transient errors (network blip, throttle) are not treated as
+	// propagation-complete because the schema may still be AVAILABLE; continuing
+	// the poll on transient errors avoids a confusing downstream assertion failure.
 	deadline := time.Now().Add(30 * time.Second)
+	propagated := false
 	for time.Now().Before(deadline) {
 		probeResp, probeErr := h.Real.GetSchemaByDefinition(ctx, &glue.GetSchemaByDefinitionInput{
 			SchemaId: &types.SchemaId{
@@ -472,16 +478,26 @@ func TestNegative_EntityNotFound_FallsThroughToCreate_Real(t *testing.T) {
 			SchemaDefinition: aws.String(negativeAvroSchema),
 		})
 		if probeErr != nil {
-			// Any error (including EntityNotFound) means deletion propagated.
-			break
+			var enf *types.EntityNotFoundException
+			if errors.As(probeErr, &enf) {
+				// Schema is definitively gone — propagation complete.
+				propagated = true
+				break
+			}
+			// Transient error (throttle, network). Schema may still be
+			// AVAILABLE; keep polling so enc2 reliably hits EntityNotFound.
+			time.Sleep(1 * time.Second)
+			continue
 		}
 		if probeResp.Status != types.SchemaVersionStatusAvailable {
-			// Not AVAILABLE — deletion in progress.
+			// Not AVAILABLE — deletion is in progress; treat as propagated.
+			propagated = true
 			break
 		}
 		// Schema still visible; wait and retry.
 		time.Sleep(1 * time.Second)
 	}
+	require.True(t, propagated, "schema deletion did not propagate within 30s — enc2 encode may return stale success")
 
 	// Step D — close enc1 and build enc2 with same spy + options (cold cache).
 	// This guarantees the next encode for schema A reaches Glue rather than
@@ -524,31 +540,30 @@ func TestNegative_EntityNotFound_FallsThroughToCreate_Real(t *testing.T) {
 		"recovered schema version must be AVAILABLE")
 
 	// Write test-artifact log capturing run metadata for developer inspection.
-	// CWD when `go test` runs this package: integration-tests/tests/.
-	// ../../test-artifacts resolves to native-schema-registry/golang/test-artifacts/.
-	artifactDir := "../../test-artifacts"
-	if err := os.MkdirAll(artifactDir, 0o755); err == nil {
-		logPath := fmt.Sprintf("%s/phase-4.14-entity-not-found-real.log", artifactDir)
-		logContent := fmt.Sprintf(
-			"TestNegative_EntityNotFound_FallsThroughToCreate_Real\n"+
-				"timestamp:         %s\n"+
-				"account:           850995546034\n"+
-				"region:            %s\n"+
-				"registry:          %s\n"+
-				"schema_name:       %s\n"+
-				"version_uuid:      %s\n"+
-				"create_schema_count: %d\n"+
-				"duration_ms:       %d\n"+
-				"result:            PASS\n",
-			startTime.UTC().Format(time.RFC3339),
-			h.Real.Region,
-			testRegistryName,
-			schemaName,
-			versionUUID,
-			spy.createSchemaCount.Load(),
-			time.Since(startTime).Milliseconds(),
-		)
-		_ = os.WriteFile(logPath, []byte(logContent), 0o644)
+	// Written to t.TempDir() so it never dirties the worktree. The path is
+	// printed via t.Logf so operators can retrieve it from `go test -v` output
+	// or the test runner's artifact capture.
+	logPath := fmt.Sprintf("%s/phase-4.14-entity-not-found-real.log", t.TempDir())
+	logContent := fmt.Sprintf(
+		"TestNegative_EntityNotFound_FallsThroughToCreate_Real\n"+
+			"timestamp:         %s\n"+
+			"account:           850995546034\n"+
+			"region:            %s\n"+
+			"registry:          %s\n"+
+			"schema_name:       %s\n"+
+			"version_uuid:      %s\n"+
+			"create_schema_count: %d\n"+
+			"duration_ms:       %d\n"+
+			"result:            PASS\n",
+		startTime.UTC().Format(time.RFC3339),
+		h.Real.Region,
+		testRegistryName,
+		schemaName,
+		versionUUID,
+		spy.createSchemaCount.Load(),
+		time.Since(startTime).Milliseconds(),
+	)
+	if err := os.WriteFile(logPath, []byte(logContent), 0o644); err == nil {
 		t.Logf("test artifact written to %s", logPath)
 	}
 }

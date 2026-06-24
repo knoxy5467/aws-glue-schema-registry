@@ -49,6 +49,11 @@ type Configuration struct {
 	// The deserializer clones this value via proto.Clone before each
 	// Deserialize call. When nil and ProtobufMessageType == POJO, the
 	// deserializer returns ErrMissingProtobufPOJOType.
+	//
+	// MUST be a zero-value instance — non-zero field values on the template
+	// will leak into the deserialized result for any wire fields absent from
+	// the payload, because proto.Clone deep-copies the entire template before
+	// unmarshaling over it.
 	ProtobufPOJOMessage proto.Message
 }
 var (

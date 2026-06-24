@@ -269,12 +269,6 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		}
 	}
 
-	// secondaryDeserializer key is silently ignored (INV-SECONDARY-NOOP).
-	// Java's fallback-deserializer chain is intentionally not implemented;
-	// the key is consumed here to prevent it from leaking into AdditionalProperties
-	// or causing a parse error. See package docs on deserializer for rationale.
-	_ = configMap["secondaryDeserializer"]
-
 	// Synthesize the default description AFTER region + registryName have been
 	// resolved so the registry-name segment reflects the post-default fallback
 	// (e.g. "default-registry"), not the raw configMap value. Mirrors Java

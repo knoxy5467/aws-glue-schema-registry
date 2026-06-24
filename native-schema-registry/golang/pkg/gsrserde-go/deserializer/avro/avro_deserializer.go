@@ -147,7 +147,15 @@ func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 		if d.config.AvroSpecificType == nil {
 			return nil, fmt.Errorf("%w: AvroSpecificType must be set on Configuration when AvroRecordType == SPECIFIC_RECORD", ErrMissingAvroSpecificType)
 		}
-		target := reflect.New(d.config.AvroSpecificType).Interface()
+		// Normalize pointer types: if the caller passed reflect.TypeOf(&MyRecord{})
+		// (Kind == Ptr), reflect.New(t) would produce **MyRecord which hamba/avro
+		// cannot populate. Deref to the element type so reflect.New always yields
+		// a single-level pointer (*MyRecord) regardless of input form.
+		t := d.config.AvroSpecificType
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
+		target := reflect.New(t).Interface()
 		if err := hambaavro.Unmarshal(avroSchema, data, target); err != nil {
 			return nil, &AvroDeserializationError{
 				Message: "failed to deserialize AVRO data",
