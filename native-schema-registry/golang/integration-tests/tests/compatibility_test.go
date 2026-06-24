@@ -289,3 +289,136 @@ func TestCompatibility_IncompatibleRejected_Real(t *testing.T) {
 }
 
 func ptr[T any](v T) *T { return &v }
+
+// --- Tier-2 _Real companions (items 18-21) ---
+//
+// Each test is gated scenarioGate(t, true, false) + requireAWSIntegration(t)
+// so it only runs when GSR_GLUE=real AND AWS_INTEGRATION=1. Under the
+// default fake backend all four tests SKIP immediately.
+//
+// Per spec §10 non-goal #5: these tests assert bytes-flow round-trip
+// (each version encodes to its own GSR wire-frame UUID; a shared
+// GsrDecoder resolves those UUIDs via real Glue and returns the original
+// payload verbatim). They do NOT assert Avro reader-schema projection
+// (that the v2-aware reader drops extra fields when reading v1 bytes).
+// Reader-schema projection is the Phase-5 canary's responsibility:
+// plan §6 Canary Test Plan / §7 Phase 5.
+//
+// Cleanup: every _Real test registers created schemas via
+// h.Cleanup.TrackSchema so they are deleted during t.Cleanup even on
+// test failure.
+
+// TestCompatibility_BackwardV1ToV2_Real is the requiresReal companion for
+// §5.3 item 18 (BACKWARD evolution v1→v2). Against real Glue it:
+//  1. Registers v1 (CreateSchema) and v2 (RegisterSchemaVersion) with
+//     Compatibility="BACKWARD".
+//  2. Encodes a payload for each version via compatibilityRoundTrip.
+//  3. Decodes every produced byte stream through a shared GsrDecoder and
+//     asserts verbatim equality — this is the round-2 spec M1 requirement.
+//
+// What this test does NOT prove:
+//   - Avro reader-schema projection (§10 non-goal #5): asserts bytes-flow
+//     round-trip only; actual projection deferred to Phase-5 canary.
+func TestCompatibility_BackwardV1ToV2_Real(t *testing.T) {
+	t.Parallel()
+	scenarioGate(t, true, false)
+	requireAWSIntegration(t)
+
+	h := newGlueHandle(t)
+	schemaName := randomGlueName(t, "compat-18-real")
+	h.Cleanup.TrackSchema("default-registry", schemaName)
+
+	compatibilityRoundTrip(t, h, schemaName, "BACKWARD", []string{schemaV1, schemaV2})
+}
+
+// TestCompatibility_BackwardAll_ThreeVersions_Real is the requiresReal
+// companion for §5.3 item 19 (BACKWARD_ALL across v1, v2, v3). Against real
+// Glue it:
+//  1. Registers v1 via CreateSchema, then v2 and v3 via RegisterSchemaVersion
+//     (Glue auto-falls-through on AlreadyExists in subsequent iterations of
+//     compatibilityRoundTrip's per-encoder loop).
+//  2. Encodes a payload for each version.
+//  3. Decodes all three produced byte streams through a shared GsrDecoder and
+//     asserts verbatim equality.
+//
+// Note: the fakeglue Snapshot()-based total-call assertion from the fake
+// companion (TestCompatibility_BackwardAll_ThreeVersions) is intentionally
+// omitted here — real Glue has no call-count introspection surface.
+//
+// What this test does NOT prove:
+//   - Avro reader-schema projection (§10 non-goal #5): bytes-flow round-trip
+//     only; projection deferred to Phase-5 canary.
+func TestCompatibility_BackwardAll_ThreeVersions_Real(t *testing.T) {
+	t.Parallel()
+	scenarioGate(t, true, false)
+	requireAWSIntegration(t)
+
+	h := newGlueHandle(t)
+	schemaName := randomGlueName(t, "compat-19-real")
+	h.Cleanup.TrackSchema("default-registry", schemaName)
+
+	compatibilityRoundTrip(t, h, schemaName, "BACKWARD_ALL", []string{schemaV1, schemaV2, schemaV3})
+}
+
+// TestCompatibility_ForwardV2ToV1_Real is the requiresReal companion for §5.3
+// item 20 (FORWARD evolution v2→v1). Against real Glue:
+//  1. Registers v2 (CreateSchema) and v1 (RegisterSchemaVersion) under
+//     Compatibility="FORWARD".
+//  2. Encodes a payload for each definition.
+//  3. Decodes both produced byte streams through a shared GsrDecoder and
+//     asserts verbatim equality — the decoder resolves each version-id from
+//     real Glue's schema store.
+//
+// FORWARD compatibility means v2 was the first registered schema and v1 is
+// registered as a compatible predecessor. compatibilityRoundTrip iterates
+// [schemaV2, schemaV1] so v2 is registered first via CreateSchema; v1 is then
+// registered via the fall-through to RegisterSchemaVersion.
+//
+// What this test does NOT prove:
+//   - Avro reader-schema projection (§10 non-goal #5): this test exercises
+//     bytes-flow round-trip only (the wire-format UUID for each version is
+//     resolved by GsrDecoder and the original payload bytes are returned
+//     verbatim). Actual Avro reader-schema projection — where a v1-schema
+//     Avro reader drops the extra fields present in v2 bytes — is deferred
+//     to the Phase-5 canary.
+func TestCompatibility_ForwardV2ToV1_Real(t *testing.T) {
+	t.Parallel()
+	scenarioGate(t, true, false)
+	requireAWSIntegration(t)
+
+	h := newGlueHandle(t)
+	schemaName := randomGlueName(t, "compat-20-real")
+	h.Cleanup.TrackSchema("default-registry", schemaName)
+
+	compatibilityRoundTrip(t, h, schemaName, "FORWARD", []string{schemaV2, schemaV1})
+}
+
+// TestCompatibility_FullBothDirections_Real is the requiresReal companion for
+// §5.3 item 21 (FULL evolution — compatible in both directions). Against real
+// Glue:
+//  1. Registers v1 (CreateSchema) and v2 (RegisterSchemaVersion) under
+//     Compatibility="FULL".
+//  2. Encodes a payload for each version.
+//  3. Decodes both produced byte streams through a shared GsrDecoder and
+//     asserts the decoded bytes are the original payload verbatim (round-2
+//     spec M1 fix: per-version decode-back is required, not optional).
+//
+// Note: the fakeglue Snapshot()-based total-call assertion from the fake
+// companion (TestCompatibility_FullBothDirections) is intentionally omitted —
+// real Glue has no call-count introspection surface.
+//
+// What this test does NOT prove:
+//   - Avro reader-schema projection (§10 non-goal #5): asserts bytes-flow
+//     round-trip only (return the original payload verbatim); projection
+//     deferred to Phase-5 canary.
+func TestCompatibility_FullBothDirections_Real(t *testing.T) {
+	t.Parallel()
+	scenarioGate(t, true, false)
+	requireAWSIntegration(t)
+
+	h := newGlueHandle(t)
+	schemaName := randomGlueName(t, "compat-21-real")
+	h.Cleanup.TrackSchema("default-registry", schemaName)
+
+	compatibilityRoundTrip(t, h, schemaName, "FULL", []string{schemaV1, schemaV2})
+}
