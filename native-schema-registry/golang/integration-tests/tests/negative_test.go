@@ -3,10 +3,17 @@
 package integration_tests
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/glue"
 	"github.com/aws/aws-sdk-go-v2/service/glue/types"
 	smithy "github.com/aws/smithy-go"
 	"github.com/stretchr/testify/require"
@@ -325,4 +332,238 @@ func TestNegative_UnknownVersionUUID(t *testing.T) {
 
 	_, err = dec.Decode(pkt)
 	require.Error(t, err, "decoder must surface an error when Glue can't resolve the schema-version UUID")
+}
+
+// spyGlueClient wraps any gsrcore.GlueClient and counts CreateSchema calls
+// via an atomic counter. All other methods delegate unchanged to the inner
+// client. Used by TestNegative_EntityNotFound_FallsThroughToCreate_Real to
+// assert exactly two CreateSchema calls (initial auto-register + re-register
+// after out-of-band schema deletion) without Glue-side call-count APIs
+// (which real Glue doesn't expose).
+//
+// The counter is shared across both encoder instances built in the test so
+// the total CreateSchema count across the full test body is observable.
+type spyGlueClient struct {
+	inner              gsrcore.GlueClient
+	createSchemaCount  atomic.Int32
+}
+
+func (s *spyGlueClient) CreateSchema(ctx context.Context, params *glue.CreateSchemaInput, optFns ...func(*glue.Options)) (*glue.CreateSchemaOutput, error) {
+	s.createSchemaCount.Add(1)
+	return s.inner.CreateSchema(ctx, params, optFns...)
+}
+
+func (s *spyGlueClient) GetSchemaByDefinition(ctx context.Context, params *glue.GetSchemaByDefinitionInput, optFns ...func(*glue.Options)) (*glue.GetSchemaByDefinitionOutput, error) {
+	return s.inner.GetSchemaByDefinition(ctx, params, optFns...)
+}
+
+func (s *spyGlueClient) GetSchemaVersion(ctx context.Context, params *glue.GetSchemaVersionInput, optFns ...func(*glue.Options)) (*glue.GetSchemaVersionOutput, error) {
+	return s.inner.GetSchemaVersion(ctx, params, optFns...)
+}
+
+func (s *spyGlueClient) RegisterSchemaVersion(ctx context.Context, params *glue.RegisterSchemaVersionInput, optFns ...func(*glue.Options)) (*glue.RegisterSchemaVersionOutput, error) {
+	return s.inner.RegisterSchemaVersion(ctx, params, optFns...)
+}
+
+func (s *spyGlueClient) PutSchemaVersionMetadata(ctx context.Context, params *glue.PutSchemaVersionMetadataInput, optFns ...func(*glue.Options)) (*glue.PutSchemaVersionMetadataOutput, error) {
+	return s.inner.PutSchemaVersionMetadata(ctx, params, optFns...)
+}
+
+func (s *spyGlueClient) QuerySchemaVersionMetadata(ctx context.Context, params *glue.QuerySchemaVersionMetadataInput, optFns ...func(*glue.Options)) (*glue.QuerySchemaVersionMetadataOutput, error) {
+	return s.inner.QuerySchemaVersionMetadata(ctx, params, optFns...)
+}
+
+func (s *spyGlueClient) GetTags(ctx context.Context, params *glue.GetTagsInput, optFns ...func(*glue.Options)) (*glue.GetTagsOutput, error) {
+	return s.inner.GetTags(ctx, params, optFns...)
+}
+
+// §5.3 item 25 — _Real companion.
+//
+// Exercises the EntityNotFound auto-register fall-through path against real
+// AWS Glue (account 850995546034, region determined by local AWS config). The
+// companion fake-gated test is TestNegative_EntityNotFoundFallsThroughToCreate above.
+//
+// Flow (spec Architecture §4):
+//  A. Encode with schema A on enc1 → GetSchemaByDefinition (EntityNotFound) →
+//     CreateSchema → encode succeeds. Counter == 1.
+//  B. Encode again with same schema → cache hit on enc1. Counter still 1.
+//  C. Delete schema A directly via h.Real.DeleteSchema (out-of-band).
+//  D. Close enc1, build enc2 with the same spy and options (cold cache).
+//  E. Encode with schema A on enc2 → GetSchemaByDefinition (EntityNotFound
+//     because deleted) → CreateSchema (fall-through) → encode succeeds.
+//     Counter == 2.
+//
+// Assertions (DoD #6, INV-REALTEST-SKIP):
+//   - Each encode step succeeds (no error).
+//   - After Step E: spy.createSchemaCount == 2 (initial + recovery).
+//   - Schema A exists in Glue after the test (verified via GetSchemaVersion on
+//     the UUID returned by enc2's encode). Teardown via h.Cleanup.TrackSchema.
+//
+// Gated: AWS_INTEGRATION=1 AND GSR_GLUE=real (scenarioGate requiresReal=true).
+// Skip-mode: scenarioGate skips the test when GSR_GLUE != "real" — the test
+// NEVER fails due to missing credentials; it only fails if it runs and an
+// assertion is wrong (INV-REALTEST-SKIP).
+func TestNegative_EntityNotFound_FallsThroughToCreate_Real(t *testing.T) {
+	// INV-REALTEST-SKIP: skip (not fail) when real Glue is not selected.
+	scenarioGate(t, true, false)
+	requireAWSIntegration(t)
+
+	startTime := time.Now()
+	h := newGlueHandle(t)
+
+	spy := &spyGlueClient{inner: h.Client}
+
+	schemaName := randomGlueName(t, "neg-25-real")
+	schema := &gsrcore.Schema{
+		SchemaDefinition: negativeAvroSchema,
+		SchemaName:       schemaName,
+		DataFormat:       "AVRO",
+	}
+	h.Cleanup.TrackSchema(testRegistryName, schemaName)
+
+	// Step A — first encode: GetSchemaByDefinition (EntityNotFound) →
+	// CreateSchema → encode succeeds. createSchemaCount becomes 1.
+	enc1, err := gsrcore.NewGsrEncoderForTest(spy, gsrcore.GsrEncoderOptions{
+		RegistryName:                  testRegistryName,
+		Compatibility:                 "NONE",
+		SchemaAutoRegistrationEnabled: true,
+		CacheSize:                     10,
+	})
+	require.NoError(t, err)
+
+	out1, err := enc1.Encode([]byte("payload-A"), schemaName, schema)
+	require.NoError(t, err, "Step A: first encode must succeed")
+	require.NotEmpty(t, out1)
+	require.EqualValues(t, 1, spy.createSchemaCount.Load(),
+		"Step A: exactly one CreateSchema call after initial register")
+
+	// Step B — second encode on enc1: cache hit, no Glue call.
+	out2, err := enc1.Encode([]byte("payload-B"), schemaName, schema)
+	require.NoError(t, err, "Step B: second encode (cache hit) must succeed")
+	require.NotEmpty(t, out2)
+	require.EqualValues(t, 1, spy.createSchemaCount.Load(),
+		"Step B: createSchemaCount must stay 1 on cache hit")
+
+	// Step C — delete schema A from real Glue out-of-band, then wait for the
+	// deletion to propagate. Real Glue's DeleteSchema is eventually consistent:
+	// GetSchemaByDefinition may still return success for a short period after
+	// DeleteSchema returns 200. We poll until EntityNotFound is observed (up to
+	// 30 s) before continuing to Step D so enc2's encode reliably triggers the
+	// fall-through path rather than hitting a stale success response.
+	ctx := context.Background()
+	_, err = h.Real.DeleteSchema(ctx, &glue.DeleteSchemaInput{
+		SchemaId: &types.SchemaId{
+			RegistryName: aws.String(testRegistryName),
+			SchemaName:   aws.String(schemaName),
+		},
+	})
+	require.NoError(t, err, "Step C: out-of-band DeleteSchema must succeed")
+
+	// Wait for deletion propagation: poll until GetSchemaByDefinition returns
+	// EntityNotFoundException (schema is gone). Capped at 30 s to keep the
+	// test from running indefinitely.
+	//
+	// We break ONLY on EntityNotFoundException — the definitive "schema is gone"
+	// signal. Transient errors (network blip, throttle) are not treated as
+	// propagation-complete because the schema may still be AVAILABLE; continuing
+	// the poll on transient errors avoids a confusing downstream assertion failure.
+	deadline := time.Now().Add(30 * time.Second)
+	propagated := false
+	for time.Now().Before(deadline) {
+		probeResp, probeErr := h.Real.GetSchemaByDefinition(ctx, &glue.GetSchemaByDefinitionInput{
+			SchemaId: &types.SchemaId{
+				RegistryName: aws.String(testRegistryName),
+				SchemaName:   aws.String(schemaName),
+			},
+			SchemaDefinition: aws.String(negativeAvroSchema),
+		})
+		if probeErr != nil {
+			var enf *types.EntityNotFoundException
+			if errors.As(probeErr, &enf) {
+				// Schema is definitively gone — propagation complete.
+				propagated = true
+				break
+			}
+			// Transient error (throttle, network). Schema may still be
+			// AVAILABLE; keep polling so enc2 reliably hits EntityNotFound.
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		if probeResp.Status != types.SchemaVersionStatusAvailable {
+			// Not AVAILABLE — deletion is in progress; treat as propagated.
+			propagated = true
+			break
+		}
+		// Schema still visible; wait and retry.
+		time.Sleep(1 * time.Second)
+	}
+	require.True(t, propagated, "schema deletion did not propagate within 30s — enc2 encode may return stale success")
+
+	// Step D — close enc1 and build enc2 with same spy + options (cold cache).
+	// This guarantees the next encode for schema A reaches Glue rather than
+	// serving the stale version ID from enc1's LRU.
+	require.NoError(t, enc1.Close())
+
+	enc2, err := gsrcore.NewGsrEncoderForTest(spy, gsrcore.GsrEncoderOptions{
+		RegistryName:                  testRegistryName,
+		Compatibility:                 "NONE",
+		SchemaAutoRegistrationEnabled: true,
+		CacheSize:                     10,
+	})
+	require.NoError(t, err)
+
+	// Step E — re-encode on enc2: cache miss → GetSchemaByDefinition
+	// (EntityNotFound because we deleted it) → CreateSchema fall-through →
+	// encode succeeds. createSchemaCount becomes 2.
+	out3, err := enc2.Encode([]byte("payload-C"), schemaName, schema)
+	require.NoError(t, err, "Step E: re-encode after delete must succeed via fall-through")
+	require.NotEmpty(t, out3)
+	require.EqualValues(t, 2, spy.createSchemaCount.Load(),
+		"Step E: exactly two total CreateSchema calls (initial + recovery after delete)")
+
+	// Verify schema A exists in Glue after recovery: extract the version UUID
+	// from the wire-format header (bytes 2..17) and call GetSchemaVersion.
+	require.GreaterOrEqual(t, len(out3), gsrcore.WireFormatHeaderSize,
+		"encoded output must be at least WireFormatHeaderSize bytes")
+	versionUUIDBytes := out3[2:gsrcore.WireFormatHeaderSize]
+	versionUUID := fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
+		versionUUIDBytes[0:4],
+		versionUUIDBytes[4:6],
+		versionUUIDBytes[6:8],
+		versionUUIDBytes[8:10],
+		versionUUIDBytes[10:16])
+	getVersionOut, err := h.Real.GetSchemaVersion(ctx, &glue.GetSchemaVersionInput{
+		SchemaVersionId: aws.String(versionUUID),
+	})
+	require.NoError(t, err, "schema A must exist in Glue after recovery (GetSchemaVersion must succeed)")
+	require.Equal(t, types.SchemaVersionStatusAvailable, getVersionOut.Status,
+		"recovered schema version must be AVAILABLE")
+
+	// Write test-artifact log capturing run metadata for developer inspection.
+	// Written to t.TempDir() so it never dirties the worktree. The path is
+	// printed via t.Logf so operators can retrieve it from `go test -v` output
+	// or the test runner's artifact capture.
+	logPath := fmt.Sprintf("%s/phase-4.14-entity-not-found-real.log", t.TempDir())
+	logContent := fmt.Sprintf(
+		"TestNegative_EntityNotFound_FallsThroughToCreate_Real\n"+
+			"timestamp:         %s\n"+
+			"account:           850995546034\n"+
+			"region:            %s\n"+
+			"registry:          %s\n"+
+			"schema_name:       %s\n"+
+			"version_uuid:      %s\n"+
+			"create_schema_count: %d\n"+
+			"duration_ms:       %d\n"+
+			"result:            PASS\n",
+		startTime.UTC().Format(time.RFC3339),
+		h.Real.Region,
+		testRegistryName,
+		schemaName,
+		versionUUID,
+		spy.createSchemaCount.Load(),
+		time.Since(startTime).Milliseconds(),
+	)
+	if err := os.WriteFile(logPath, []byte(logContent), 0o644); err == nil {
+		t.Logf("test artifact written to %s", logPath)
+	}
 }

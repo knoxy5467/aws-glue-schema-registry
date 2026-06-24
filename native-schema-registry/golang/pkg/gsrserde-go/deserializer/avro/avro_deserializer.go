@@ -2,6 +2,7 @@ package avro
 
 import (
 	"fmt"
+	"reflect"
 
 	hambaavro "github.com/hamba/avro/v2"
 
@@ -29,6 +30,13 @@ var (
 	// json.ErrDeserializationFailed and protobuf.ErrDeserializationFailed.
 	// Phase 4.12 board-fixes MAJOR-1.
 	ErrDeserializationFailed = fmt.Errorf("avro deserializer: deserialization failed")
+
+	// ErrMissingAvroSpecificType is returned at Deserialize time when
+	// AvroRecordType == AvroRecordTypeSpecific but AvroSpecificType is nil.
+	// This is a caller-configuration error (analogous to an invalid argument),
+	// not a Glue service error, so it intentionally does NOT wrap ErrGSR.
+	// Phase 4.14 PBI-02.
+	ErrMissingAvroSpecificType = fmt.Errorf("avro deserializer: SPECIFIC_RECORD requires AvroSpecificType in configuration")
 )
 
 // AvroDeserializationError represents an error that occurred during AVRO deserialization
@@ -118,16 +126,46 @@ func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 		}
 	}
 
-	// Unmarshal the data using hamba/avro.
+	// Dispatch based on AvroRecordType.
 	//
-	// Phase 4.12 §3.9: this is THE binary-decode failure path — the hamba/avro
-	// library reports that the payload bytes are not valid Avro binary against
-	// the writer schema. Wrap the Cause with gsrcore.ErrMalformedAvro so
-	// callers can resolve errors.Is(err, gsrcore.ErrMalformedAvro) (and
-	// transitively errors.Is(err, gsrcore.ErrGSR)) through the wrapper's
-	// Unwrap() chain. The underlying hamba/avro error is preserved further
+	// SPECIFIC_RECORD: unmarshal into a freshly-allocated instance of the
+	// caller-provided reflect.Type. The caller sets AvroSpecificType on the
+	// common.Configuration (programmatic Go API). If they forgot to set it,
+	// return ErrMissingAvroSpecificType — a caller-configuration error that
+	// intentionally does NOT wrap ErrGSR.
+	//
+	// GENERIC_RECORD (default/unknown): existing behavior — unmarshal into
+	// interface{}, which hamba/avro populates as a map[string]interface{} for
+	// Avro records. INV-GENERIC-DEFAULT: this path must not regress.
+	//
+	// Phase 4.12 §3.9: binary-decode failures on EITHER path wrap the cause
+	// with gsrcore.ErrMalformedAvro so callers can use errors.Is for
+	// cross-format parity. The underlying hamba/avro error is preserved further
 	// down the chain for diagnostic continuity. Schema-parse failures above
 	// are NOT wrapped — those are schema problems, not malformed payloads.
+	if d.config.AvroRecordType == common.AvroRecordTypeSpecific {
+		if d.config.AvroSpecificType == nil {
+			return nil, fmt.Errorf("%w: AvroSpecificType must be set on Configuration when AvroRecordType == SPECIFIC_RECORD", ErrMissingAvroSpecificType)
+		}
+		// Normalize pointer types: if the caller passed reflect.TypeOf(&MyRecord{})
+		// (Kind == Ptr), reflect.New(t) would produce **MyRecord which hamba/avro
+		// cannot populate. Deref to the element type so reflect.New always yields
+		// a single-level pointer (*MyRecord) regardless of input form.
+		t := d.config.AvroSpecificType
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
+		target := reflect.New(t).Interface()
+		if err := hambaavro.Unmarshal(avroSchema, data, target); err != nil {
+			return nil, &AvroDeserializationError{
+				Message: "failed to deserialize AVRO data",
+				Cause:   fmt.Errorf("%w: %w: %w", gsrcore.ErrMalformedAvro, ErrDeserializationFailed, err),
+			}
+		}
+		return target, nil
+	}
+
+	// Default: GENERIC_RECORD (or unknown/unset) — interface{} path.
 	var result interface{}
 	if err := hambaavro.Unmarshal(avroSchema, data, &result); err != nil {
 		return nil, &AvroDeserializationError{

@@ -41,6 +41,16 @@ var (
 	// Java parity: ProtobufDeserializer's constructor surfaces missing
 	// descriptor state via AWSSchemaRegistryException, not a JVM panic.
 	ErrNilDescriptor = fmt.Errorf("%w: protobuf deserializer: message descriptor cannot be nil", gsrcore.ErrInvalidProtobufPayload)
+
+	// ErrMissingProtobufPOJOType is returned when ProtobufMessageType is set
+	// to POJO but ProtobufPOJOMessage is nil in the configuration. This is a
+	// caller-side configuration mistake surfaced at Deserialize time (not at
+	// config parse time, because ProtobufPOJOMessage is set via the
+	// programmatic Go API rather than a string-keyed configMap). Intentionally
+	// does NOT wrap ErrGSR — this is not a Glue service error. Java parity:
+	// analogous to the IllegalArgumentException thrown when POJO mode is used
+	// without a registered message class.
+	ErrMissingProtobufPOJOType = fmt.Errorf("protobuf deserializer: POJO requires ProtobufPOJOMessage in configuration")
 )
 
 // ProtobufDeserializationError represents an error that occurred during Protobuf
@@ -116,7 +126,17 @@ func NewProtobufDeserializer(config *common.Configuration) (*ProtobufDeserialize
 //
 // Returns:
 //
-//	interface{}: The deserialized protobuf message as a dynamic message
+//	interface{}: The deserialized protobuf message. Two dispatch modes:
+//	  - DYNAMIC (default): returns *dynamicpb.Message, driven by the
+//	    message descriptor in Config.ProtobufMessageDescriptor.
+//	  - POJO: returns a concrete proto.Message of the type registered in
+//	    Config.ProtobufPOJOMessage; active when Config.ProtobufMessageType
+//	    == ProtobufMessageTypePOJO.
+//
+//	Type mismatch between Config.ProtobufPOJOMessage and the wire payload's
+//	descriptor produces silent partial-decode (matches Java behavior). Callers
+//	must ensure the configured template type matches the schema's message descriptor.
+//
 //	error: Any error that occurred during deserialization
 func (pd *ProtobufDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (interface{}, error) {
 	// Validate input parameters
@@ -141,6 +161,25 @@ func (pd *ProtobufDeserializer) Deserialize(data []byte, schema *gsrcore.Schema)
 		return nil, ErrInvalidSchema
 	}
 
+	// POJO dispatch: when the caller has configured ProtobufMessageTypePOJO,
+	// unmarshal into a clone of the caller-provided concrete proto.Message
+	// rather than a dynamicpb.Message. This takes precedence over the default
+	// dynamic path so POJO callers get the concrete type they registered.
+	// Java parity: ProtobufMessageType.POJO routes to the caller's registered
+	// message class via reflection; here we use proto.Clone for allocation.
+	if pd.config.ProtobufMessageType == common.ProtobufMessageTypePOJO {
+		if pd.config.ProtobufPOJOMessage == nil {
+			return nil, fmt.Errorf("%w: set Config.ProtobufPOJOMessage to a non-nil zero-value template", ErrMissingProtobufPOJOType)
+		}
+		dst := proto.Clone(pd.config.ProtobufPOJOMessage)
+		if err := proto.Unmarshal(data, dst); err != nil {
+			return nil, &ProtobufDeserializationError{
+				Message: "failed to deserialize Protobuf data (POJO)",
+				Cause:   fmt.Errorf("%w: %w: %v", gsrcore.ErrMalformedProtobuf, ErrDeserializationFailed, err),
+			}
+		}
+		return dst, nil
+	}
 
 	// Create a new dynamic message instance
 	dynamicMessage := dynamicpb.NewMessage(pd.messageDescriptor)

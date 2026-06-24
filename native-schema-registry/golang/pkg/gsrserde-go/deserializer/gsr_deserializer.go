@@ -1,3 +1,34 @@
+// Package deserializer provides the orchestrating Deserializer that combines
+// core wire-format decoding with format-layer payload decoding.
+//
+// # Secondary Deserializer (Not Implemented)
+//
+// Java's GlueSchemaRegistryKafkaDeserializer supports a
+// "secondaryDeserializer" config key that routes non-GSR-framed payloads to a
+// fallback deserializer (e.g. a Confluent deserializer). The Go client does
+// NOT implement this fallback chain. Instead, callers that encounter
+// non-GSR-framed data receive a typed ErrIncompatibleData error (reachable via
+// errors.Is(err, gsrcore.ErrIncompatibleData)). Callers may inspect this error
+// and route to their own pre-existing decoder as they see fit.
+//
+// The GSR wire-format header begins with the version byte 0x03. Any payload
+// whose first byte is not 0x03, or whose 18-byte header is otherwise malformed,
+// will cause Deserialize to return an error wrapping gsrcore.ErrIncompatibleData.
+//
+// Example — routing non-GSR payloads to an existing decoder:
+//
+//	result, err := d.Deserialize(topic, data)
+//	if err != nil {
+//	    if errors.Is(err, gsrcore.ErrIncompatibleData) {
+//	        // payload is not GSR-framed; route to your own decoder
+//	        return myLegacyDecoder.Decode(data)
+//	    }
+//	    return nil, err
+//	}
+//
+// The Config.SecondaryDeserializer field has been removed as of Phase 4.14.
+// Passing the "secondaryDeserializer" key in a configMap is a no-op (the key
+// is silently ignored).
 package deserializer
 
 import (
@@ -80,7 +111,7 @@ func (d *Deserializer) Deserialize(topic string, data []byte) (interface{}, erro
 		return nil, fmt.Errorf("failed to check if data can be decoded: %w", err)
 	}
 	if !canDecode {
-		return nil, fmt.Errorf("byte data cannot be decoded: data does not contain GSR header")
+		return nil, fmt.Errorf("%w: data does not contain GSR header (leading byte is not 0x03 or header is malformed)", gsrcore.ErrIncompatibleData)
 	}
 
 	decodedBytes, err := d.coreDecoder.Decode(data)

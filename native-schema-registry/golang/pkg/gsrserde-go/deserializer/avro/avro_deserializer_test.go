@@ -2,6 +2,7 @@ package avro
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,6 +13,15 @@ import (
 
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 )
+
+// avroTestRecord is a minimal Go struct for SPECIFIC_RECORD dispatch tests.
+// Field names and avro tags match the "TestRecord" schema used in the PBI-02
+// test functions below. A single string field is sufficient to demonstrate
+// typed struct unmarshaling — keep it minimal per project conventions.
+// Phase 4.14 PBI-02.
+type avroTestRecord struct {
+	Name string `avro:"name"`
+}
 
 // createAvroConfig creates a Configuration object for AVRO tests
 func createAvroConfig() *common.Configuration {
@@ -682,6 +692,123 @@ func TestAvroDeserializer_PrimitiveTypes(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+// avroTestRecordSchema is the Avro schema corresponding to avroTestRecord.
+const avroTestRecordSchema = `{
+	"type": "record",
+	"name": "TestRecord",
+	"fields": [
+		{"name": "name", "type": "string"}
+	]
+}`
+
+// TestAvroDeserializer_GenericRecord_Default verifies INV-GENERIC-DEFAULT: when
+// no AvroRecordType is configured (zero value = AvroRecordTypeUnknown), the
+// deserializer returns the existing interface{} / map[string]interface{} shape.
+// Phase 4.14 PBI-02.
+func TestAvroDeserializer_GenericRecord_Default(t *testing.T) {
+	// Config with no AvroRecordType set — zero value is AvroRecordTypeUnknown,
+	// which the dispatch treats identically to AvroRecordTypeGeneric.
+	config := common.NewConfiguration(map[string]interface{}{
+		common.DataFormatTypeKey: common.DataFormatAvro,
+	})
+	d, err := NewAvroDeserializer(config)
+	require.NoError(t, err)
+
+	avroData, err := createAvroData(avroTestRecordSchema, map[string]interface{}{"name": "alice"})
+	require.NoError(t, err)
+
+	result, err := d.Deserialize(avroData, &gsrcore.Schema{SchemaDefinition: avroTestRecordSchema})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// Generic path returns map[string]interface{}, not a struct.
+	resultMap, ok := result.(map[string]interface{})
+	require.True(t, ok, "GENERIC_RECORD path must return map[string]interface{}, got %T", result)
+	assert.Equal(t, "alice", resultMap["name"])
+}
+
+// TestAvroDeserializer_SpecificRecord_TypedStruct verifies DoD #9: when
+// AvroRecordType == AvroRecordTypeSpecific and AvroSpecificType is set, the
+// deserializer allocates a new instance of the registered type and populates
+// it via hambaavro.Unmarshal, returning a typed pointer (*avroTestRecord).
+// Phase 4.14 PBI-02.
+func TestAvroDeserializer_SpecificRecord_TypedStruct(t *testing.T) {
+	config := common.NewConfiguration(map[string]interface{}{
+		common.DataFormatTypeKey:    common.DataFormatAvro,
+		common.AvroRecordTypeKey:    common.AvroRecordTypeSpecific,
+		common.AvroSpecificTypeKey:  reflect.TypeOf(avroTestRecord{}),
+	})
+	d, err := NewAvroDeserializer(config)
+	require.NoError(t, err)
+
+	avroData, err := createAvroData(avroTestRecordSchema, map[string]interface{}{"name": "bob"})
+	require.NoError(t, err)
+
+	result, err := d.Deserialize(avroData, &gsrcore.Schema{SchemaDefinition: avroTestRecordSchema})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// SPECIFIC_RECORD path must return *avroTestRecord, not map[string]interface{}.
+	typed, ok := result.(*avroTestRecord)
+	require.True(t, ok, "SPECIFIC_RECORD path must return *avroTestRecord, got %T", result)
+	assert.Equal(t, "bob", typed.Name)
+}
+
+// TestAvroDeserializer_SpecificRecord_MissingType verifies DoD #10: when
+// AvroRecordType == AvroRecordTypeSpecific but AvroSpecificType is nil, the
+// deserializer returns an error wrapping ErrMissingAvroSpecificType so that
+// errors.Is(err, ErrMissingAvroSpecificType) is true.
+// Phase 4.14 PBI-02.
+func TestAvroDeserializer_SpecificRecord_MissingType(t *testing.T) {
+	// Deliberately omit AvroSpecificTypeKey — AvroSpecificType stays nil.
+	config := common.NewConfiguration(map[string]interface{}{
+		common.DataFormatTypeKey: common.DataFormatAvro,
+		common.AvroRecordTypeKey: common.AvroRecordTypeSpecific,
+	})
+	d, err := NewAvroDeserializer(config)
+	require.NoError(t, err)
+
+	avroData, err := createAvroData(avroTestRecordSchema, map[string]interface{}{"name": "carol"})
+	require.NoError(t, err)
+
+	result, err := d.Deserialize(avroData, &gsrcore.Schema{SchemaDefinition: avroTestRecordSchema})
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, ErrMissingAvroSpecificType)
+	assert.Contains(t, err.Error(), "SPECIFIC_RECORD requires AvroSpecificType")
+}
+
+// TestAvroDeserializer_SpecificRecord_PointerType verifies the pointer-type guard
+// (board MINOR-3 / C1): when a caller registers AvroSpecificType as a pointer type
+// (reflect.TypeOf(&avroTestRecord{})) instead of the value type, the deserializer
+// must normalize it to the element type before calling reflect.New — producing a
+// *avroTestRecord result identical to the value-type case, rather than **avroTestRecord
+// which hamba/avro cannot populate.
+// Phase 4.14 board-fixes.
+func TestAvroDeserializer_SpecificRecord_PointerType(t *testing.T) {
+	// Register the POINTER type (common caller mistake) — should produce same
+	// result as registering the value type.
+	config := common.NewConfiguration(map[string]interface{}{
+		common.DataFormatTypeKey:   common.DataFormatAvro,
+		common.AvroRecordTypeKey:   common.AvroRecordTypeSpecific,
+		common.AvroSpecificTypeKey: reflect.TypeOf(&avroTestRecord{}), // pointer type
+	})
+	d, err := NewAvroDeserializer(config)
+	require.NoError(t, err)
+
+	avroData, err := createAvroData(avroTestRecordSchema, map[string]interface{}{"name": "dave"})
+	require.NoError(t, err)
+
+	result, err := d.Deserialize(avroData, &gsrcore.Schema{SchemaDefinition: avroTestRecordSchema})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// Must return *avroTestRecord — same as if the value type were registered.
+	typed, ok := result.(*avroTestRecord)
+	require.True(t, ok, "pointer-type registration must yield *avroTestRecord, got %T", result)
+	assert.Equal(t, "dave", typed.Name)
 }
 
 // BenchmarkAvroDeserializer_Deserialize benchmarks the deserialization performance

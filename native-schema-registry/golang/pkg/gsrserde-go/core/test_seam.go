@@ -147,3 +147,14 @@ func EncoderCacheHas(e *GsrEncoder, schemaName, dataFormat string) bool {
 	_, ok := e.schemaCache.Get(fmt.Sprintf("%s:%s", schemaName, dataFormat))
 	return ok
 }
+
+// DecoderCacheHas is the read-side mirror of PrimeSchemaCache. Returns true
+// iff the decoder's schemaCache currently holds an entry under the given
+// schemaVersionID key. Used by tests that need to observe LRU eviction on the
+// decoder without depending on a Glue-side call counter.
+func DecoderCacheHas(d *GsrDecoder, schemaVersionID string) bool {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	_, ok := d.schemaCache.Get(schemaVersionID)
+	return ok
+}

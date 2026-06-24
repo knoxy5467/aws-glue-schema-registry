@@ -83,6 +83,20 @@ var ErrInvalidCacheTTL = fmt.Errorf("%w: invalid timeToLiveMillis", ErrGSR)
 // value is non-empty but cannot be parsed as an int.
 var ErrInvalidCacheSize = fmt.Errorf("%w: invalid cacheSize", ErrGSR)
 
+// ErrInvalidAvroRecordType wraps rejections of the `avroRecordType` config key.
+// Accepted values (case-exact, matching Java's AvroRecordType.valueOf):
+// "SPECIFIC_RECORD", "GENERIC_RECORD". Empty string is accepted (uses default
+// GENERIC_RECORD behavior). Any other value triggers this error at
+// LoadConfigFromMap time, mirroring Java's config-constructor throw.
+var ErrInvalidAvroRecordType = fmt.Errorf("%w: invalid avroRecordType", ErrGSR)
+
+// ErrInvalidProtobufMessageType wraps rejections of the `protobufMessageType`
+// config key. Accepted values (case-exact, matching Java's
+// ProtobufMessageType.valueOf): "POJO", "DYNAMIC_MESSAGE". Empty string is
+// accepted (uses default dynamic-dispatch behavior). Any other value triggers
+// this error at LoadConfigFromMap time.
+var ErrInvalidProtobufMessageType = fmt.Errorf("%w: invalid protobufMessageType", ErrGSR)
+
 // ErrMalformedJSON is the per-format sentinel for a JSON payload that fails
 // the JSON deserializer's malformed-payload contract: syntactic parse failures
 // (encoding/json rejection) and non-UTF-8 payloads. Does NOT cover
