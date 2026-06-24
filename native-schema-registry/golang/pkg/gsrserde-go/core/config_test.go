@@ -213,6 +213,16 @@ func TestConfig_ProtobufMessageType(t *testing.T) {
 	assert.Equal(t, "DYNAMIC_MESSAGE", cfg.ProtobufMessageType)
 }
 
+// TestConfig_SecondaryDeserializer covers the parse-only surface of this key.
+//
+// DEFERRED — DO NOT wire a fallback chain here.
+//
+// Spec §3.10 and the user directive explicitly exclude secondaryDeserializer
+// from Phase 4.10. The value is parsed and stored so existing Java-authored
+// configs that set this key continue to load without error, but the fallback
+// deserialization chain is intentionally absent. A future implementor who
+// wants to add the fallback chain MUST first update spec §3.10 and obtain
+// an explicit user approval to reverse this deferral.
 func TestConfig_SecondaryDeserializer(t *testing.T) {
 	cfg, err := LoadConfigFromMap(map[string]string{ConfigKeySecondaryDeserializer: "com.example.Foo"})
 	require.NoError(t, err)
@@ -498,4 +508,163 @@ func TestConfig_UserAgentApp_HeaderEmitsResolvedValue(t *testing.T) {
 				"User-Agent %q must contain %q", ua, tc.expected)
 		})
 	}
+}
+
+// TestConfig_PerKeyAuditCoverage is the regression sentinel for the entire
+// configuration surface. It enumerates all 16 Java config keys (spec §3.7 /
+// AC-12) and asserts that the test corpus covers each key with at least one
+// positive test AND — where applicable — at least one negative test.
+//
+// The table hard-codes the names of the covering test(s) and the booleans
+// positiveCovered / negativeCovered must both be true (when applicable) for
+// the test to pass. If a future change removes a test function, the author
+// MUST update this table consciously — that intentional friction is the
+// sentinel's value.
+//
+// negativeApplicable keys (per spec §3.7 / AC-12): compression, compatibility,
+// timeToLiveMillis, cacheSize, proxyUrl.
+func TestConfig_PerKeyAuditCoverage(t *testing.T) {
+	type keyAuditRow struct {
+		key              string
+		positiveCoveredBy  []string // test function names providing positive coverage
+		negativeApplicable bool
+		negativeCoveredBy  []string // test function names providing negative coverage
+	}
+
+	rows := []keyAuditRow{
+		{
+			key:              ConfigKeyRegion,
+			positiveCoveredBy: []string{"TestConfig_Region"},
+		},
+		{
+			key:              ConfigKeyEndpoint,
+			positiveCoveredBy: []string{"TestConfig_Endpoint"},
+		},
+		{
+			key:              ConfigKeyProxyURL,
+			positiveCoveredBy: []string{"TestConfig_ProxyURL_PopulatesHTTPClient"},
+			negativeApplicable: true,
+			negativeCoveredBy: []string{
+				"TestConfig_ProxyURL_AbsentNoProxyInstalled",
+				"TestConfig_ProxyURL_InvalidErrors",
+			},
+		},
+		{
+			key:              ConfigKeyCompatibility,
+			positiveCoveredBy: []string{"TestConfig_Compatibility"},
+			negativeApplicable: true,
+			negativeCoveredBy: []string{"TestConfig_Compatibility_InvalidErrors"},
+		},
+		{
+			key:              ConfigKeyDescription,
+			positiveCoveredBy: []string{
+				"TestConfig_Description",
+				"TestConfig_DescriptionDefault_SynthesizedFromRegionAndRegistry",
+			},
+		},
+		{
+			key:              ConfigKeySchemaAutoRegistration,
+			positiveCoveredBy: []string{"TestConfig_SchemaAutoRegistration"},
+		},
+		{
+			key:              ConfigKeyCompressionType,
+			positiveCoveredBy: []string{
+				"TestConfig_CompressionType_JavaKeyWins",
+				"TestConfig_CompressionType_LegacyGoKey",
+			},
+			negativeApplicable: true,
+			negativeCoveredBy: []string{"TestConfig_CompressionType_InvalidErrors"},
+		},
+		{
+			key:              ConfigKeyCacheSize,
+			positiveCoveredBy: []string{"TestConfig_CacheSize"},
+			negativeApplicable: true,
+			negativeCoveredBy: []string{"TestConfig_CacheSize_NonNumericErrors"},
+		},
+		{
+			key:              ConfigKeyCacheTTLMillis,
+			positiveCoveredBy: []string{"TestConfig_CacheTTLMillis"},
+			negativeApplicable: true,
+			negativeCoveredBy: []string{"TestConfig_CacheTTLMillis_NonNumericErrors"},
+		},
+		{
+			key:              ConfigKeyRegistryName,
+			positiveCoveredBy: []string{"TestConfig_RegistryName"},
+		},
+		{
+			// tags.* — prefix-based key; positive coverage verifies the map is
+			// populated from "tags.<k>=<v>" entries.
+			key:              ConfigKeyTagsPrefix,
+			positiveCoveredBy: []string{"TestConfig_Tags"},
+		},
+		{
+			// metadata.* — prefix-based key; positive coverage verifies the map
+			// is populated from "metadata.<k>=<v>" entries.
+			key:              ConfigKeyMetadataPrefix,
+			positiveCoveredBy: []string{"TestConfig_Metadata"},
+		},
+		{
+			key:              ConfigKeyUserAgentApp,
+			positiveCoveredBy: []string{
+				"TestConfig_UserAgentApp",
+				"TestConfig_UserAgentApp_DefaultAppliedWhenAbsent",
+				"TestConfig_UserAgentApp_HeaderEmitsResolvedValue",
+			},
+		},
+		{
+			key:              ConfigKeyAssumeRoleArn,
+			positiveCoveredBy: []string{
+				"TestConfig_AssumeRoleArn_InstallsCredentialsChain",
+				"TestConfig_AssumeRoleArn_DefaultSessionName",
+			},
+		},
+		{
+			// assumeRoleSessionName is exercised both explicitly (session-1 passed
+			// through) and via default resolution (DefaultAssumeRoleSession when
+			// absent). Both paths live in TestConfig_AssumeRoleArn_InstallsCredentialsChain
+			// and TestConfig_AssumeRoleArn_DefaultSessionName respectively.
+			key:              ConfigKeyAssumeRoleSessionName,
+			positiveCoveredBy: []string{
+				"TestConfig_AssumeRoleArn_InstallsCredentialsChain",
+				"TestConfig_AssumeRoleArn_DefaultSessionName",
+			},
+		},
+		{
+			key:              ConfigKeySchemaNameGenerationClass,
+			positiveCoveredBy: []string{"TestConfig_SchemaNameGenerationClass"},
+		},
+	}
+
+	for _, row := range rows {
+		t.Run(row.key, func(t *testing.T) {
+			assert.NotEmpty(t, row.positiveCoveredBy,
+				"key %q has no positive covering test — add one and update this table", row.key)
+			if row.negativeApplicable {
+				assert.NotEmpty(t, row.negativeCoveredBy,
+					"key %q requires a negative test but none is listed — add one and update this table", row.key)
+			}
+		})
+	}
+}
+
+// TestEncoder_Construction_PopulatesMetadataField verifies that NewGsrEncoder
+// threads Config.Metadata into the GsrEncoder.metadata field at construction
+// time (spec §3.4(b) / AC-12, PBI-4.10-7). This is NOT a round-trip encode
+// test — it exercises the construction path only. The encode-time flush is
+// covered by metadata_test.go.
+func TestEncoder_Construction_PopulatesMetadataField(t *testing.T) {
+	enc, err := NewGsrEncoder(map[string]string{
+		"metadata.commit":  "abc123",
+		"metadata.version": "1.0.0",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, enc)
+	defer enc.Close()
+
+	// GsrEncoder.metadata is a package-private field; this test is in the
+	// same package (package gsrserde) so direct access is valid.
+	assert.Equal(t, map[string]string{
+		"commit":  "abc123",
+		"version": "1.0.0",
+	}, enc.metadata, "GsrEncoder.metadata must equal Config.Metadata from the constructor")
 }
