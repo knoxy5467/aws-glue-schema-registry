@@ -197,6 +197,18 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		cacheSize = parsed
 	}
 
+	// Synthesize the default description AFTER region + registryName have been
+	// resolved so the registry-name segment reflects the post-default fallback
+	// (e.g. "default-registry"), not the raw configMap value. Mirrors Java
+	// GlueSchemaRegistryConfiguration.java:343-352. The prefix string
+	// "DEFAULT-DESCRIPTION" is exact (no casing change). When region is empty
+	// (no key set) the resulting string is "DEFAULT-DESCRIPTION--<registryName>"
+	// (two dashes) — matches Java's use of whatever string region resolved to.
+	description := configMap[ConfigKeyDescription]
+	if description == "" {
+		description = fmt.Sprintf("DEFAULT-DESCRIPTION-%s-%s", region, registryName)
+	}
+
 	return &Config{
 		AWSConfig:                     cfg,
 		Region:                        region,
@@ -204,7 +216,7 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		ProxyURL:                      configMap[ConfigKeyProxyURL],
 		RegistryName:                  registryName,
 		Compatibility:                 compatibility,
-		Description:                   configMap[ConfigKeyDescription],
+		Description:                   description,
 		SchemaAutoRegistrationEnabled: autoRegister,
 		CompressionType:               compressionType,
 		TimeToLiveMillis:              ttl,

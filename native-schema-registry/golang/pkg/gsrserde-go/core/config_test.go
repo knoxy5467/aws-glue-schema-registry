@@ -22,7 +22,11 @@ func TestLoadConfigFromMapDefaults(t *testing.T) {
 	assert.Equal(t, DefaultCacheTTLMillis, cfg.TimeToLiveMillis)
 	assert.Equal(t, DefaultCacheSize, cfg.CacheSize)
 	assert.False(t, cfg.SchemaAutoRegistrationEnabled)
-	assert.Empty(t, cfg.Description)
+	// Description is synthesized from resolved region + registryName per §3.2.
+	// With no region and registryName defaulted to "default-registry", the
+	// resulting string is "DEFAULT-DESCRIPTION--default-registry" (two dashes
+	// — the region segment is empty). Pinned by AC-2 / INV-5.
+	assert.Equal(t, "DEFAULT-DESCRIPTION--default-registry", cfg.Description)
 	assert.Empty(t, cfg.Endpoint)
 	assert.Empty(t, cfg.ProxyURL)
 	assert.Empty(t, cfg.UserAgentApp)
@@ -276,6 +280,50 @@ func TestConfig_CacheSize_NonNumericErrors(t *testing.T) {
 	cfg, err := LoadConfigFromMap(map[string]string{ConfigKeyCacheSize: ""})
 	require.NoError(t, err)
 	assert.Equal(t, DefaultCacheSize, cfg.CacheSize)
+}
+
+// TestConfig_DescriptionDefault_SynthesizedFromRegionAndRegistry locks down
+// AC-2 / INV-5 / S-8: when the description key is absent or empty,
+// LoadConfigFromMap synthesizes "DEFAULT-DESCRIPTION-<region>-<registryName>"
+// using the RESOLVED region and registry name (post-default fallback). Mirrors
+// Java GlueSchemaRegistryConfiguration.java:343-352. The "DEFAULT-DESCRIPTION"
+// prefix is exact — no casing change. Empty region collapses to two dashes.
+func TestConfig_DescriptionDefault_SynthesizedFromRegionAndRegistry(t *testing.T) {
+	t.Run("region and registry both set", func(t *testing.T) {
+		cfg, err := LoadConfigFromMap(map[string]string{
+			ConfigKeyRegion:       "us-east-2",
+			ConfigKeyRegistryName: "my-registry",
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "DEFAULT-DESCRIPTION-us-east-2-my-registry", cfg.Description)
+	})
+
+	t.Run("region set, registry defaulted", func(t *testing.T) {
+		cfg, err := LoadConfigFromMap(map[string]string{
+			ConfigKeyRegion: "us-east-2",
+		})
+		require.NoError(t, err)
+		// Registry name resolves to DefaultRegistryName; description sees the
+		// post-default value, not the raw absent key.
+		assert.Equal(t, DefaultRegistryName, cfg.RegistryName)
+		assert.Equal(t, "DEFAULT-DESCRIPTION-us-east-2-default-registry", cfg.Description)
+	})
+
+	t.Run("region and registry absent", func(t *testing.T) {
+		cfg, err := LoadConfigFromMap(map[string]string{})
+		require.NoError(t, err)
+		// Empty region segment collapses to two dashes — Java parity.
+		assert.Equal(t, "DEFAULT-DESCRIPTION--default-registry", cfg.Description)
+	})
+
+	t.Run("explicit description passes through unchanged", func(t *testing.T) {
+		cfg, err := LoadConfigFromMap(map[string]string{
+			ConfigKeyDescription: "user supplied",
+			ConfigKeyRegion:      "us-east-2",
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "user supplied", cfg.Description)
+	})
 }
 
 // TestConfig_Validators_EmptyInputsStillSucceed locks AC-1-positive: when all
