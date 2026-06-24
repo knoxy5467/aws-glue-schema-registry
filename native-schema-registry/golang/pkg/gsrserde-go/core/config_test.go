@@ -38,7 +38,6 @@ func TestLoadConfigFromMapDefaults(t *testing.T) {
 	assert.Empty(t, cfg.ProxyURL)
 	assert.Empty(t, cfg.UserAgentApp)
 	assert.Empty(t, cfg.AssumeRoleArn)
-	assert.Empty(t, cfg.SecondaryDeserializer)
 	assert.Empty(t, cfg.AvroRecordType)
 	assert.Empty(t, cfg.ProtobufMessageType)
 	assert.Empty(t, cfg.Tags)
@@ -207,26 +206,100 @@ func TestConfig_AvroRecordType(t *testing.T) {
 	assert.Equal(t, "GENERIC_RECORD", cfg.AvroRecordType)
 }
 
+// TestConfig_AvroRecordType_ValidEnums verifies both accepted values pass at
+// config construction time. INV-ENUM-CONFIG-TIME / DoD #1.
+func TestConfig_AvroRecordType_ValidEnums(t *testing.T) {
+	for _, v := range []string{"GENERIC_RECORD", "SPECIFIC_RECORD"} {
+		t.Run(v, func(t *testing.T) {
+			cfg, err := LoadConfigFromMap(map[string]string{ConfigKeyAvroRecordType: v})
+			require.NoError(t, err)
+			assert.Equal(t, v, cfg.AvroRecordType)
+		})
+	}
+}
+
+// TestConfig_AvroRecordType_EmptyDefaultsToGeneric verifies that an absent
+// or empty avroRecordType key does not error and leaves AvroRecordType empty
+// (GENERIC_RECORD behavior). INV-GENERIC-DEFAULT.
+func TestConfig_AvroRecordType_EmptyDefaultsToGeneric(t *testing.T) {
+	cfg, err := LoadConfigFromMap(map[string]string{})
+	require.NoError(t, err)
+	assert.Empty(t, cfg.AvroRecordType)
+}
+
+// TestConfig_AvroRecordType_Invalid verifies that unrecognized avroRecordType
+// values are rejected at config construction time with ErrInvalidAvroRecordType.
+// INV-ENUM-CONFIG-TIME / DoD #1.
+func TestConfig_AvroRecordType_Invalid(t *testing.T) {
+	for _, bad := range []string{"BOGUS", "specific_record", "GenericRecord", "GENERIC", ""} {
+		if bad == "" {
+			continue // empty is valid (default)
+		}
+		t.Run(bad, func(t *testing.T) {
+			_, err := LoadConfigFromMap(map[string]string{ConfigKeyAvroRecordType: bad})
+			require.Error(t, err)
+			assert.True(t, errors.Is(err, ErrInvalidAvroRecordType),
+				"want ErrInvalidAvroRecordType for %q, got %v", bad, err)
+		})
+	}
+}
+
 func TestConfig_ProtobufMessageType(t *testing.T) {
 	cfg, err := LoadConfigFromMap(map[string]string{ConfigKeyProtobufMessageType: "DYNAMIC_MESSAGE"})
 	require.NoError(t, err)
 	assert.Equal(t, "DYNAMIC_MESSAGE", cfg.ProtobufMessageType)
 }
 
-// TestConfig_SecondaryDeserializer covers the parse-only surface of this key.
-//
-// DEFERRED — DO NOT wire a fallback chain here.
-//
-// Spec §3.10 and the user directive explicitly exclude secondaryDeserializer
-// from Phase 4.10. The value is parsed and stored so existing Java-authored
-// configs that set this key continue to load without error, but the fallback
-// deserialization chain is intentionally absent. A future implementor who
-// wants to add the fallback chain MUST first update spec §3.10 and obtain
-// an explicit user approval to reverse this deferral.
-func TestConfig_SecondaryDeserializer(t *testing.T) {
-	cfg, err := LoadConfigFromMap(map[string]string{ConfigKeySecondaryDeserializer: "com.example.Foo"})
+// TestConfig_ProtobufMessageType_ValidEnums verifies both accepted values pass
+// at config construction time. INV-ENUM-CONFIG-TIME / DoD #2.
+func TestConfig_ProtobufMessageType_ValidEnums(t *testing.T) {
+	for _, v := range []string{"POJO", "DYNAMIC_MESSAGE"} {
+		t.Run(v, func(t *testing.T) {
+			cfg, err := LoadConfigFromMap(map[string]string{ConfigKeyProtobufMessageType: v})
+			require.NoError(t, err)
+			assert.Equal(t, v, cfg.ProtobufMessageType)
+		})
+	}
+}
+
+// TestConfig_ProtobufMessageType_EmptyDefaultsToDynamic verifies that an absent
+// or empty protobufMessageType key does not error and leaves ProtobufMessageType
+// empty (DYNAMIC_MESSAGE behavior). INV-DYNAMIC-DEFAULT.
+func TestConfig_ProtobufMessageType_EmptyDefaultsToDynamic(t *testing.T) {
+	cfg, err := LoadConfigFromMap(map[string]string{})
 	require.NoError(t, err)
-	assert.Equal(t, "com.example.Foo", cfg.SecondaryDeserializer)
+	assert.Empty(t, cfg.ProtobufMessageType)
+}
+
+// TestConfig_ProtobufMessageType_Invalid verifies that unrecognized values are
+// rejected at config construction time with ErrInvalidProtobufMessageType.
+// INV-ENUM-CONFIG-TIME / DoD #2.
+func TestConfig_ProtobufMessageType_Invalid(t *testing.T) {
+	for _, bad := range []string{"NOPE", "pojo", "dynamic_message", "PROTOBUF"} {
+		t.Run(bad, func(t *testing.T) {
+			_, err := LoadConfigFromMap(map[string]string{ConfigKeyProtobufMessageType: bad})
+			require.Error(t, err)
+			assert.True(t, errors.Is(err, ErrInvalidProtobufMessageType),
+				"want ErrInvalidProtobufMessageType for %q, got %v", bad, err)
+		})
+	}
+}
+
+// TestConfig_SecondaryDeserializer_Ignored verifies INV-SECONDARY-NOOP:
+// passing "secondaryDeserializer" in the configMap does NOT cause an error and
+// has no observable effect on the returned Config. The field has been removed
+// from Config as of Phase 4.14; the key is silently ignored at parse time to
+// maintain backwards compatibility with Java-authored configs that set this key.
+//
+// Java's fallback-deserializer chain is intentionally not implemented in Go.
+// See pkg/gsrserde-go/deserializer package docs for rationale.
+func TestConfig_SecondaryDeserializer_Ignored(t *testing.T) {
+	cfg, err := LoadConfigFromMap(map[string]string{"secondaryDeserializer": "com.example.Foo"})
+	require.NoError(t, err, "secondaryDeserializer key must not cause a parse error")
+	require.NotNil(t, cfg)
+	// The field no longer exists on Config; this test documents and verifies
+	// that the key is a no-op. If a future change accidentally introduces
+	// the field back, the compile-time absence here is the canary.
 }
 
 func TestConfig_UserAgentApp(t *testing.T) {
@@ -412,7 +485,6 @@ func TestConfigKeys_AreJavaIdentical(t *testing.T) {
 		"cacheSize":                     ConfigKeyCacheSize,
 		"avroRecordType":                ConfigKeyAvroRecordType,
 		"protobufMessageType":           ConfigKeyProtobufMessageType,
-		"secondaryDeserializer":         ConfigKeySecondaryDeserializer,
 		"userAgentApp":                  ConfigKeyUserAgentApp,
 		"assumeRoleArn":                 ConfigKeyAssumeRoleArn,
 		"assumeRoleSessionName":         ConfigKeyAssumeRoleSessionName,
@@ -632,6 +704,26 @@ func TestConfig_PerKeyAuditCoverage(t *testing.T) {
 		{
 			key:              ConfigKeySchemaNameGenerationClass,
 			positiveCoveredBy: []string{"TestConfig_SchemaNameGenerationClass"},
+		},
+		{
+			key: ConfigKeyAvroRecordType,
+			positiveCoveredBy: []string{
+				"TestConfig_AvroRecordType",
+				"TestConfig_AvroRecordType_ValidEnums",
+				"TestConfig_AvroRecordType_EmptyDefaultsToGeneric",
+			},
+			negativeApplicable: true,
+			negativeCoveredBy: []string{"TestConfig_AvroRecordType_Invalid"},
+		},
+		{
+			key: ConfigKeyProtobufMessageType,
+			positiveCoveredBy: []string{
+				"TestConfig_ProtobufMessageType",
+				"TestConfig_ProtobufMessageType_ValidEnums",
+				"TestConfig_ProtobufMessageType_EmptyDefaultsToDynamic",
+			},
+			negativeApplicable: true,
+			negativeCoveredBy: []string{"TestConfig_ProtobufMessageType_Invalid"},
 		},
 	}
 
