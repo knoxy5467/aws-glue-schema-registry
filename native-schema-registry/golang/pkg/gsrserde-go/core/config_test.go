@@ -1,6 +1,7 @@
 package gsrserde
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -136,8 +137,17 @@ func TestConfig_CacheTTLMillis(t *testing.T) {
 	assert.Equal(t, int64(1234), cfg.TimeToLiveMillis)
 }
 
-func TestConfig_CacheTTLMillis_NonNumericFallsBackToDefault(t *testing.T) {
-	cfg, err := LoadConfigFromMap(map[string]string{ConfigKeyCacheTTLMillis: "not-a-number"})
+// TestConfig_CacheTTLMillis_NonNumericErrors locks down the §3.1 semantic
+// flip: non-numeric input no longer falls back to default; it surfaces as
+// ErrInvalidCacheTTL. Renamed from
+// TestConfig_CacheTTLMillis_NonNumericFallsBackToDefault per INV-11.
+func TestConfig_CacheTTLMillis_NonNumericErrors(t *testing.T) {
+	_, err := LoadConfigFromMap(map[string]string{ConfigKeyCacheTTLMillis: "not-a-number"})
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrInvalidCacheTTL), "want ErrInvalidCacheTTL, got %v", err)
+
+	// Empty input still picks the default.
+	cfg, err := LoadConfigFromMap(map[string]string{ConfigKeyCacheTTLMillis: ""})
 	require.NoError(t, err)
 	assert.Equal(t, DefaultCacheTTLMillis, cfg.TimeToLiveMillis)
 }
@@ -228,6 +238,61 @@ func TestConfig_Metadata(t *testing.T) {
 		"commit":  "abc123",
 		"version": "1.0.0",
 	}, cfg.Metadata)
+}
+
+// TestConfig_CompressionType_InvalidErrors locks down §3.1 — invalid
+// compression values fail-fast with ErrInvalidCompressionType. Plan §7 pins
+// the "GZip" case specifically.
+func TestConfig_CompressionType_InvalidErrors(t *testing.T) {
+	for _, in := range []string{"GZip", "snappy"} {
+		t.Run(in, func(t *testing.T) {
+			_, err := LoadConfigFromMap(map[string]string{ConfigKeyCompressionType: in})
+			require.Error(t, err)
+			assert.True(t, errors.Is(err, ErrInvalidCompressionType), "want ErrInvalidCompressionType, got %v", err)
+		})
+	}
+}
+
+// TestConfig_Compatibility_InvalidErrors locks down §3.1 — the Java
+// Compatibility enum is CASE-EXACT, so lowercase variants and typos MUST be
+// rejected. See GlueSchemaRegistryConfiguration.java:173-178.
+func TestConfig_Compatibility_InvalidErrors(t *testing.T) {
+	for _, in := range []string{"FORWARDS", "backward"} {
+		t.Run(in, func(t *testing.T) {
+			_, err := LoadConfigFromMap(map[string]string{ConfigKeyCompatibility: in})
+			require.Error(t, err)
+			assert.True(t, errors.Is(err, ErrInvalidCompatibility), "want ErrInvalidCompatibility, got %v", err)
+		})
+	}
+}
+
+// TestConfig_CacheSize_NonNumericErrors locks down §3.1 — non-numeric
+// cacheSize input surfaces as ErrInvalidCacheSize; empty input picks default.
+func TestConfig_CacheSize_NonNumericErrors(t *testing.T) {
+	_, err := LoadConfigFromMap(map[string]string{ConfigKeyCacheSize: "NaN"})
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrInvalidCacheSize), "want ErrInvalidCacheSize, got %v", err)
+
+	cfg, err := LoadConfigFromMap(map[string]string{ConfigKeyCacheSize: ""})
+	require.NoError(t, err)
+	assert.Equal(t, DefaultCacheSize, cfg.CacheSize)
+}
+
+// TestConfig_Validators_EmptyInputsStillSucceed locks AC-1-positive: when all
+// four validated keys are absent / empty, LoadConfigFromMap succeeds and the
+// defaults are honored.
+func TestConfig_Validators_EmptyInputsStillSucceed(t *testing.T) {
+	cfg, err := LoadConfigFromMap(map[string]string{
+		ConfigKeyCompressionType: "",
+		ConfigKeyCompatibility:   "",
+		ConfigKeyCacheTTLMillis:  "",
+		ConfigKeyCacheSize:       "",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, DefaultCompressionType, cfg.CompressionType)
+	assert.Equal(t, DefaultCompatibility, cfg.Compatibility)
+	assert.Equal(t, DefaultCacheTTLMillis, cfg.TimeToLiveMillis)
+	assert.Equal(t, DefaultCacheSize, cfg.CacheSize)
 }
 
 // Sanity check that the constants exposed by core/config.go are the

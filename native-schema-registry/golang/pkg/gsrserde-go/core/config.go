@@ -2,6 +2,7 @@ package gsrserde
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -147,17 +148,30 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 
 	compatibility := DefaultCompatibility
 	if v := configMap[ConfigKeyCompatibility]; v != "" {
+		if err := validateCompatibility(v); err != nil {
+			return nil, err
+		}
 		compatibility = v
 	}
 
 	compressionType := DefaultCompressionType
 	// Accept both the Java key "compression" and the historical Go key
 	// "compressionType". Java wins if both are set.
+	compressionExplicit := false
 	if v := configMap["compressionType"]; v != "" {
 		compressionType = v
+		compressionExplicit = true
 	}
 	if v := configMap[ConfigKeyCompressionType]; v != "" {
 		compressionType = v
+		compressionExplicit = true
+	}
+	// Validate only when an explicit non-empty value was supplied; absent
+	// keys fall through to DefaultCompressionType.
+	if compressionExplicit {
+		if err := validateCompressionType(compressionType); err != nil {
+			return nil, err
+		}
 	}
 
 	autoRegister := false
@@ -167,16 +181,20 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 
 	ttl := DefaultCacheTTLMillis
 	if v := configMap[ConfigKeyCacheTTLMillis]; v != "" {
-		if parsed, err := strconv.ParseInt(v, 10, 64); err == nil {
-			ttl = parsed
+		parsed, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidCacheTTL, v)
 		}
+		ttl = parsed
 	}
 
 	cacheSize := DefaultCacheSize
 	if v := configMap[ConfigKeyCacheSize]; v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil {
-			cacheSize = parsed
+		parsed, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidCacheSize, v)
 		}
+		cacheSize = parsed
 	}
 
 	return &Config{
@@ -221,4 +239,48 @@ func collectPrefixedMap(configMap map[string]string, prefix string) map[string]s
 		}
 	}
 	return out
+}
+
+// validCompressionTypes is the set Java's
+// AWSSchemaRegistryConstants.COMPRESSION enum accepts.
+var validCompressionTypes = map[string]struct{}{
+	"NONE": {},
+	"ZLIB": {},
+}
+
+// validateCompressionType rejects values outside the Java enum. The check is
+// case-insensitive on the upper-case-normalized value to match Java's
+// COMPRESSION.valueOf-after-toUpperCase shape, but the stored field preserves
+// the caller's casing. Empty input is the caller's responsibility — this
+// helper is only invoked on explicit non-empty values.
+func validateCompressionType(value string) error {
+	if _, ok := validCompressionTypes[strings.ToUpper(value)]; !ok {
+		return fmt.Errorf("%w: %q (want one of NONE, ZLIB)", ErrInvalidCompressionType, value)
+	}
+	return nil
+}
+
+// validCompatibilities is the case-exact set Java's
+// software.amazon.awssdk.services.glue.model.Compatibility enum emits via
+// knownValues(); see GlueSchemaRegistryConfiguration.java:173-178.
+var validCompatibilities = map[string]struct{}{
+	"NONE":         {},
+	"DISABLED":     {},
+	"BACKWARD":     {},
+	"BACKWARD_ALL": {},
+	"FORWARD":      {},
+	"FORWARD_ALL": {},
+	"FULL":         {},
+	"FULL_ALL":     {},
+}
+
+// validateCompatibility rejects values not in the Java enum set. The match is
+// CASE-EXACT — lowercase variants like "backward" and typos like "FORWARDS"
+// MUST be rejected (Java's Compatibility.valueOf is case-sensitive on the
+// known-values list).
+func validateCompatibility(value string) error {
+	if _, ok := validCompatibilities[value]; !ok {
+		return fmt.Errorf("%w: %q", ErrInvalidCompatibility, value)
+	}
+	return nil
 }
