@@ -13,9 +13,9 @@
 
 | Category | Implemented | Stubbed | Missing | Total |
 |---|---:|---:|---:|---:|
-| Java parity (config + client + facades) | | | | |
-| Format-layer Phase 3 stubs (3 rows) | | | | 3 |
-| §5.3 test coverage (special-attention items) | | — | | |
+| Java parity (config + client + facades) | 17 | 16 | 6 | 39 |
+| Format-layer Phase 3 stubs (3 rows) | 2 | 1 | 0 | 3 |
+| §5.3 test coverage (special-attention items) | Tier-1: 12 Y / 5 N · Tier-2: 17 Y / 0 N | — | Tier-1∧Tier-2 N: 0 | 17 |
 
 ## 1. Java parity audit
 
@@ -28,7 +28,7 @@ Go counterpart: `native-schema-registry/golang/pkg/gsrserde-go/core/config.go` (
 | Java file:line | Java behavior | Go file:line \| Missing | Status | Notes |
 |---|---|---|---|---|
 | `common/.../GlueSchemaRegistryConfiguration.java:46` (field), `:133-149` (validateAndSetCompressionType) | `compression` config key → `compressionType` enum (`NONE` or `ZLIB`); default `NONE`; throws `AWSSchemaRegistryException` on invalid values. | `pkg/gsrserde-go/core/config.go:29` (constant), `:153-161` (parse), `:191` (assignment) | Implemented | Go also accepts legacy alias key `compressionType`; Java key wins when both are set. |
-| `common/.../GlueSchemaRegistryConfiguration.java:47` (field), `:193-197` (validateAndSetAWSEndpoint) | `endpoint` config key → optional Glue endpoint URL string; no default; passed through verbatim. | `pkg/gsrserde-go/core/config.go:24` (constant), `:141` (read), `:185` (assignment) | Implemented | |
+| `common/.../GlueSchemaRegistryConfiguration.java:47` (field), `:193-197` (validateAndSetAWSEndpoint) | `endpoint` config key → optional Glue endpoint URL string; no default; passed through verbatim. | `pkg/gsrserde-go/core/config.go:23` (constant), `:141` (read), `:185` (assignment) | Implemented | |
 | `common/.../GlueSchemaRegistryConfiguration.java:48` (field), `:151-165` (validateAndSetAWSRegion) | `region` config key → AWS region string; falls back to `DefaultAwsRegionProviderChain` when absent; throws when neither configured nor discoverable. | `pkg/gsrserde-go/core/config.go:22` (constant), `:97` (read), `:103-105` (load option), `:184` (assignment) | Implemented | untested — no Tier-1 test asserts the SDK-default fallback path; only the explicit-region path is covered by `config_test.go:42-48`. |
 | `common/.../GlueSchemaRegistryConfiguration.java:49` (field), `:234-246` (validateAndSetCacheTTL) | `timeToLiveMillis` config key → cache TTL in ms; default 86400000 (24h); throws on non-numeric input. | `pkg/gsrserde-go/core/config.go:30` (constant), `:47` (default), `:168-173` (parse + assignment) | Stubbed | Go silently falls back to the default on non-numeric input rather than throwing — `strconv.ParseInt` errors are swallowed at `config.go:170-172`. |
 | `common/.../GlueSchemaRegistryConfiguration.java:50` (field), `:219-232` (validateAndSetCacheSize) | `cacheSize` config key → max cache entries; default 200; throws on non-numeric input. | `pkg/gsrserde-go/core/config.go:31` (constant), `:48` (default), `:175-180` (parse + assignment) | Stubbed | Go silently falls back to the default on non-numeric input rather than throwing — `strconv.Atoi` errors are swallowed at `config.go:177-179`. |
@@ -129,10 +129,16 @@ Tier-1 = unit tests under `native-schema-registry/golang/pkg/gsrserde-go/.../*_t
 
 ## 4. Risks / Deferred findings
 
-<to be populated in PBI-4>
+- **Audit-meta:** §3 Item 17 (Cache size eviction) is marked Tier-1 `Y` but the Tier-1 test (`pkg/gsrserde-go/core/cache_test.go:TestCacheSize:60`) is a basic-functionality stand-in — its own in-file comment notes `go-cache doesn't have built-in size limits`, so the size-eviction contract is not actually asserted. The Tier-2 counterpart (`integration-tests/tests/schema_lifecycle_test.go:TestLifecycle_CacheSizeEviction:205`) is `t.Skip`-ed pending a cache size cap. Net effect: row counted as covered in §3 by the row-presence rule, but behavioral coverage of the size-eviction contract is absent. Surfaced for Phase 4.10 reassessment, not remediated here. (Origin: PBI-3 row authoring; preserved through PBI-4 audit closeout.)
+- **Audit-meta (Path A consequence):** Several §1 rows carry `untested` qualifiers in the Notes column (e.g. §1.1 row 3 — region SDK-default fallback path). Per the chosen Path A from PBI-1 AC10a, these stay Status=Implemented/Stubbed with the gap annotated in Notes rather than being downgraded. Behavioral coverage of these `untested` paths is a Phase 4.10 concern. (Origin: PBI-1 spec-deviation note, recorded in §5.)
+- **/code-review deferred findings:** _populated by PBI-4 follow-up commit after `/code-review` runs against `0a95eae..HEAD`._
 
 ## 5. Methodology used
 
-Path A chosen — supersedes spec Step 2 line 148 per spec-reviewer MINOR #2 (see specs/phase-4.9-audit/spec.md and PBI-reviewer round 1 verdict).
+Audit conducted per `specs/phase-4.9-audit/spec.md` §Audit methodology, on branch `phase-4.9-audit` at cumulative HEAD covering PBI-1 (`82ea09c`) + PBI-2 (`f0ed7d3`) + PBI-3 (`4e89092`) + PBI-4 (this commit and its follow-up), all branched from base `0a95eae` on `golang-mrknox`.
 
-<to be populated in PBI-4>
+Test-coverage decoupling: Path A — annotate untested behaviors in Notes — supersedes spec Step 2 line 148 per spec-reviewer MINOR #2 (see `specs/phase-4.9-audit/spec.md` and PBI-reviewer round 1 verdict). Under Path A, §1 rows whose Notes column carries an `untested` qualifier retain their Status verdict (`Implemented` or `Stubbed`) and surface the coverage gap in Notes rather than being downgraded.
+
+Format-layer summary mapping: `Done` → `Implemented` column; `Still stub` → `Stubbed` column; `Other` → `Missing` column. (PBI-defined; spec is silent on this mapping.)
+
+§5.3 test-coverage row presentation in the Summary counters table: option (b) — single row with `Tier-1: N1 Y / M1 N · Tier-2: N2 Y / M2 N` paired format in the `Implemented` cell, plus `Tier-1∧Tier-2 N: K` in the `Missing` cell to record items with both tiers absent. Tier counts are paired, not summed.
