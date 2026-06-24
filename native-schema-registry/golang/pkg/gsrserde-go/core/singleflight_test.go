@@ -223,7 +223,7 @@ func TestEncoder_GetSchemaVersionId_Singleflight_CreateSchemaExactlyOnce(t *test
 		go func() {
 			defer wg.Done()
 			<-start
-			id, _, err := encoder.getSchemaVersionIdByDefinition("def", "schema-name", "JSON")
+			id, _, err := encoder.getSchemaVersionIdByDefinition("def", "schema-name", "JSON", "")
 			assert.NoError(t, err)
 			assert.Equal(t, createdVersionID, id)
 		}()

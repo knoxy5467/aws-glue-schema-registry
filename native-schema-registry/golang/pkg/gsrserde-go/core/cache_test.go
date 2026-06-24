@@ -158,12 +158,12 @@ func TestEncoder_TTLEviction_TriggersFreshGetSchemaByDefinition(t *testing.T) {
 		Run(func(_ mock.Arguments) { getCalls.Add(1) })
 
 	// First encode populates the cache.
-	_, _, err = enc.getSchemaVersionIdByDefinition("def", "s", "JSON")
+	_, _, err = enc.getSchemaVersionIdByDefinition("def", "s", "JSON", "")
 	require.NoError(t, err)
 	require.Equal(t, int64(1), getCalls.Load(), "first encode must call GetSchemaByDefinition once")
 
 	// Second encode within TTL hits the cache; no extra Glue call.
-	_, _, err = enc.getSchemaVersionIdByDefinition("def", "s", "JSON")
+	_, _, err = enc.getSchemaVersionIdByDefinition("def", "s", "JSON", "")
 	require.NoError(t, err)
 	require.Equal(t, int64(1), getCalls.Load(), "second call within TTL must hit cache")
 
@@ -171,7 +171,7 @@ func TestEncoder_TTLEviction_TriggersFreshGetSchemaByDefinition(t *testing.T) {
 	clk.Advance(200 * time.Millisecond)
 
 	// Third encode must re-fetch from Glue.
-	_, _, err = enc.getSchemaVersionIdByDefinition("def", "s", "JSON")
+	_, _, err = enc.getSchemaVersionIdByDefinition("def", "s", "JSON", "")
 	require.NoError(t, err)
 	require.Equal(t, int64(2), getCalls.Load(),
 		"after TTL eviction a fresh GetSchemaByDefinition must fire")
