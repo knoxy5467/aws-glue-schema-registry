@@ -112,12 +112,21 @@ func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 		}
 	}
 
-	// Unmarshal the data using hamba/avro
+	// Unmarshal the data using hamba/avro.
+	//
+	// Phase 4.12 §3.9: this is THE binary-decode failure path — the hamba/avro
+	// library reports that the payload bytes are not valid Avro binary against
+	// the writer schema. Wrap the Cause with gsrcore.ErrMalformedAvro so
+	// callers can resolve errors.Is(err, gsrcore.ErrMalformedAvro) (and
+	// transitively errors.Is(err, gsrcore.ErrGSR)) through the wrapper's
+	// Unwrap() chain. The underlying hamba/avro error is preserved further
+	// down the chain for diagnostic continuity. Schema-parse failures above
+	// are NOT wrapped — those are schema problems, not malformed payloads.
 	var result interface{}
 	if err := hambaavro.Unmarshal(avroSchema, data, &result); err != nil {
 		return nil, &AvroDeserializationError{
 			Message: "failed to deserialize AVRO data",
-			Cause:   err,
+			Cause:   fmt.Errorf("%w: %w", gsrcore.ErrMalformedAvro, err),
 		}
 	}
 
