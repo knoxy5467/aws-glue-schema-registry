@@ -1,6 +1,9 @@
 package gsrserde
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // This file holds the test-seam constructors that let downstream packages
 // build a GsrEncoder / GsrDecoder against an in-memory fake GlueClient
@@ -62,6 +65,7 @@ func NewGsrEncoderForTest(client GlueClient, opts GsrEncoderOptions) (*GsrEncode
 		description:                   opts.Description,
 		schemaAutoRegistrationEnabled: opts.SchemaAutoRegistrationEnabled,
 		compressionType:               opts.CompressionType,
+		sleepFn:                       time.Sleep,
 	}, nil
 }
 
