@@ -215,9 +215,12 @@ func TestConfig_AssumeRoleArn_DefaultSessionName(t *testing.T) {
 		ConfigKeyAssumeRoleArn: "arn:aws:iam::123456789012:role/go-test",
 	})
 	require.NoError(t, err)
-	// AssumeRoleSessionName field reflects raw input ("" when absent), but
-	// the credentials provider falls back to DefaultAssumeRoleSession.
-	assert.Empty(t, cfg.AssumeRoleSessionName)
+	// Per spec §3.8 / INV-4: AssumeRoleSessionName now holds the *resolved*
+	// value handed to stscreds.AssumeRoleOptions. With an ARN set and the
+	// session-name key absent, the resolution branch populates the field
+	// with DefaultAssumeRoleSession — proving the override reached the STS
+	// path without having to crack open the opaque AssumeRoleProvider.
+	assert.Equal(t, DefaultAssumeRoleSession, cfg.AssumeRoleSessionName)
 }
 
 func TestConfig_SchemaNameGenerationClass(t *testing.T) {

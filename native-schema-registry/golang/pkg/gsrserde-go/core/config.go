@@ -89,6 +89,14 @@ type Config struct {
 	// when not set) and the wire stamp (always non-empty).
 	EffectiveUserAgentApp string
 	AssumeRoleArn         string
+	// AssumeRoleSessionName holds the *resolved* session name handed to
+	// stscreds.AssumeRoleOptions when AssumeRoleArn is set: the raw
+	// `assumeRoleSessionName` value when supplied, otherwise
+	// DefaultAssumeRoleSession. When AssumeRoleArn is empty the AssumeRole
+	// path is dormant and this field preserves raw input semantics (empty
+	// when the key is absent). Acts as a Tier-1 test seam (INV-4 / C-16)
+	// because stscreds.AssumeRoleProvider's options field is unexported and
+	// the resolved value cannot otherwise be observed in unit tests.
 	AssumeRoleSessionName string
 	SchemaNameGenerationClass string
 
@@ -149,16 +157,23 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		return nil, err
 	}
 
+	// Resolve the AssumeRole session name once so the SAME value reaches both
+	// stscreds.AssumeRoleOptions and Config.AssumeRoleSessionName — the field
+	// serves as a Tier-1 test seam proving the override reached the STS path
+	// (spec §3.8 / INV-4 / C-16). Resolution only kicks in when an ARN is
+	// configured; without an ARN the AssumeRole path is dormant and the field
+	// preserves raw input semantics.
+	resolvedSession := configMap[ConfigKeyAssumeRoleSessionName]
+	if resolvedSession == "" && configMap[ConfigKeyAssumeRoleArn] != "" {
+		resolvedSession = DefaultAssumeRoleSession
+	}
+
 	// AssumeRole wrap, mirroring Java GlueSchemaRegistryConfiguration's
 	// optional STS credential chain.
 	if arn := configMap[ConfigKeyAssumeRoleArn]; arn != "" {
-		session := configMap[ConfigKeyAssumeRoleSessionName]
-		if session == "" {
-			session = DefaultAssumeRoleSession
-		}
 		stsClient := sts.NewFromConfig(cfg)
 		cfg.Credentials = aws.NewCredentialsCache(stscreds.NewAssumeRoleProvider(stsClient, arn, func(o *stscreds.AssumeRoleOptions) {
-			o.RoleSessionName = session
+			o.RoleSessionName = resolvedSession
 		}))
 	}
 
@@ -253,7 +268,7 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		UserAgentApp:              configMap[ConfigKeyUserAgentApp],
 		EffectiveUserAgentApp:     effectiveUserAgent,
 		AssumeRoleArn:             configMap[ConfigKeyAssumeRoleArn],
-		AssumeRoleSessionName:     configMap[ConfigKeyAssumeRoleSessionName],
+		AssumeRoleSessionName:     resolvedSession,
 		SchemaNameGenerationClass: configMap[ConfigKeySchemaNameGenerationClass],
 
 		Tags:     collectPrefixedMap(configMap, ConfigKeyTagsPrefix),
