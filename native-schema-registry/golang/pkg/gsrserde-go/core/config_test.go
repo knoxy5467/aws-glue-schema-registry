@@ -1,9 +1,15 @@
 package gsrserde
 
 import (
+	"context"
 	"errors"
+	"net/http"
+	"strings"
 	"testing"
 
+	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
+	smithymiddleware "github.com/aws/smithy-go/middleware"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -368,5 +374,92 @@ func TestConfigKeys_AreJavaIdentical(t *testing.T) {
 	}
 	for want, got := range pairs {
 		assert.Equal(t, want, got, "config-key constant must match the Java constant string")
+	}
+}
+
+// TestConfig_UserAgentApp_DefaultAppliedWhenAbsent locks down AC-3 / INV-3:
+// when `userAgentApp` is absent, the raw Config.UserAgentApp stays empty,
+// Config.EffectiveUserAgentApp resolves to "default", and the User-Agent
+// middleware is still installed on AWSConfig.APIOptions (Java always-on
+// parity per GlueSchemaRegistryConfiguration.java:66).
+func TestConfig_UserAgentApp_DefaultAppliedWhenAbsent(t *testing.T) {
+	cfg, err := LoadConfigFromMap(map[string]string{})
+	require.NoError(t, err)
+
+	// INV-3-raw: raw field reflects raw input ("" when absent).
+	assert.Empty(t, cfg.UserAgentApp)
+	// INV-3-effective: resolved field carries "default" when raw is empty.
+	assert.Equal(t, DefaultUserAgentApp, cfg.EffectiveUserAgentApp)
+	// AC-3: middleware ALWAYS installed (Java parity).
+	assert.NotEmpty(t, cfg.AWSConfig.APIOptions)
+}
+
+// TestConfig_UserAgentApp_HeaderEmitsResolvedValue exercises the installed
+// API options against a synthetic smithy middleware stack. The captured
+// User-Agent header MUST contain "glue-schema-registry-go/<resolved>" for
+// both the default (key absent) and explicit (key set) cases. Pins AC-3 /
+// S-3 / S-4.
+func TestConfig_UserAgentApp_HeaderEmitsResolvedValue(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		cfgMap   map[string]string
+		expected string
+	}{
+		{
+			name:     "default applied when key absent",
+			cfgMap:   map[string]string{},
+			expected: "glue-schema-registry-go/default",
+		},
+		{
+			name:     "explicit value flows through",
+			cfgMap:   map[string]string{ConfigKeyUserAgentApp: "my-service"},
+			expected: "glue-schema-registry-go/my-service",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := LoadConfigFromMap(tc.cfgMap)
+			require.NoError(t, err)
+			require.NotEmpty(t, cfg.AWSConfig.APIOptions, "user-agent middleware must be installed")
+
+			// Build a synthetic smithy stack, apply each captured APIOption,
+			// then run the stack against a no-op handler. The
+			// awsmiddleware.RequestUserAgent middleware writes the
+			// User-Agent header in its Build step; we inspect it via an
+			// inspector middleware appended after Build.
+			stack := smithymiddleware.NewStack("ua-test", smithyhttp.NewStackRequest)
+			for _, opt := range cfg.AWSConfig.APIOptions {
+				require.NoError(t, opt(stack))
+			}
+			// Force-install the SDK's RequestUserAgent middleware on the
+			// build step (the AddUserAgentKey option only mutates an
+			// existing middleware; if none was previously added the option
+			// adds one, which is what we need here).
+			require.NoError(t, awsmiddleware.AddRequestUserAgentMiddleware(stack))
+
+			var captured http.Header
+			require.NoError(t, stack.Build.Add(
+				smithymiddleware.BuildMiddlewareFunc("ua-inspector",
+					func(ctx context.Context, in smithymiddleware.BuildInput, next smithymiddleware.BuildHandler) (smithymiddleware.BuildOutput, smithymiddleware.Metadata, error) {
+						req := in.Request.(*smithyhttp.Request)
+						captured = req.Header.Clone()
+						return next.HandleBuild(ctx, in)
+					}),
+				smithymiddleware.After,
+			))
+
+			handler := smithymiddleware.DecorateHandler(
+				smithymiddleware.HandlerFunc(func(ctx context.Context, input interface{}) (interface{}, smithymiddleware.Metadata, error) {
+					return nil, smithymiddleware.Metadata{}, nil
+				}),
+				stack,
+			)
+			_, _, err = handler.Handle(context.Background(), nil)
+			require.NoError(t, err)
+
+			ua := captured.Get("User-Agent")
+			require.NotEmpty(t, ua, "User-Agent header must be populated by the middleware")
+			assert.True(t, strings.Contains(ua, tc.expected),
+				"User-Agent %q must contain %q", ua, tc.expected)
+		})
 	}
 }

@@ -48,6 +48,11 @@ const (
 	DefaultCacheTTLMillis     = int64(24 * 60 * 60 * 1000) // 24 hours
 	DefaultCacheSize          = 200
 	DefaultAssumeRoleSession  = "aws-glue-schema-registry-go"
+	// DefaultUserAgentApp mirrors Java
+	// common/src/main/java/com/amazonaws/services/schemaregistry/common/configs/GlueSchemaRegistryConfiguration.java:66
+	// (`userAgentApp = "default"`). Used by the always-on User-Agent middleware
+	// when the `userAgentApp` configMap key is absent.
+	DefaultUserAgentApp       = "default"
 )
 
 // Config holds the parsed configuration for the GSR Go client.
@@ -76,6 +81,13 @@ type Config struct {
 	ProtobufMessageType   string
 	SecondaryDeserializer string
 	UserAgentApp          string
+	// EffectiveUserAgentApp carries the resolved value used by the User-Agent
+	// middleware: equals UserAgentApp when raw is non-empty, otherwise
+	// DefaultUserAgentApp. Raw UserAgentApp is preserved (INV-3 / C-15) so
+	// callers introspecting raw input can still distinguish default from
+	// explicit. Mirrors Java's distinction between the public getter (empty
+	// when not set) and the wire stamp (always non-empty).
+	EffectiveUserAgentApp string
 	AssumeRoleArn         string
 	AssumeRoleSessionName string
 	SchemaNameGenerationClass string
@@ -104,12 +116,25 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 	if region != "" {
 		loadOpts = append(loadOpts, config.WithRegion(region))
 	}
-	if userAgent := configMap[ConfigKeyUserAgentApp]; userAgent != "" {
-		ua := userAgent
-		loadOpts = append(loadOpts, config.WithAPIOptions([]func(*smithymiddleware.Stack) error{
-			awsmiddleware.AddUserAgentKey("glue-schema-registry-go/" + ua),
-		}))
+	// User-Agent middleware is ALWAYS-ON, mirroring Java which always installs
+	// the GSR user-agent under `userAgentApp` with default `"default"`. Raw
+	// configMap value (empty when absent) is preserved on Config.UserAgentApp
+	// per INV-3 / C-15; the resolved value used by the middleware lives on
+	// Config.EffectiveUserAgentApp.
+	//
+	// AddUserAgentKeyValue is used instead of AddUserAgentKey because the
+	// SDK's key-only helper sanitizes the `/` separator (RFC 7230 token
+	// rules), producing "glue-schema-registry-go-default". The key/value
+	// helper preserves the `/` (`key + "/" + value`) so the emitted header
+	// is "glue-schema-registry-go/<effective>" — wire-format parity with
+	// Java which stamps "aws-glue-schema-registry-java/<app>".
+	effectiveUserAgent := configMap[ConfigKeyUserAgentApp]
+	if effectiveUserAgent == "" {
+		effectiveUserAgent = DefaultUserAgentApp
 	}
+	loadOpts = append(loadOpts, config.WithAPIOptions([]func(*smithymiddleware.Stack) error{
+		awsmiddleware.AddUserAgentKeyValue("glue-schema-registry-go", effectiveUserAgent),
+	}))
 	if proxy := configMap[ConfigKeyProxyURL]; proxy != "" {
 		proxyURL, err := url.Parse(proxy)
 		if err != nil {
@@ -226,6 +251,7 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		ProtobufMessageType:       configMap[ConfigKeyProtobufMessageType],
 		SecondaryDeserializer:     configMap[ConfigKeySecondaryDeserializer],
 		UserAgentApp:              configMap[ConfigKeyUserAgentApp],
+		EffectiveUserAgentApp:     effectiveUserAgent,
 		AssumeRoleArn:             configMap[ConfigKeyAssumeRoleArn],
 		AssumeRoleSessionName:     configMap[ConfigKeyAssumeRoleSessionName],
 		SchemaNameGenerationClass: configMap[ConfigKeySchemaNameGenerationClass],
