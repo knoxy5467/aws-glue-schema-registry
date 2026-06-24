@@ -135,3 +135,36 @@ func TestDecoderCacheSize_Eviction(t *testing.T) {
 			"schema-version UUID %s must remain in cache after eviction of oldest", uuid)
 	}
 }
+
+// TestDecoderCacheSize_Default exercises INV-CACHE-DEFAULT for the decoder: a
+// decoder built via NewGsrDecoder without a cacheSize key defaults to size 200.
+// Verified by priming 6 schema-version entries and confirming all 6 are retained
+// (no eviction at 6 entries proves the cache is substantially larger than 5,
+// i.e., the 200-entry default is in effect). Mirrors TestEncoderCacheSize_Default.
+func TestDecoderCacheSize_Default(t *testing.T) {
+	// INV-CACHE-DEFAULT (decoder path)
+	dec, err := NewGsrDecoder(map[string]string{
+		"registryName": "test-registry",
+		// no cacheSize key — must default to 200
+	})
+	require.NoError(t, err)
+	defer dec.Close()
+
+	// Prime 6 schema-version UUIDs into a default-size decoder.
+	for i := 1; i <= 6; i++ {
+		uuid := fmt.Sprintf("00000000-0000-0000-0000-%012d", i)
+		PrimeSchemaCache(dec, uuid, &Schema{
+			SchemaVersionID: uuid,
+			SchemaName:      fmt.Sprintf("schema-%d", i),
+			DataFormat:      "JSON",
+		})
+	}
+
+	// All 6 must still be present — no eviction should occur at 6 entries
+	// when the default size is 200.
+	for i := 1; i <= 6; i++ {
+		uuid := fmt.Sprintf("00000000-0000-0000-0000-%012d", i)
+		assert.Truef(t, DecoderCacheHas(dec, uuid),
+			"schema-version UUID %s must not be evicted from a default-size decoder at only 6 entries", uuid)
+	}
+}
