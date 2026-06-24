@@ -732,6 +732,108 @@ func TestProtobufDeserializer_ConfigurationFields(t *testing.T) {
 	assert.Equal(t, config.ProtobufMessageDescriptor, deserializer.messageDescriptor, "Message descriptor should match config")
 }
 
+// TestProtobufDeserializer_Dynamic_Default verifies INV-DYNAMIC-DEFAULT: when no
+// ProtobufMessageType is configured (zero value / Unknown), the existing
+// auto-dispatch path returns a *dynamicpb.Message. This is a regression guard
+// ensuring the POJO branch added in Phase 4.14 does not alter the default path.
+func TestProtobufDeserializer_Dynamic_Default(t *testing.T) {
+	// Config deliberately omits ProtobufMessageTypeKey — zero value means Dynamic.
+	config := createProtobufDeserializerConfig()
+	require.Equal(t, common.ProtobufMessageTypeUnknown, config.ProtobufMessageType,
+		"default config must have ProtobufMessageTypeUnknown (zero value)")
+
+	deserializer, err := NewProtobufDeserializer(config)
+	require.NoError(t, err, "constructor must succeed")
+
+	data := generateValidProtobufData()
+	schema := createValidProtobufSchema()
+
+	result, err := deserializer.Deserialize(data, schema)
+	require.NoError(t, err, "dynamic default path must succeed")
+	require.NotNil(t, result, "result must not be nil")
+
+	_, isDynamic := result.(*dynamicpb.Message)
+	assert.True(t, isDynamic, "INV-DYNAMIC-DEFAULT: result must be *dynamicpb.Message when ProtobufMessageType is not set")
+}
+
+// TestProtobufDeserializer_POJO_TypedMessage verifies DoD #11: when the caller
+// registers a concrete proto.Message via ProtobufPOJOMessage, Deserialize
+// returns a populated concrete instance of that exact type (not *dynamicpb.Message).
+// Uses *descriptorpb.FileDescriptorProto as the concrete type because it is
+// already available in the test file and is a valid generated proto.Message.
+func TestProtobufDeserializer_POJO_TypedMessage(t *testing.T) {
+	// Build a FileDescriptorProto and marshal it — this is both the template
+	// AND the source data, since FileDescriptorProto can unmarshal its own wire bytes.
+	templateMsg := &descriptorpb.FileDescriptorProto{
+		Name:    proto.String("pojo_test.proto"),
+		Package: proto.String("pojo"),
+	}
+	data, err := proto.Marshal(templateMsg)
+	require.NoError(t, err, "marshal must succeed")
+
+	// Build config with POJO mode and the concrete message template.
+	configMap := make(map[string]interface{})
+	configMap[common.DataFormatTypeKey] = common.DataFormatProtobuf
+	configMap[common.ProtobufMessageDescriptorKey] = createProtobufDeserializerConfig().ProtobufMessageDescriptor
+	configMap[common.ProtobufMessageTypeKey] = common.ProtobufMessageTypePOJO
+	configMap[common.ProtobufPOJOTypeKey] = templateMsg
+	config := common.NewConfiguration(configMap)
+	require.Equal(t, common.ProtobufMessageTypePOJO, config.ProtobufMessageType)
+	require.NotNil(t, config.ProtobufPOJOMessage)
+
+	deserializer, err := NewProtobufDeserializer(config)
+	require.NoError(t, err, "constructor must succeed")
+
+	schema := createValidProtobufSchema()
+
+	result, err := deserializer.Deserialize(data, schema)
+	require.NoError(t, err, "POJO deserialization must succeed")
+	require.NotNil(t, result, "result must not be nil")
+
+	// DoD #11: result must be concrete *descriptorpb.FileDescriptorProto, not *dynamicpb.Message.
+	concreteMsg, ok := result.(*descriptorpb.FileDescriptorProto)
+	require.True(t, ok, "DoD #11: result must be *descriptorpb.FileDescriptorProto, not *dynamicpb.Message")
+	assert.Equal(t, "pojo_test.proto", concreteMsg.GetName(),
+		"deserialized concrete message must have correct field value")
+	assert.Equal(t, "pojo", concreteMsg.GetPackage(),
+		"deserialized concrete message must have correct package field")
+
+	// Confirm the template was NOT mutated — proto.Clone must have been used.
+	assert.Equal(t, "pojo_test.proto", templateMsg.GetName(),
+		"template proto.Message must not be mutated by Deserialize")
+}
+
+// TestProtobufDeserializer_POJO_MissingType verifies DoD #12: when POJO mode
+// is configured but ProtobufPOJOMessage is nil, Deserialize returns an error
+// wrapping ErrMissingProtobufPOJOType so callers can test via errors.Is.
+func TestProtobufDeserializer_POJO_MissingType(t *testing.T) {
+	// Config: POJO mode set, but ProtobufPOJOMessage intentionally absent (nil).
+	configMap := make(map[string]interface{})
+	configMap[common.DataFormatTypeKey] = common.DataFormatProtobuf
+	configMap[common.ProtobufMessageDescriptorKey] = createProtobufDeserializerConfig().ProtobufMessageDescriptor
+	configMap[common.ProtobufMessageTypeKey] = common.ProtobufMessageTypePOJO
+	// Deliberately omit ProtobufPOJOTypeKey.
+	config := common.NewConfiguration(configMap)
+	require.Equal(t, common.ProtobufMessageTypePOJO, config.ProtobufMessageType)
+	require.Nil(t, config.ProtobufPOJOMessage, "ProtobufPOJOMessage must be nil for this scenario")
+
+	deserializer, err := NewProtobufDeserializer(config)
+	require.NoError(t, err, "constructor must succeed — POJO nil check is at Deserialize time")
+
+	data := generateValidProtobufData()
+	schema := createValidProtobufSchema()
+
+	result, err := deserializer.Deserialize(data, schema)
+	require.Error(t, err, "must return an error when ProtobufPOJOMessage is nil in POJO mode")
+	assert.Nil(t, result, "result must be nil on error")
+
+	// DoD #12: errors.Is must resolve to ErrMissingProtobufPOJOType.
+	assert.True(t, errors.Is(err, ErrMissingProtobufPOJOType),
+		"DoD #12: errors.Is must resolve to ErrMissingProtobufPOJOType")
+	assert.Contains(t, err.Error(), "POJO requires ProtobufPOJOMessage",
+		"error message must contain the expected diagnostic substring")
+}
+
 func TestProtobufDeserializer_DataValidation(t *testing.T) {
 	config := createProtobufDeserializerConfig()
 	deserializer, err := NewProtobufDeserializer(config)
