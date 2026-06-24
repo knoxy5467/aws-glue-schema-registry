@@ -128,19 +128,30 @@ func (j *JsonDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 	// string bodies with U+FFFD, which corrupts data without surfacing.
 	// Reject invalid UTF-8 up front so callers see a typed
 	// JsonDeserializationError instead of a quietly-mangled payload.
+	//
+	// Phase 4.12 §3.9 / §3.10: wrap the Cause with gsrcore.ErrMalformedJSON
+	// so callers can resolve errors.Is(err, gsrcore.ErrMalformedJSON) (and
+	// transitively errors.Is(err, gsrcore.ErrGSR)) through the wrapper's
+	// Unwrap() chain. The pre-existing ErrInvalidJsonData sentinel is
+	// preserved further down the chain for diagnostic continuity.
 	if !utf8.Valid(data) {
 		return nil, &JsonDeserializationError{
 			Message: "data is not valid JSON: non-UTF-8 bytes",
-			Cause:   ErrInvalidJsonData,
+			Cause:   fmt.Errorf("%w: %w", gsrcore.ErrMalformedJSON, ErrInvalidJsonData),
 		}
 	}
 
-	// Validate that data is valid JSON
+	// Validate that data is valid JSON.
+	//
+	// Phase 4.12 §3.9: wrap the Cause with gsrcore.ErrMalformedJSON so the
+	// per-format malformed sentinel resolves via errors.Is. The underlying
+	// encoding/json error is preserved further down the chain so callers
+	// can still drill into the parse-failure detail if needed.
 	var jsonData interface{}
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return nil, &JsonDeserializationError{
 			Message: "data is not valid JSON",
-			Cause:   err,
+			Cause:   fmt.Errorf("%w: %w", gsrcore.ErrMalformedJSON, err),
 		}
 	}
 
