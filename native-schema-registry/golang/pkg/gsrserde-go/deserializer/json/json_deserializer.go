@@ -47,6 +47,16 @@ func (e *JsonDeserializationError) Unwrap() error {
 	return e.Cause
 }
 
+// Is supports errors.Is(jsonErr, gsrcore.ErrGSR) — every JsonDeserializationError
+// is by definition a Glue Schema Registry error. Matches the parity contract
+// in pkg/gsrserde-go/core/errors.go: SerializationError, DeserializationError.
+// Note: this only fast-paths the ErrGSR match. Other targets (e.g.,
+// gsrcore.ErrMalformedJSON) flow through Unwrap() against the Cause chain.
+// Phase 4.12 §4 invariant.
+func (e *JsonDeserializationError) Is(target error) bool {
+	return target == gsrcore.ErrGSR
+}
+
 // JsonValidationError represents an error that occurred during JSON validation
 type JsonValidationError struct {
 	Message string

@@ -43,6 +43,41 @@ var (
 	ErrNilDescriptor = fmt.Errorf("%w: protobuf deserializer: message descriptor cannot be nil", gsrcore.ErrInvalidProtobufPayload)
 )
 
+// ProtobufDeserializationError represents an error that occurred during Protobuf
+// deserialization. Mirrors JsonDeserializationError / AvroDeserializationError
+// shape so the three format wrappers have a consistent surface (Phase 4.12 §4
+// sentinel registry: row "*protobuf.ProtobufDeserializationError"). PBI-4.12-4
+// uses this wrapper when wiring proto.Unmarshal failures with
+// gsrcore.ErrMalformedProtobuf in the Cause chain so callers can match either
+// via errors.As against the wrapper type OR via errors.Is against the sentinel.
+type ProtobufDeserializationError struct {
+	Message string
+	Cause   error
+}
+
+func (e *ProtobufDeserializationError) Error() string {
+	if e.Cause != nil {
+		return fmt.Sprintf("protobuf deserialization error: %s: %v", e.Message, e.Cause)
+	}
+	return fmt.Sprintf("protobuf deserialization error: %s", e.Message)
+}
+
+// Unwrap exposes the Cause so errors.Is / errors.As traverse the chain.
+// Required by PBI-4.12-4 so errors.Is(err, gsrcore.ErrMalformedProtobuf)
+// resolves through this wrapper to the sentinel embedded in Cause.
+func (e *ProtobufDeserializationError) Unwrap() error {
+	return e.Cause
+}
+
+// Is supports errors.Is(protobufErr, gsrcore.ErrGSR) — every
+// ProtobufDeserializationError is by definition a Glue Schema Registry error.
+// Matches the parity contract on JsonDeserializationError /
+// AvroDeserializationError. Other targets (e.g., gsrcore.ErrMalformedProtobuf)
+// flow through Unwrap() against the Cause chain. Phase 4.12 §4 invariant.
+func (e *ProtobufDeserializationError) Is(target error) bool {
+	return target == gsrcore.ErrGSR
+}
+
 // ProtobufDeserializer implements the DataFormatDeserializer interface for protobuf messages.
 // It supports proto2 and proto3 without extensions or groups.
 type ProtobufDeserializer struct {

@@ -42,6 +42,16 @@ func (e *AvroDeserializationError) Unwrap() error {
 	return e.Cause
 }
 
+// Is supports errors.Is(avroErr, gsrcore.ErrGSR) — every AvroDeserializationError
+// is by definition a Glue Schema Registry error. Matches the parity contract
+// in pkg/gsrserde-go/core/errors.go: SerializationError, DeserializationError.
+// Note: this only fast-paths the ErrGSR match. Other targets (e.g.,
+// gsrcore.ErrMalformedAvro) flow through Unwrap() against the Cause chain.
+// Phase 4.12 §4 invariant.
+func (e *AvroDeserializationError) Is(target error) bool {
+	return target == gsrcore.ErrGSR
+}
+
 // AvroDeserializer handles deserialization of AVRO messages using goavro.
 // It deserializes AVRO binary data back to Go structs.
 type AvroDeserializer struct {

@@ -54,6 +54,28 @@ var ErrSchemaAutoRegistrationDisabled = fmt.Errorf("%w: schema auto-registration
 // when an object is not an instance of com.google.protobuf.Message.
 var ErrInvalidProtobufPayload = fmt.Errorf("%w: value is not a valid protobuf message", ErrGSR)
 
+// ErrMalformedJSON is the per-format sentinel for a JSON payload that fails
+// the JSON deserializer's malformed-payload contract (non-UTF-8, syntactic
+// failure, or schema-validation failure). Wraps ErrGSR so callers can
+// errors.Is at either granularity. Phase 4.12 §3.9 item 26 / §4.
+var ErrMalformedJSON = fmt.Errorf("%w: malformed JSON", ErrGSR)
+
+// ErrMalformedAvro is the per-format sentinel for an Avro payload that fails
+// the Avro deserializer's malformed-payload contract (decode failure against
+// the writer schema, or invalid Avro binary). Wraps ErrGSR. Phase 4.12 §3.9
+// item 26 / §4.
+var ErrMalformedAvro = fmt.Errorf("%w: malformed Avro", ErrGSR)
+
+// ErrMalformedProtobuf is the per-format sentinel for a Protobuf payload that
+// fails the Protobuf deserializer's malformed-payload contract (proto.Unmarshal
+// failure, or message-type mismatch on a structurally valid payload). Wraps
+// ErrGSR. Note: this sentinel is narrower than ErrInvalidProtobufPayload —
+// ErrInvalidProtobufPayload signals "value is not a protobuf at all" (e.g., a
+// nil descriptor or non-Message Go object), whereas ErrMalformedProtobuf
+// signals "bytes were submitted but failed unmarshal against the descriptor".
+// Both wrap ErrGSR. Phase 4.12 §3.9 item 26 / §4.
+var ErrMalformedProtobuf = fmt.Errorf("%w: malformed Protobuf", ErrGSR)
+
 // SerializationError wraps a failure that originated inside Encode. It carries
 // the original error so errors.Unwrap, errors.Is, and errors.As all chain
 // through to the underlying cause (sentinel, SDK error, parser error, …).
