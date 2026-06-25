@@ -5,7 +5,32 @@ Changes to the GSR Go client live here. The top-level repository
 
 ## Unreleased
 
-<<<<<<< HEAD
+### Reader-schema projection (Phase 4.17)
+
+Added consumer-side reader-schema support for the Avro deserializer,
+achieving parity with Java GSR's `ResolvingDecoder` pattern.
+
+**New config key:** `avroReaderSchema` — the raw Avro schema JSON string
+for the consumer's reader schema. When set, the deserializer projects
+writer-encoded bytes into the reader schema's field shape using Avro
+resolution rules:
+- Fields present in the writer but absent in the reader are dropped
+- Fields present in the reader but absent in the writer get their defaults
+- Type promotions apply (int->long, float->double, string<->bytes)
+
+When unset (default), decode uses the writer schema alone — backward
+compatible with all existing consumers.
+
+**Validation:** non-empty values that are not parseable as Avro JSON fail
+at `LoadConfigFromMap` time with `ErrInvalidAvroReaderSchema`.
+
+**API entry point used:** `hamba/avro/v2.NewSchemaCompatibility().Resolve(reader, writer)`
+followed by `avro.Unmarshal(resolvedSchema, data, &dest)`.
+
+Java reference: `GlueSchemaRegistryDefaultDeserializer` uses
+`ResolvingDecoder` from Apache Avro to achieve the same projection when a
+consumer-side `readerSchema` is provided.
+
 ### Phase 4.16 fixture coverage
 
 Added shared multilang fixture test coverage for the Go GSR client, organized
