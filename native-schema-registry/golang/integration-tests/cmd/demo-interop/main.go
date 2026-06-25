@@ -137,65 +137,50 @@ func main() {
 	cleanupAndExit(exitCode)
 }
 
-// printSummary renders the results table and returns 0 if all pass, 1 otherwise.
+// printSummary renders the Markdown-style results table per PBI-04 and returns
+// 0 if all scenarios pass, 1 otherwise.
 func printSummary(results []ScenarioResult) int {
 	fmt.Println()
-	printSeparator()
-	fmt.Println("  DEMO RESULTS")
-	printSeparator()
+	printStage("demo", "=== Summary ===")
 	fmt.Println()
 
 	if len(results) == 0 {
-		fmt.Println("  (no scenarios ran — runAllScenarios is a placeholder in PBI-01)")
+		fmt.Println("  (no scenarios ran)")
 		fmt.Println()
 		return 0
 	}
 
-	// Build per-format rows (Direction A and B).
-	type row struct {
-		format  string
-		dirA    string
-		dirB    string
-	}
-	rowMap := map[string]*row{}
-	order := []string{}
+	// Markdown-style table: | Direction | Format | Compression | Schema Version | Result |
+	fmt.Println("| Direction | Format | Compression | Schema Version | Result |")
+	fmt.Println("|-----------|--------|-------------|----------------|--------|")
+
+	passing := 0
+	total := len(results)
 	for _, r := range results {
-		if _, ok := rowMap[r.Format]; !ok {
-			rowMap[r.Format] = &row{format: r.Format, dirA: "—", dirB: "—"}
-			order = append(order, r.Format)
+		direction := "Java->Go"
+		if r.Direction == "B" {
+			direction = "Go->Java"
 		}
 		status := "PASS"
 		if !r.Pass {
 			status = "FAIL"
+		} else {
+			passing++
 		}
-		switch r.Direction {
-		case "A":
-			rowMap[r.Format].dirA = status
-		case "B":
-			rowMap[r.Format].dirB = status
+		svID := r.SchemaVersionID
+		if svID == "" {
+			svID = "(none)"
 		}
+		// Truncate UUID for table readability (first 8 chars).
+		if len(svID) > 8 {
+			svID = svID[:8] + "..."
+		}
+		fmt.Printf("| %-9s | %-6s | %-11s | %-14s | %-6s |\n",
+			direction, r.Format, "NONE", svID, status)
 	}
 
-	fmt.Printf("  %-14s  %-23s  %-23s\n", "Format", "Direction A (Java→Go)", "Direction B (Go→Java)")
-	fmt.Printf("  %-14s  %-23s  %-23s\n",
-		"──────────────",
-		"─────────────────────",
-		"─────────────────────")
-	passing := 0
-	total := 0
-	for _, f := range order {
-		r := rowMap[f]
-		fmt.Printf("  %-14s  %-23s  %-23s\n", r.format, r.dirA, r.dirB)
-		if r.dirA == "PASS" {
-			passing++
-		}
-		if r.dirB == "PASS" {
-			passing++
-		}
-		total += 2
-	}
 	fmt.Println()
-	fmt.Printf("  Total: %d/%d PASS\n", passing, total)
+	fmt.Printf("Total: %d PASS / %d FAIL / %d TOTAL\n", passing, total-passing, total)
 	fmt.Println()
 
 	if passing == total && total > 0 {
