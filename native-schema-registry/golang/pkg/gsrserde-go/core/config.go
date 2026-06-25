@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	hambaavro "github.com/hamba/avro/v2"
 	smithymiddleware "github.com/aws/smithy-go/middleware"
 )
 
@@ -37,6 +38,7 @@ const (
 	ConfigKeyUserAgentApp                = "userAgentApp"
 	ConfigKeyAssumeRoleArn               = "assumeRoleArn"
 	ConfigKeyAssumeRoleSessionName       = "assumeRoleSessionName"
+	ConfigKeyAvroReaderSchema             = "avroReaderSchema"
 	ConfigKeySchemaNameGenerationClass   = "schemaNameGenerationClass"
 
 	// TransportMetadataKey is the canonical schema-version metadata key under
@@ -92,6 +94,7 @@ type Config struct {
 	CacheSize                     int
 
 	AvroRecordType        string
+	AvroReaderSchema      string
 	ProtobufMessageType   string
 	UserAgentApp          string
 	// EffectiveUserAgentApp carries the resolved value used by the User-Agent
@@ -269,6 +272,17 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		}
 	}
 
+	// Validate avroReaderSchema at config-construction time: if non-empty, the
+	// value must be parseable as valid Avro JSON. Fail fast with a typed
+	// sentinel error so callers get a clear diagnostic rather than a cryptic
+	// runtime failure inside the decode path.
+	avroReaderSchema := configMap[ConfigKeyAvroReaderSchema]
+	if avroReaderSchema != "" {
+		if err := validateAvroReaderSchema(avroReaderSchema); err != nil {
+			return nil, err
+		}
+	}
+
 	// Synthesize the default description AFTER region + registryName have been
 	// resolved so the registry-name segment reflects the post-default fallback
 	// (e.g. "default-registry"), not the raw configMap value. Mirrors Java
@@ -295,6 +309,7 @@ func LoadConfigFromMap(configMap map[string]string) (*Config, error) {
 		CacheSize:                     cacheSize,
 
 		AvroRecordType:            avroRecordType,
+		AvroReaderSchema:          avroReaderSchema,
 		ProtobufMessageType:       protobufMessageType,
 		UserAgentApp:              configMap[ConfigKeyUserAgentApp],
 		EffectiveUserAgentApp:     effectiveUserAgent,
@@ -402,6 +417,18 @@ var validCompatibilities = map[string]struct{}{
 func validateCompatibility(value string) error {
 	if _, ok := validCompatibilities[value]; !ok {
 		return fmt.Errorf("%w: %q", ErrInvalidCompatibility, value)
+	}
+	return nil
+}
+
+// validateAvroReaderSchema rejects a non-empty avroReaderSchema value that
+// cannot be parsed as valid Avro JSON by hamba/avro/v2.Parse. The check is
+// performed at LoadConfigFromMap time so callers get a clear config-time
+// error (ErrInvalidAvroReaderSchema) rather than a cryptic runtime failure
+// inside the decode path.
+func validateAvroReaderSchema(value string) error {
+	if _, err := hambaavro.Parse(value); err != nil {
+		return fmt.Errorf("%w: %v", ErrInvalidAvroReaderSchema, err)
 	}
 	return nil
 }

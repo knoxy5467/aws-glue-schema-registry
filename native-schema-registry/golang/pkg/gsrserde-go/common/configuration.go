@@ -55,6 +55,14 @@ type Configuration struct {
 	// the payload, because proto.Clone deep-copies the entire template before
 	// unmarshaling over it.
 	ProtobufPOJOMessage proto.Message
+
+	// AvroReaderSchema is the consumer-side reader schema for Avro deserialization.
+	// When set, the deserializer projects writer-encoded bytes into this reader
+	// schema's shape using Avro resolution rules (drop unknown fields, fill defaults
+	// for new fields, type promotion). When unset (default), decode uses the writer
+	// schema alone — equivalent to the producer's exact shape. Matches Java GSR's
+	// reader-schema support; Confluent Go SDK calls this the "destination schema."
+	AvroReaderSchema string
 }
 var (
 
@@ -82,6 +90,7 @@ func (c *Configuration) buildConfigs(configs map[string]interface{}) {
 	c.validateAndSetAvroSpecificType(configs)
 	c.validateAndSetProtobufMessageType(configs)
 	c.validateAndSetProtobufPOJOMessage(configs)
+	c.validateAndSetAvroReaderSchema(configs)
 }
 func (c *Configuration) validateAndSetGsrConfig(configs map[string]interface{}) {
 	if val, ok := configs[GSRConfigPathKey]; ok {
@@ -143,6 +152,14 @@ func (c *Configuration) validateAndSetJSONObjectType(configs map[string]interfac
 	if val, ok := configs[JSONObjectTypeKey]; ok {
 		if jsonType, ok := val.(reflect.Type); ok {
 			c.JsonObjectType = jsonType
+		}
+	}
+}
+
+func (c *Configuration) validateAndSetAvroReaderSchema(configs map[string]interface{}) {
+	if val, ok := configs[AvroReaderSchemaKey]; ok {
+		if readerSchema, ok := val.(string); ok {
+			c.AvroReaderSchema = readerSchema
 		}
 	}
 }
