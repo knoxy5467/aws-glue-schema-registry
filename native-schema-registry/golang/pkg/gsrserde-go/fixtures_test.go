@@ -24,11 +24,32 @@ import (
 
 // protoSkipList contains files we intentionally skip. Each entry documents why.
 var protoSkipList = map[string]string{
-	// php_generic_services was removed from google.protobuf.FileOptions in
-	// protobuf v27+ (2024). The fixture uses this deprecated option which
-	// protocompile (using the modern descriptor) rightfully rejects.
-	// This is a fixture artifact, not a parser bug.
-	"TestOrderingSyntax3Options.proto": "uses removed php_generic_services option (protobuf v27+ dropped it)",
+	// Known Java-vs-Go parity gap, NOT a Go parser bug:
+	//
+	// Java GSR is pinned at protobuf-java 3.25.5 (root pom.xml:protobuf.version)
+	// and successfully parses this fixture — FileDescriptorUtils.java:82-89 has
+	// dedicated PHP_GENERIC_SERVICES_OPTION handling that calls
+	// FileOptions.newBuilder().setPhpGenericServices(...). FileDescriptorUtilsTest
+	// (line 64) covers this fixture via TestOrderingSyntax3Options.getDescriptor().
+	//
+	// Go GSR uses modern google.golang.org/protobuf (v1.36+) which treats
+	// php_generic_services as a *reserved* field on google.protobuf.FileOptions
+	// (the option's descriptor entry is marked R\x14php_generic_services in
+	// descriptor.pb.go). bufbuild/protocompile correctly rejects attempts to
+	// set the option: "field php_generic_services of google.protobuf.FileOptions
+	// does not exist."
+	//
+	// Customer impact: schemas with `option php_generic_services = true;` (or
+	// related deprecated PHP/Python/C++/Java *_generic_services options) register
+	// fine on Java GSR but fail to parse on Go GSR. Customers must strip these
+	// options before registration; alternatively, the Go client can be patched
+	// to pre-process the source text. Deferred to Phase 5.
+	//
+	// The gap closes naturally when Java GSR upgrades to protobuf-java v27+ —
+	// at that point Java loses this capability too and reaches Go's behavior.
+	// See: https://protobuf.dev/news/v27-release-notes/ (2024-06) for the
+	// upstream removal.
+	"TestOrderingSyntax3Options.proto": "Java parity gap: protobuf-java 3.25.5 still accepts php_generic_services; modern Go protobuf (v1.36+) treats it as removed. Deferred to Phase 5.",
 }
 
 func TestSharedFixtures_ProtoParseSweep(t *testing.T) {

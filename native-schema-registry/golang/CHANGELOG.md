@@ -5,6 +5,24 @@ Changes to the GSR Go client live here. The top-level repository
 
 ## Unreleased
 
+### Known parity gap: deprecated `*_generic_services` proto options
+Schemas with `option php_generic_services = true;` (or the related deprecated
+`py_generic_services`, `cc_generic_services`, `java_generic_services` options
+on `google.protobuf.FileOptions`) parse successfully on the Java GSR client
+(pinned at protobuf-java 3.25.5) but fail to parse on the Go GSR client.
+
+Root cause: modern `google.golang.org/protobuf` (v1.36+, used by `bufbuild/protocompile`)
+treats `php_generic_services` as a *removed* field on `FileOptions`. Java's
+pinned protobuf-java 3.25.5 still recognizes it. Upstream protobuf removed
+these options across all language runtimes in protobuf v27 (2024-06); when
+Java GSR upgrades to protobuf-java v27+ the gap closes naturally.
+
+Customer impact: customers with `.proto` schemas using these options must
+strip them before registering with Glue (or normalize the schema at
+registration time). Documented in `pkg/gsrserde-go/fixtures_test.go` via the
+`TestOrderingSyntax3Options.proto` skipList entry. Phase 5 may add a
+pre-process step to the Go parser for full parity; deferred for now.
+
 ### Configuration
 - `LoadConfigFromMap` now synthesizes a default value for `Config.Description`
   of `DEFAULT-DESCRIPTION-<region>-<registryName>` when the `description` key
