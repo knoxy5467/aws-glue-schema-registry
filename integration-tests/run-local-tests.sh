@@ -118,6 +118,8 @@ cleanUpDockerResources || true
 docker-compose up --no-attach localstack &
 sleep 10
 ## Run mvn tests for Kafka and Kinesis Platforms
+## This includes testProduceConsumeWithKafkaLZ4Compression which verifies
+## that at.yawk.lz4:lz4-java works correctly with Kafka's native LZ4 compression
 cd .. && mvn --file integration-tests/pom.xml verify -Psurefire -X && cd integration-tests
 cleanUpDockerResources
 

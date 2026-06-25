@@ -100,3 +100,10 @@ GlueSchemaRegistryKafkaSerializer/GlueSchemaRegistryKafkaDeserializer.
 
 ## Release 1.1.25
 * Upgraded aws-sdk version to fix vulnerabilities
+
+## Release 1.1.26
+* Introduces multilang support for csharp clients
+
+## Release 1.1.27
+* Introduce lz4 shim and dependency upgrade to fix vulnerabilities
+* Updated local integration tests to make requests to local stack syncrounysly to correct for flakyness

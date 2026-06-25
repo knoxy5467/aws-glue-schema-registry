@@ -1,7 +1,7 @@
 # GSR Phase 6 — Cross-language performance baselines
 
 Side-by-side encode/decode throughput numbers for the Go GSR client
-(`native-schema-registry/golang/`) and the upstream Java GSR client
+(`multilang-schema-registry/golang/`) and the upstream Java GSR client
 (`serializer-deserializer/`, `common/`).
 
 **Status: Phase 6.3 — orchestrator + cache + concurrency baselines.**
@@ -353,7 +353,7 @@ runs `benchstat` over them.
 ### Go
 
 ```bash
-cd native-schema-registry/golang
+cd multilang-schema-registry/golang
 make bench-go           # smoke: count=1 benchtime=10x, ~30 s
 make bench-go-full      # full:  count=1 benchtime=1s, ~7 min (core + orchestrator)
 ```
@@ -361,7 +361,7 @@ make bench-go-full      # full:  count=1 benchtime=1s, ~7 min (core + orchestrat
 ### Java
 
 ```bash
-cd native-schema-registry/golang
+cd multilang-schema-registry/golang
 make bench-java          # smoke: -i 1 -wi 1 -f 1 -r 1s, ~5 min
 make bench-java-full     # full:  JMH defaults from @Warmup/@Measurement/@Fork, ~25 min
 ```

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Phase 6 — Java JMH runner. Builds and runs the JMH benchmarks under
-# native-schema-registry/perf/java/.
+# multilang-schema-registry/perf/java/.
 #
 # Defaults are SMOKE settings (-i 1 -wi 1 -f 1 -r 1s) so the script
 # completes in <2 min. Smoke uses ONE warmup iteration (-wi 1, not -wi 0)
@@ -37,7 +37,7 @@ case "$MODE" in
 esac
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-PERF_JAVA="$REPO_ROOT/native-schema-registry/perf/java"
+PERF_JAVA="$REPO_ROOT/multilang-schema-registry/perf/java"
 OUT_DIR="$REPO_ROOT/perf/baselines/java"
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 

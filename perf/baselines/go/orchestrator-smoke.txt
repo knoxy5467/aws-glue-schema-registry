@@ -1,6 +1,6 @@
 goos: linux
 goarch: amd64
-pkg: github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer
+pkg: github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/pkg/gsrserde-go/serializer
 cpu: Intel(R) Xeon(R) Platinum 8175M CPU @ 2.50GHz
 BenchmarkSerializerSerialize/AVRO/NONE/small_100B/warm-48         	      10	     49952 ns/op	   2.00 MB/s	   21420 B/op	     311 allocs/op
 BenchmarkSerializerSerialize/AVRO/NONE/small_100B/cold-48         	      10	     91713 ns/op	   1.09 MB/s	   29484 B/op	     395 allocs/op
@@ -39,10 +39,10 @@ BenchmarkSerializerSerialize/PROTOBUF/ZLIB/medium_10KB/cold-48    	      10	   1
 BenchmarkSerializerSerialize/PROTOBUF/ZLIB/large_1MB/warm-48      	      10	  26699296 ns/op	  39.27 MB/s	 5873537 B/op	     420 allocs/op
 BenchmarkSerializerSerialize/PROTOBUF/ZLIB/large_1MB/cold-48      	      10	  24884351 ns/op	  42.14 MB/s	 5913791 B/op	     502 allocs/op
 PASS
-ok  	github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer	3.425s
+ok  	github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/pkg/gsrserde-go/serializer	3.425s
 goos: linux
 goarch: amd64
-pkg: github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/deserializer
+pkg: github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/pkg/gsrserde-go/deserializer
 cpu: Intel(R) Xeon(R) Platinum 8175M CPU @ 2.50GHz
 BenchmarkDeserializerDeserialize/AVRO/NONE/small_100B/warm-48         	      10	     27745 ns/op	   3.60 MB/s	   11971 B/op	     167 allocs/op
 BenchmarkDeserializerDeserialize/AVRO/NONE/small_100B/cold-48         	      10	     75413 ns/op	   1.33 MB/s	   19837 B/op	     245 allocs/op
@@ -81,4 +81,4 @@ BenchmarkDeserializerDeserialize/PROTOBUF/ZLIB/medium_10KB/cold-48    	      10	
 BenchmarkDeserializerDeserialize/PROTOBUF/ZLIB/large_1MB/warm-48      	      10	  11436336 ns/op	  91.69 MB/s	 3326124 B/op	      47 allocs/op
 BenchmarkDeserializerDeserialize/PROTOBUF/ZLIB/large_1MB/cold-48      	      10	  11339112 ns/op	  92.47 MB/s	 3369228 B/op	     131 allocs/op
 PASS
-ok  	github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/deserializer	1.667s
+ok  	github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/pkg/gsrserde-go/deserializer	1.667s

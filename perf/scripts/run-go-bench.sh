@@ -29,7 +29,7 @@ case "$MODE" in
 esac
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-GO_ROOT="$REPO_ROOT/native-schema-registry/golang"
+GO_ROOT="$REPO_ROOT/multilang-schema-registry/golang"
 OUT_DIR="$REPO_ROOT/perf/baselines/go"
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 

@@ -1,6 +1,6 @@
 goos: linux
 goarch: amd64
-pkg: github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core
+pkg: github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/pkg/gsrserde-go/core
 cpu: Intel(R) Xeon(R) Platinum 8175M CPU @ 2.50GHz
 BenchmarkDecodeWireFormat/AVRO/NONE/small_100B/warm-48         	      10	       448.1 ns/op	 223.16 MB/s	      64 B/op	       2 allocs/op
 BenchmarkDecodeWireFormat/AVRO/NONE/small_100B/cold-48         	      10	     34253 ns/op	   2.92 MB/s	   11436 B/op	      78 allocs/op
@@ -87,4 +87,4 @@ BenchmarkSmoke_Avro_Encode-48                                  	      10	      2
 BenchmarkSmoke_JSON_Encode-48                                  	      10	      2720 ns/op	3764.01 MB/s	   10936 B/op	       4 allocs/op
 BenchmarkSmoke_Protobuf_Encode-48                              	      10	     65443 ns/op	 156.47 MB/s	   58327 B/op	     229 allocs/op
 PASS
-ok  	github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/core	2.734s
+ok  	github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/pkg/gsrserde-go/core	2.734s

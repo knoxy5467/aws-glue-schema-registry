@@ -1,0 +1,319 @@
+/*
+ * Phase 6 — JMH benchmark mirroring the Go bench matrix at
+ * multilang-schema-registry/golang/pkg/gsrserde-go/{core,serializer,deserializer}/
+ * *_bench_test.go.
+ *
+ * Scope:
+ *   - encode/decode the GSR wire format via SerializationDataEncoder /
+ *     GlueSchemaRegistryDeserializerDataParser
+ *   - compression NONE vs ZLIB via GlueSchemaRegistryConfiguration
+ *   - small (100 B) / medium (10 KB) / large (1 MB) payloads
+ *   - format axis: WIRE_ONLY (header-only path) vs PROTOBUF_INDEX (also
+ *     exercises ProtobufWireFormatEncoder.prefixMessageIndexToBytes, which
+ *     is the Java cost we cross-compare against Go's protobuf encoder path)
+ *
+ * Glue is never called: the benchmarks pre-generate a UUID locally and hand
+ * it to the wire-format encoder. There is intentionally NO warm/cold cache
+ * axis on the Java side — the Java SerializationDataEncoder does not consult
+ * any cache; the Go side's cache axis is meaningful because the Go encoder's
+ * fast path includes a Caffeine-equivalent lookup, but on Java the equivalent
+ * cache lives one layer up in GlueSchemaRegistrySerializationFacade (the
+ * higher-level facade we are intentionally NOT benchmarking, since the Go
+ * core-level benches don't either).
+ *
+ * Cross-language comparison: the Go bench computes throughput on the SOURCE
+ * (uncompressed) bytes via b.SetBytes(len(payload)). JMH @Benchmark calls
+ * return one encode/decode per invocation, so the comparable Java metric is
+ * (1_000_000 / avgt_us / 1_000_000 * payloadSize) bytes/s — the README at
+ * perf/README.md does this conversion.
+ */
+package com.amazonaws.services.schemaregistry.perf;
+
+import com.amazonaws.services.schemaregistry.common.configs.GlueSchemaRegistryConfiguration;
+import com.amazonaws.services.schemaregistry.deserializers.GlueSchemaRegistryDeserializerDataParser;
+import com.amazonaws.services.schemaregistry.serializers.SerializationDataEncoder;
+import com.amazonaws.services.schemaregistry.serializers.protobuf.MessageIndexFinder;
+import com.amazonaws.services.schemaregistry.serializers.protobuf.ProtobufWireFormatEncoder;
+import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.DescriptorProtos.DescriptorProto;
+import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
+import com.google.protobuf.DescriptorProtos.FieldDescriptorProto.Type;
+import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
+
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Wire-format encode/decode benchmark.
+ *
+ * JMH defaults applied at the class level (warmup 3 × 1s, measurement 5 × 1s,
+ * fork 2, heap -Xms2g -Xmx2g) match the Phase 6 prompt. Smoke runs override
+ * these from the command line (e.g. `-i 1 -wi 1 -f 1 -r 1s`) — the prompt
+ * notes that full 5-fork runs are the user's call.
+ */
+@State(Scope.Benchmark)
+@BenchmarkMode({Mode.Throughput, Mode.AverageTime})
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@Warmup(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
+@Fork(value = 2, jvmArgs = {"-Xms2g", "-Xmx2g"})
+public class EncodeDecodeBench {
+
+    /** Mirror the Go benchPayloadSizes matrix. */
+    @Param({"100", "10240", "1048576"})
+    public int payloadSize;
+
+    /** NONE vs ZLIB, matching the Go side. Java's GSR enum names map directly. */
+    @Param({"NONE", "ZLIB"})
+    public String compression;
+
+    /**
+     * WIRE_ONLY measures SerializationDataEncoder.write — the GSR 18-byte
+     * header plus compression on the raw payload. PROTOBUF_INDEX wraps the
+     * payload in ProtobufWireFormatEncoder.prefixMessageIndexToBytes FIRST
+     * (the message-index varint + payload concatenation Java's
+     * ProtobufWireFormatEncoder does), then runs the wire-format encode.
+     * The latter mirrors the Go core BenchmarkEncodeWireFormat PROTOBUF
+     * cells; the former mirrors the format-agnostic cells.
+     */
+    @Param({"WIRE_ONLY", "PROTOBUF_INDEX"})
+    public String format;
+
+    /** Source payload — random bytes so zlib doesn't get unrealistic ratios. */
+    private byte[] payload;
+
+    /**
+     * Wire-format bytes the decode benchmark consumes. Rebuilt on each
+     * @Setup. For PROTOBUF_INDEX this is the GSR header + compressed (or not)
+     * (varint-prefix || payload); for WIRE_ONLY it is GSR header + compressed
+     * (or not) raw payload.
+     */
+    private byte[] wirePayload;
+
+    /** Reusable encoder pre-built with the chosen compression. */
+    private SerializationDataEncoder encoder;
+    private GlueSchemaRegistryDeserializerDataParser parser;
+
+    /** Protobuf wire-format encoder + descriptor — only used when format=PROTOBUF_INDEX. */
+    private ProtobufWireFormatEncoder protobufEncoder;
+    private Descriptors.FileDescriptor protobufFileDescriptor;
+    private Descriptors.Descriptor protobufMessageDescriptor;
+
+    /**
+     * Pre-marshaled payload bytes the encode loop prefixes with the
+     * message-index varint. Built once in @Setup so the per-call cost
+     * matches Go's BenchmarkEncodeWireFormat PROTOBUF cells, which pass
+     * an already-marshaled payload []byte to GsrEncoder.Encode (which
+     * then runs only prefixMessageIndexToBytes + compress + header per
+     * iteration). Phase 6.2 review-fix — the previous Java path called
+     * DynamicMessage.newBuilder + setField + toByteArray on every
+     * encode() invocation, inflating Java's PROTOBUF_INDEX column
+     * relative to Go's PROTOBUF column.
+     */
+    private byte[] preMarshaledProtoPayload;
+
+    /**
+     * Pre-computed message-index varint for the perf.Payload message.
+     * In a single-message schema the BFS+lex-sort index is 0, so the
+     * varint is the single byte 0x00 — but we resolve it at @Setup
+     * rather than hardcoding so a future change to the perf schema
+     * (e.g. adding a nested message) still produces the right prefix.
+     */
+    private byte[] messageIndexVarint;
+
+    /**
+     * The schema-version UUID used across every iteration of a benchmark.
+     * Mirrors the Go warm path where the schema-version-id is already
+     * cached; the Go cold path constructs a fresh encoder per iteration
+     * (different work entirely). Java has no equivalent encoder-level
+     * cache to drain, so there is no Java-side cold axis — the cache the
+     * Go bench reset lives one facade layer up.
+     */
+    private UUID schemaVersionId;
+
+    /**
+     * Phase 6.2 review-fix: deterministic xorshift64 → printable-ASCII payload
+     * matching the Go test_helpers.PerfPayload generator byte-for-byte. The
+     * previous SecureRandom-based generator produced incompressible bytes
+     * while the Go side switched to ASCII; the ZLIB cross-language column
+     * was then measuring different inputs. Keeping the seed + alphabet in
+     * lock-step with Go (perf_fixtures.go's PerfPayloadSeed +
+     * PerfPayloadAlphabet, and core/encoder_bench_test.go's matching pair)
+     * is what makes the Java/Go ZLIB MB/s columns directly comparable.
+     */
+    private static final long PERF_PAYLOAD_SEED = 0x9E3779B97F4A7C15L;
+    private static final String PERF_PAYLOAD_ALPHABET =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .";
+
+    private static byte[] generatePerfPayload(int size) {
+        byte[] out = new byte[size];
+        long state = PERF_PAYLOAD_SEED;
+        for (int i = 0; i < size; i++) {
+            // xorshift64 — same operation order + same shift amounts as the
+            // Go generator. Java's long is two's-complement 64-bit; the
+            // bitwise ops below preserve the same bit pattern as Go's
+            // uint64, so the output stream is byte-identical.
+            state ^= state << 13;
+            state ^= state >>> 7;
+            state ^= state << 17;
+            int idx = (int) ((state >>> 16) & 63L);
+            out[i] = (byte) PERF_PAYLOAD_ALPHABET.charAt(idx);
+        }
+        return out;
+    }
+
+    @Setup
+    public void setup() throws Exception {
+        payload = generatePerfPayload(payloadSize);
+
+        Map<String, Object> cfg = new HashMap<>();
+        cfg.put(AWSSchemaRegistryConstants.AWS_REGION, "us-east-2");
+        if ("ZLIB".equals(compression)) {
+            cfg.put(AWSSchemaRegistryConstants.COMPRESSION_TYPE,
+                    AWSSchemaRegistryConstants.COMPRESSION.ZLIB.name());
+        }
+        GlueSchemaRegistryConfiguration gsrConfig = new GlueSchemaRegistryConfiguration(cfg);
+
+        encoder = new SerializationDataEncoder(gsrConfig);
+        parser = GlueSchemaRegistryDeserializerDataParser.getInstance();
+        schemaVersionId = UUID.randomUUID();
+
+        if ("PROTOBUF_INDEX".equals(format)) {
+            protobufFileDescriptor = buildPerfProtobufDescriptor();
+            protobufMessageDescriptor = protobufFileDescriptor.findMessageTypeByName("Payload");
+            protobufEncoder = new ProtobufWireFormatEncoder(new MessageIndexFinder());
+            // Pre-marshal the perf.Payload message once. The encode loop
+            // measures only the varint-prefix concatenation + the GSR
+            // wire-format write — same per-iteration work Go's PROTOBUF
+            // cells measure.
+            DynamicMessage msg = DynamicMessage.newBuilder(protobufMessageDescriptor)
+                    .setField(protobufMessageDescriptor.findFieldByName("blob"),
+                              ByteString.copyFrom(payload))
+                    .build();
+            preMarshaledProtoPayload = msg.toByteArray();
+            // Pre-compute the message-index varint (single byte 0x00 for
+            // index 0 — but resolved via MessageIndexFinder so the bench
+            // survives schema changes).
+            int messageIndex = new MessageIndexFinder()
+                    .getByDescriptor(protobufFileDescriptor, protobufMessageDescriptor);
+            messageIndexVarint = encodeUnsignedVarint(messageIndex);
+        }
+
+        // Pre-build the decode input so the decode benchmark measures only
+        // parser.getPlainData (and decompression for ZLIB).
+        wirePayload = encoder.write(materializeEncoderInput(), schemaVersionId);
+    }
+
+    /**
+     * Encode benchmark. Mirrors Go BenchmarkEncodeWireFormat at the wire-format
+     * level. For PROTOBUF_INDEX, also runs the message-index varint prefix on
+     * each invocation — that's the part the Go protobuf cell measures inside
+     * GsrEncoder.Encode at encoder.go:111-115.
+     */
+    @Benchmark
+    public void encode(Blackhole bh) {
+        bh.consume(encoder.write(materializeEncoderInput(), schemaVersionId));
+    }
+
+    /**
+     * Decode benchmark. Mirrors Go BenchmarkDecodeWireFormat. For
+     * PROTOBUF_INDEX, the test does NOT strip the varint prefix from the
+     * decoder side because Java's stripping lives in
+     * ProtobufWireFormatDecoder.getAndRemoveMessageIndex, which is one layer
+     * above GlueSchemaRegistryDeserializerDataParser — same separation as
+     * the Go side, where stripMessageIndex is called outside DecodeWireFormat.
+     * Keeping decode WIRE_ONLY-equivalent for both format params keeps the
+     * Java decode column directly comparable to the Go core wire-format
+     * decode column.
+     */
+    @Benchmark
+    public void decode(Blackhole bh) {
+        // ByteBuffer.wrap is allocation-cheap; the work measured is parser.getPlainData.
+        ByteBuffer buf = ByteBuffer.wrap(wirePayload);
+        bh.consume(parser.getPlainData(buf));
+    }
+
+    /**
+     * For WIRE_ONLY: pass the raw payload through. For PROTOBUF_INDEX:
+     * concatenate the pre-computed message-index varint with the
+     * pre-marshaled message bytes. The DynamicMessage build +
+     * proto.Marshal + MessageIndexFinder lookup are one-time @Setup
+     * cost — that matches Go's BenchmarkEncodeWireFormat PROTOBUF path,
+     * where enc.Encode receives an already-marshaled payload and the
+     * per-iteration cost is only the varint concat + compress + header.
+     *
+     * The varint-prefix concatenation here replaces what
+     * ProtobufWireFormatEncoder.prefixMessageIndexToBytes does
+     * internally — that method is package-private in schema-registry-serde
+     * 1.1.25, so we inline the byte concat using the cached varint.
+     */
+    private byte[] materializeEncoderInput() {
+        if ("PROTOBUF_INDEX".equals(format)) {
+            byte[] out = new byte[messageIndexVarint.length + preMarshaledProtoPayload.length];
+            System.arraycopy(messageIndexVarint, 0, out, 0, messageIndexVarint.length);
+            System.arraycopy(preMarshaledProtoPayload, 0,
+                    out, messageIndexVarint.length, preMarshaledProtoPayload.length);
+            return out;
+        }
+        return payload;
+    }
+
+    /**
+     * Plain unsigned varint encoder — same algorithm as
+     * CodedOutputStream.writeUInt32NoTag, returned as a byte[] so the
+     * benchmark's encode loop can do a cheap copy rather than a
+     * stream-based write.
+     */
+    private static byte[] encodeUnsignedVarint(int value) {
+        byte[] buf = new byte[5];
+        int pos = 0;
+        while ((value & ~0x7F) != 0) {
+            buf[pos++] = (byte) ((value & 0x7F) | 0x80);
+            value >>>= 7;
+        }
+        buf[pos++] = (byte) (value & 0x7F);
+        byte[] out = new byte[pos];
+        System.arraycopy(buf, 0, out, 0, pos);
+        return out;
+    }
+
+    /**
+     * Builds the same single-message FileDescriptor the Go bench uses
+     * (perf.Payload { bytes blob = 1 }). Matches the BFS+lex-sort message
+     * index 0 used by both languages.
+     */
+    private static Descriptors.FileDescriptor buildPerfProtobufDescriptor() throws Descriptors.DescriptorValidationException {
+        FileDescriptorProto fdProto = FileDescriptorProto.newBuilder()
+                .setName("perf.proto")
+                .setPackage("perf")
+                .setSyntax("proto3")
+                .addMessageType(DescriptorProto.newBuilder()
+                        .setName("Payload")
+                        .addField(FieldDescriptorProto.newBuilder()
+                                .setName("blob")
+                                .setNumber(1)
+                                .setType(Type.TYPE_BYTES)
+                                .build())
+                        .build())
+                .build();
+        return Descriptors.FileDescriptor.buildFrom(fdProto, new Descriptors.FileDescriptor[0]);
+    }
+}
