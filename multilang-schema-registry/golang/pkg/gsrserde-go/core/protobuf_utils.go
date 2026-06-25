@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
@@ -12,6 +13,42 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
+
+// protoDescriptorCache memoizes parseSchemaDefinitionToDescriptor results
+// keyed by the raw schema-definition string (Phase 8B).
+//
+// Why this matters: every PROTOBUF encode passes through
+// prefixMessageIndexToBytes → getMessageIndexFromProtoDefinition →
+// parseSchemaDefinitionToDescriptor. Parsing/linking a protobuf
+// FileDescriptorProto (or .proto text via protoparse) is expensive enough
+// to dominate small-payload throughput; the pre-cache perf README
+// numbers showed protobuf 100 B encode at 1.4 MB/s vs Avro 100 B at
+// 28+ MB/s, and called this out as a deferred optimization.
+//
+// Cache key trade-off: same as the Avro cache — raw text. The protobuf
+// schema-definition string flowing through this path is either base64
+// FileDescriptorProto (GSR canonical form, byte-stable) or .proto text
+// (registered by the customer). Both forms are typically registered once
+// and re-used, so raw-text keying captures the win.
+//
+// Import scope: parseSchemaDefinitionToDescriptor uses
+// protoparse.FileContentsFromMap with a single-file map and no external
+// ImportPaths. The descriptor it produces is a pure function of the
+// schema text — no external dependencies, so caching by schema text alone
+// is correct.
+//
+// Concurrent safety: sync.Map is safe for concurrent Load/Store/LoadOrStore.
+// Returning a shared *desc.FileDescriptor across goroutines is safe;
+// jhump's FileDescriptor is treated as read-only after CreateFileDescriptor
+// returns, and our callers only call read-only accessors
+// (GetMessageTypes, GetFullyQualifiedName).
+//
+// Eviction: unbounded sync.Map. A single application uses a small set of
+// distinct schemas — usually one per registered Glue schema — so the cache
+// size is bounded by the deployment, not by traffic. A bounded LRU would
+// be a future enhancement if a workload rotates through thousands of
+// distinct schemas.
+var protoDescriptorCache sync.Map // map[string]*desc.FileDescriptor
 
 // ConvertBase64SchemaToStringSchema converts base64 FileDescriptorProto to .proto text
 func ConvertBase64SchemaToStringSchema(base64Schema string) (string, error) {
@@ -168,7 +205,37 @@ func getMessageIndexFromProtoDefinition(schemaDefinition, messageType string) (u
 	return 0, fmt.Errorf("%w: %q (sorted candidates: %v)", ErrMessageTypeNotFound, messageType, messageTypes)
 }
 
+// parseSchemaDefinitionToDescriptor parses a protobuf schema definition into
+// a jhump *desc.FileDescriptor, accepting either base64 FileDescriptorProto
+// (GSR canonical form) or .proto text.
+//
+// Results are memoized in protoDescriptorCache keyed by the raw schema text
+// (Phase 8B). The returned *desc.FileDescriptor is shared across calls and
+// MUST be treated as read-only by callers. Errors are NOT cached — a
+// transient parse failure is uncommon, and caching errors risks a
+// poison-pill scenario if jhump/protoreflect behavior changes across
+// versions.
 func parseSchemaDefinitionToDescriptor(schemaDefinition string) (*desc.FileDescriptor, error) {
+	if cached, ok := protoDescriptorCache.Load(schemaDefinition); ok {
+		return cached.(*desc.FileDescriptor), nil
+	}
+
+	fileDesc, err := parseSchemaDefinitionToDescriptorUncached(schemaDefinition)
+	if err != nil {
+		return nil, err
+	}
+
+	// LoadOrStore handles the race where two goroutines parse the same
+	// schema concurrently — one's value wins, both return the winner.
+	actual, _ := protoDescriptorCache.LoadOrStore(schemaDefinition, fileDesc)
+	return actual.(*desc.FileDescriptor), nil
+}
+
+// parseSchemaDefinitionToDescriptorUncached performs the actual parse work
+// without consulting the cache. Split out so the cache wrapper can be
+// disabled cleanly in tests (and so future maintainers see the cache layer
+// as orthogonal to the parse logic).
+func parseSchemaDefinitionToDescriptorUncached(schemaDefinition string) (*desc.FileDescriptor, error) {
 	// Try to parse as base64 FileDescriptorProto first (GSR format)
 	data, err := base64.StdEncoding.DecodeString(schemaDefinition)
 	if err == nil {
@@ -183,24 +250,34 @@ func parseSchemaDefinitionToDescriptor(schemaDefinition string) (*desc.FileDescr
 			}
 		}
 	}
-	
+
 	// If base64 parsing fails, try parsing as text using protoparse
 	parser := protoparse.Parser{
 		ImportPaths:      []string{},
 		InferImportPaths: true,
 	}
-	
+
 	accessor := protoparse.FileContentsFromMap(map[string]string{
 		"schema.proto": schemaDefinition,
 	})
 	parser.Accessor = accessor
-	
+
 	fileDescs, err := parser.ParseFiles("schema.proto")
 	if err != nil || len(fileDescs) == 0 {
 		return nil, err
 	}
-	
+
 	return fileDescs[0], nil
+}
+
+// protoDescriptorCacheClearForTest clears the proto descriptor cache.
+// Exposed only to in-package tests; lower-cased to keep it out of the
+// public API.
+func protoDescriptorCacheClearForTest() {
+	protoDescriptorCache.Range(func(key, _ interface{}) bool {
+		protoDescriptorCache.Delete(key)
+		return true
+	})
 }
 
 // getAllMessageTypesFromDescriptor returns the fully-qualified names of every
