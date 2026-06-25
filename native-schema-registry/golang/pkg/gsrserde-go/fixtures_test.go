@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/bufbuild/protocompile"
+	hambaavro "github.com/hamba/avro/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -192,4 +193,78 @@ func assertMessageStructure(t *testing.T, original, reparsed protoreflect.FileDe
 		assert.Equal(t, origMsg.Fields().Len(), repMsg.Fields().Len(),
 			"%s: message[%d] %s field count mismatch", basename, i, origMsg.Name())
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Test 2: .avsc parse sweep
+// ---------------------------------------------------------------------------
+
+func TestSharedFixtures_AvroParseSweep(t *testing.T) {
+	avroDir, err := filepath.Abs(filepath.Join(".", "..", "..", "..", "shared", "test", "avro"))
+	require.NoError(t, err, "resolving avro dir")
+	_, err = os.Stat(avroDir)
+	require.NoError(t, err, "avro directory must exist: %s", avroDir)
+
+	var total, passed, expectedFailures int
+
+	err = filepath.Walk(avroDir, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if info.IsDir() || !strings.HasSuffix(info.Name(), ".avsc") {
+			return nil
+		}
+
+		rel, relErr := filepath.Rel(avroDir, path)
+		if relErr != nil {
+			return relErr
+		}
+
+		// Use forward slashes for consistent subtest naming.
+		relName := filepath.ToSlash(rel)
+
+		t.Run("avro/"+relName, func(t *testing.T) {
+			total++
+			data, readErr := os.ReadFile(path)
+			require.NoError(t, readErr, "reading %s", relName)
+
+			schemaStr := string(data)
+			schema, parseErr := hambaavro.Parse(schemaStr)
+
+			// Files under negative/malformed/ MUST fail to parse.
+			isMalformed := strings.Contains(relName, "negative/malformed/")
+
+			if isMalformed {
+				require.Error(t, parseErr,
+					"%s: expected parse error for malformed schema", relName)
+				expectedFailures++
+				return
+			}
+
+			// All other files MUST parse cleanly.
+			require.NoError(t, parseErr,
+				"%s: schema must parse cleanly", relName)
+
+			// Round-trip: schema.String() -> re-parse -> compare fingerprints.
+			// We use SHA-256 fingerprints (built into hamba/avro Schema interface)
+			// to confirm structural equality after canonical-form serialization.
+			canonical := schema.String()
+			schema2, parseErr2 := hambaavro.Parse(canonical)
+			require.NoError(t, parseErr2,
+				"%s: re-parse of canonical form failed", relName)
+
+			// Compare SHA-256 fingerprints for structural equality.
+			fp1 := schema.Fingerprint()
+			fp2 := schema2.Fingerprint()
+			assert.Equal(t, fp1, fp2,
+				"%s: fingerprint mismatch after round-trip", relName)
+			passed++
+		})
+
+		return nil
+	})
+	require.NoError(t, err, "walking avro directory")
+
+	t.Logf("avro parser sweep: %d/%d parsed cleanly, %d in negative/malformed/ failed as expected",
+		passed, total, expectedFailures)
 }
