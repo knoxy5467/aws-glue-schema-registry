@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "profile_v1",
+  "name": "Profile",
   "doc": "Base schema for full compatibility testing - COMPAT-019, COMPAT-020, COMPAT-021, COMPAT-022, COMPAT-023, COMPAT-024",
   "fields": [
     {

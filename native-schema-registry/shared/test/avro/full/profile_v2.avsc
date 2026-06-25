@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "profile_v2",
+  "name": "Profile",
   "doc": "Full compatible evolution - only optional field changes with defaults (bidirectional compatibility)",
   "fields": [
     {

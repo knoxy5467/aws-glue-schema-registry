@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "order_v2",
+  "name": "Order",
   "doc": "Forward compatible evolution - added 'status' field, removed optional 'priority' field",
   "fields": [
     {

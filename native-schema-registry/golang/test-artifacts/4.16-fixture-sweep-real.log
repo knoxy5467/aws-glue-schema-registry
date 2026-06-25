@@ -1,0 +1,171 @@
+2026/06/25 01:22:16 github.com/testcontainers/testcontainers-go - Connected to docker: 
+  Server Version: 25.0.16
+  API Version: 1.44
+  Operating System: Amazon Linux 2
+  Total Memory: 189067 MB
+  Testcontainers for Go Version: v0.43.0
+  Resolved Docker Host: unix:///var/run/docker.sock
+  Resolved Docker Socket Path: /var/run/docker.sock
+  Test SessionID: 1fcd09eea228a0f01c10ceb2fd133e9ab535f7548ae0ea3700d98c8b6bcdb762
+  Test ProcessID: d288b4f7-f741-4ec6-9a50-306a4fc10cc9
+2026/06/25 01:22:16 🐳 Creating container for image confluentinc/confluent-local:7.6.1
+2026/06/25 01:22:16 🐳 Creating container for image testcontainers/ryuk:0.14.0
+2026/06/25 01:22:16 ✅ Container created: 25be0d16c1ae
+2026/06/25 01:22:16 🐳 Starting container: 25be0d16c1ae
+2026/06/25 01:22:16 ✅ Container started: 25be0d16c1ae
+2026/06/25 01:22:16 ⏳ Waiting for container id 25be0d16c1ae image: testcontainers/ryuk:0.14.0. Waiting for: all of: [log message "Started", port 8080/tcp to be listening]
+2026/06/25 01:22:17 Shell not executable in container, only external port validated
+2026/06/25 01:22:17 🔔 Container is ready: 25be0d16c1ae
+2026/06/25 01:22:17 ✅ Container created: 9d4171f187ec
+2026/06/25 01:22:17 🐳 Starting container: 9d4171f187ec
+2026/06/25 01:22:21 ✅ Container started: 9d4171f187ec
+2026/06/25 01:22:21 🔔 Container is ready: 9d4171f187ec
+=== RUN   TestFixtureAvroEvolution_Real
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/backward
+=== PAUSE TestFixtureAvroEvolution_Real/fixture-avro-evolution/backward
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/forward
+=== PAUSE TestFixtureAvroEvolution_Real/fixture-avro-evolution/forward
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/full
+=== PAUSE TestFixtureAvroEvolution_Real/fixture-avro-evolution/full
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/disabled
+=== PAUSE TestFixtureAvroEvolution_Real/fixture-avro-evolution/disabled
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/none
+=== PAUSE TestFixtureAvroEvolution_Real/fixture-avro-evolution/none
+=== CONT  TestFixtureAvroEvolution_Real/fixture-avro-evolution/backward
+=== CONT  TestFixtureAvroEvolution_Real/fixture-avro-evolution/disabled
+=== CONT  TestFixtureAvroEvolution_Real/fixture-avro-evolution/full
+=== CONT  TestFixtureAvroEvolution_Real/fixture-avro-evolution/forward
+=== CONT  TestFixtureAvroEvolution_Real/fixture-avro-evolution/none
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/backward/user_v1.avsc
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/full/profile_v1.avsc
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/disabled/single.avsc
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/none/test_v1.avsc
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/forward/order_v1.avsc
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/none/test_v2.avsc
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/backward/user_v2.avsc
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/full/profile_v2.avsc
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/forward/order_v2.avsc
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/backward/user_v3.avsc
+=== RUN   TestFixtureAvroEvolution_Real/fixture-avro-evolution/forward/order_v3.avsc
+--- PASS: TestFixtureAvroEvolution_Real (1.03s)
+    --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/disabled (1.05s)
+        --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/disabled/single.avsc (1.05s)
+    --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/none (1.79s)
+        --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/none/test_v1.avsc (1.00s)
+        --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/none/test_v2.avsc (0.79s)
+    --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/full (2.09s)
+        --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/full/profile_v1.avsc (1.21s)
+        --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/full/profile_v2.avsc (0.88s)
+    --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/forward (2.90s)
+        --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/forward/order_v1.avsc (1.21s)
+        --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/forward/order_v2.avsc (0.83s)
+        --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/forward/order_v3.avsc (0.86s)
+    --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/backward (3.08s)
+        --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/backward/user_v1.avsc (1.17s)
+        --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/backward/user_v2.avsc (0.87s)
+        --- PASS: TestFixtureAvroEvolution_Real/fixture-avro-evolution/backward/user_v3.avsc (1.04s)
+=== RUN   TestFixtureAvroNegativeEvolution_Real
+=== RUN   TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/backward
+=== PAUSE TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/backward
+=== RUN   TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/forward
+=== PAUSE TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/forward
+=== RUN   TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/full
+=== PAUSE TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/full
+=== RUN   TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/disabled
+=== PAUSE TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/disabled
+=== CONT  TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/backward
+=== CONT  TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/full
+=== CONT  TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/disabled
+=== CONT  TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/forward
+=== RUN   TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/forward/product_v2.avsc
+=== RUN   TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/disabled/restricted_v2.avsc
+=== RUN   TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/backward/employee_v2.avsc
+=== RUN   TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/full/account_v2.avsc
+=== RUN   TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/forward/product_v3.avsc
+=== RUN   TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/backward/employee_v3.avsc
+=== RUN   TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/full/account_v3.avsc
+--- PASS: TestFixtureAvroNegativeEvolution_Real (0.71s)
+    --- PASS: TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/disabled (0.98s)
+        --- PASS: TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/disabled/restricted_v2.avsc (0.39s)
+    --- PASS: TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/forward (7.92s)
+        --- PASS: TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/forward/product_v2.avsc (3.62s)
+        --- PASS: TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/forward/product_v3.avsc (3.71s)
+    --- PASS: TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/backward (7.93s)
+        --- PASS: TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/backward/employee_v2.avsc (3.66s)
+        --- PASS: TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/backward/employee_v3.avsc (3.63s)
+    --- PASS: TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/full (8.24s)
+        --- PASS: TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/full/account_v2.avsc (3.72s)
+        --- PASS: TestFixtureAvroNegativeEvolution_Real/fixture-avro-negative/full/account_v3.avsc (3.81s)
+=== RUN   TestFixtureAvroSameVersionInterop_Real
+    fixture_avro_interop_test.go:56: kafkaharness: KAFKA_BROKER=localhost:33030 — skipping testcontainers and using the supplied broker
+=== RUN   TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/backward
+=== PAUSE TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/backward
+=== RUN   TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/forward
+=== PAUSE TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/forward
+=== RUN   TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/full
+=== PAUSE TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/full
+=== CONT  TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/full
+=== CONT  TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/forward
+=== CONT  TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/backward
+=== RUN   TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/full/java-to-go/v1
+=== RUN   TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/forward/java-to-go/v1
+=== RUN   TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/backward/java-to-go/v1
+=== RUN   TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/full/go-to-java/v1
+=== RUN   TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/forward/go-to-java/v1
+=== RUN   TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/backward/go-to-java/v1
+--- PASS: TestFixtureAvroSameVersionInterop_Real (6.59s)
+    --- PASS: TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/full (6.57s)
+        --- PASS: TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/full/java-to-go/v1 (0.85s)
+        --- PASS: TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/full/go-to-java/v1 (2.66s)
+    --- PASS: TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/forward (7.33s)
+        --- PASS: TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/forward/java-to-go/v1 (1.30s)
+        --- PASS: TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/forward/go-to-java/v1 (2.18s)
+    --- PASS: TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/backward (7.52s)
+        --- PASS: TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/backward/java-to-go/v1 (1.29s)
+        --- PASS: TestFixtureAvroSameVersionInterop_Real/fixture-avro-interop/backward/go-to-java/v1 (2.36s)
+=== RUN   TestFixtureProtoInterop_Real
+    fixture_proto_interop_test.go:92: kafkaharness: KAFKA_BROKER=localhost:33030 — skipping testcontainers and using the supplied broker
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/basicSyntax2
+=== PAUSE TestFixtureProtoInterop_Real/fixture-proto-interop/basicSyntax2
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/basicsyntax3
+=== PAUSE TestFixtureProtoInterop_Real/fixture-proto-interop/basicsyntax3
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3OneOfs
+=== PAUSE TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3OneOfs
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3Optional
+=== PAUSE TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3Optional
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/Basic
+=== PAUSE TestFixtureProtoInterop_Real/fixture-proto-interop/Basic
+=== CONT  TestFixtureProtoInterop_Real/fixture-proto-interop/basicsyntax3
+=== CONT  TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3Optional
+=== CONT  TestFixtureProtoInterop_Real/fixture-proto-interop/Basic
+=== CONT  TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3OneOfs
+=== CONT  TestFixtureProtoInterop_Real/fixture-proto-interop/basicSyntax2
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/basicSyntax2/java-to-go
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/basicsyntax3/java-to-go
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/Basic/java-to-go
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3Optional/java-to-go
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3OneOfs/java-to-go
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3Optional/go-to-java
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/Basic/go-to-java
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/basicSyntax2/go-to-java
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/basicsyntax3/go-to-java
+=== RUN   TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3OneOfs/go-to-java
+--- PASS: TestFixtureProtoInterop_Real (8.04s)
+    --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/basicSyntax2 (5.65s)
+        --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/basicSyntax2/java-to-go (2.87s)
+        --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/basicSyntax2/go-to-java (2.78s)
+    --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3Optional (5.65s)
+        --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3Optional/java-to-go (2.86s)
+        --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3Optional/go-to-java (2.79s)
+    --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/basicsyntax3 (5.86s)
+        --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/basicsyntax3/java-to-go (2.93s)
+        --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/basicsyntax3/go-to-java (2.92s)
+    --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/Basic (6.27s)
+        --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/Basic/java-to-go (2.87s)
+        --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/Basic/go-to-java (3.40s)
+    --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3OneOfs (6.83s)
+        --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3OneOfs/java-to-go (4.28s)
+        --- PASS: TestFixtureProtoInterop_Real/fixture-proto-interop/TestSyntax3OneOfs/go-to-java (2.55s)
+PASS
+ok  	github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/tests	48.872s
+=== EXIT: 0 ===

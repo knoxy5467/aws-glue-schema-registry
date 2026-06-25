@@ -64,6 +64,19 @@ GCC is needed in coordination with CGO in order to compile the relevant C librar
    ```
    Solution: Use `go mod edit -replace` to point to the local module path
 
+## Fixture coverage
+
+The Go client is verified against the shared multilang test fixtures in
+`shared/test/avro/` and `shared/test/protos/`. Layer A parses all fixtures
+locally (30+ .proto files via `bufbuild/protocompile`, all .avsc files via
+`hamba/avro/v2`). Layer B registers all Avro evolution fixtures against real
+AWS Glue under backward/forward/full/disabled/none compatibility modes.
+Layer C exercises same-version Java-to-Go and Go-to-Java interop (via real
+Kafka + real Glue) for Avro fixtures in three compatibility modes (with
+multi-version registration as a precondition) and 5 representative protobuf
+fixtures (proto2, proto3, oneOf, complex nesting, all scalar types).
+Cross-version round-trip cells are deferred to Phase 5.
+
 ## Contributing
 
 This module is generated from the main AWS Glue Schema Registry project. To contribute:
