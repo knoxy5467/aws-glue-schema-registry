@@ -184,6 +184,17 @@ func registerDeps(t *testing.T, fd protoreflect.FileDescriptor, reg *protoregist
 		if imp == nil {
 			continue
 		}
+		// Defensive guard: skip placeholder file descriptors that arise from
+		// weak imports (e.g., `import weak "..."`). A placeholder has a valid
+		// non-nil FileDescriptor but zero messages/services and calling
+		// RegisterFile on it can corrupt protodesc re-resolution. No shared
+		// fixture currently uses weak imports (verified via grep), but this
+		// guard is cheap and prevents subtle failures if one is added later.
+		// See: protoreflect.FileImport.IsWeak and godoc for placeholder
+		// descriptors.
+		if imports.Get(i).IsWeak {
+			continue
+		}
 		path := string(imp.Path())
 		if seen[path] {
 			continue

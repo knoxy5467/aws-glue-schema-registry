@@ -126,15 +126,9 @@ func TestFixtureAvroEvolution_Real(t *testing.T) {
 			compat := glueCompatMode[mode]
 			require.NotEmpty(t, compat, "unknown compatibility mode: %s", mode)
 
-			// Build encoder + decoder against real Glue.
-			enc, err := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
-				RegistryName:                  testRegistryName,
-				Compatibility:                 compat,
-				SchemaAutoRegistrationEnabled: true,
-			})
-			require.NoError(t, err, "NewGsrEncoderForTest (%s)", mode)
-			t.Cleanup(func() { _ = enc.Close() })
-
+			// Decoder can be shared across versions — it resolves via the
+			// SchemaVersionId embedded in the GSR wire-format header, not
+			// a local cache keyed on schema definition.
 			dec, err := gsrcore.NewGsrDecoderForTest(h.Client, gsrcore.GsrDecoderOptions{
 				RegistryName: testRegistryName,
 			})
@@ -162,14 +156,29 @@ func TestFixtureAvroEvolution_Real(t *testing.T) {
 					avroBytes, err := hambaavro.Marshal(parsed, record)
 					require.NoError(t, err, "hambaavro.Marshal for %s", fileName)
 
+					// Fresh encoder per version: the encoder's internal schemaCache
+					// is keyed on (schemaName, dataFormat) — NOT on the schema
+					// definition body. If we reuse an encoder across v1/v2/v3, the
+					// cache returns v1's UUID for all subsequent versions, silently
+					// skipping registration of v2+ in Glue. The negative test
+					// (line ~310) demonstrates the same pattern. See code-review
+					// finding #1 (CRITICAL).
+					enc, encErr := gsrcore.NewGsrEncoderForTest(h.Client, gsrcore.GsrEncoderOptions{
+						RegistryName:                  testRegistryName,
+						Compatibility:                 compat,
+						SchemaAutoRegistrationEnabled: true,
+					})
+					require.NoError(t, encErr, "NewGsrEncoderForTest for %s (%s)", fileName, mode)
+					defer func() { _ = enc.Close() }()
+
 					// Encode via GSR encoder (registers the schema version in Glue).
 					schema := &gsrcore.Schema{
 						SchemaDefinition: avscText,
 						SchemaName:       schemaName,
 						DataFormat:       "AVRO",
 					}
-					encoded, err := enc.Encode(avroBytes, schemaName, schema)
-					require.NoError(t, err, "GsrEncoder.Encode for %s (mode=%s)", fileName, mode)
+					encoded, encErr := enc.Encode(avroBytes, schemaName, schema)
+					require.NoError(t, encErr, "GsrEncoder.Encode for %s (mode=%s)", fileName, mode)
 					require.NotEmpty(t, encoded)
 
 					// Decode: strip the GSR wire-format header + decompress.
@@ -181,15 +190,18 @@ func TestFixtureAvroEvolution_Real(t *testing.T) {
 					err = hambaavro.Unmarshal(parsed, decoded, &got)
 					require.NoError(t, err, "hambaavro.Unmarshal for %s (mode=%s)", fileName, mode)
 
-					// Assert key fields match. We don't deep-equal the entire map
-					// because hamba/avro may convert numeric types differently, but
-					// we verify the record round-tripped at least structurally.
+					// Value-by-value assertion: verify each key produced by
+					// buildSampleRecord round-trips correctly. This catches
+					// silent zero-fills and type drift that a structural-only
+					// check (field presence) would miss.
 					require.Equal(t, len(record), len(got),
 						"field count mismatch for %s: want %d, got %d", fileName, len(record), len(got))
-					for key := range record {
-						_, exists := got[key]
+					for key, want := range record {
+						gotVal, exists := got[key]
 						require.True(t, exists,
 							"field %q missing from decoded record for %s", key, fileName)
+						require.Equal(t, want, gotVal,
+							"field %q value mismatch for %s", key, fileName)
 					}
 				})
 			}
@@ -216,10 +228,20 @@ func TestFixtureAvroNegativeEvolution_Real(t *testing.T) {
 	basePath := fixtureAvroBasePath(t)
 	negativeDir := filepath.Join(basePath, "negative")
 
-	// The 4 non-malformed negative subdirectories.
-	modes := []string{"backward", "forward", "full", "disabled"}
+	// Compatibility-checked modes: Glue rejects incompatible versions via
+	// InvalidInputException. We assert strictly on the error type.
+	compatCheckedModes := []string{"backward", "forward", "full"}
 
-	for _, mode := range modes {
+	// DISABLED mode: Glue uses a different rejection code path (not
+	// InvalidInputException). We assert only that a non-nil error is returned.
+	// Separated from the compatCheckedModes to avoid the soft-fallback that
+	// would vacuously pass on transient network errors. See code-review
+	// finding #7.
+	disabledModes := []string{"disabled"}
+
+	allModes := append(compatCheckedModes, disabledModes...)
+
+	for _, mode := range allModes {
 		mode := mode
 		t.Run("fixture-avro-negative/"+mode, func(t *testing.T) {
 			t.Parallel()
@@ -284,6 +306,9 @@ func TestFixtureAvroNegativeEvolution_Real(t *testing.T) {
 			_, err = enc.Encode(v1AvroBytes, schemaName, v1Schema)
 			require.NoError(t, err, "v1 registration must succeed for negative/%s (%s)", mode, avscFiles[0])
 
+			// Determine if this mode should assert InvalidInputException strictly.
+			isCompatChecked := mode == "backward" || mode == "forward" || mode == "full"
+
 			// Step 2: Attempt to register v2+ — each should be rejected.
 			for _, fileName := range avscFiles[1:] {
 				fileName := fileName
@@ -322,21 +347,20 @@ func TestFixtureAvroNegativeEvolution_Real(t *testing.T) {
 					}
 					_, encErr := encV2.Encode(avroBytes, schemaName, incompatSchema)
 
-					// Assert the error chain contains InvalidInputException
-					// (Glue's compatibility-violation error) OR at minimum that
-					// an error occurred.
+					// Strict assertion: registration MUST fail.
 					require.Error(t, encErr,
 						"expected compatibility violation for negative/%s/%s", mode, fileName)
 
-					// Best-effort: assert it's specifically InvalidInputException.
-					var invalidInput *types.InvalidInputException
-					if !errors.As(encErr, &invalidInput) {
-						// Some Glue error shapes surface as wrapped generic errors.
-						// Log but don't hard-fail — the important thing is that
-						// registration was rejected.
-						t.Logf("NOTE: error is not InvalidInputException (type=%T): %v — "+
-							"still a valid rejection for negative/%s/%s", encErr, encErr, mode, fileName)
+					if isCompatChecked {
+						// For backward/forward/full modes, Glue rejects via
+						// InvalidInputException. Assert the specific error type.
+						var invalidInput *types.InvalidInputException
+						require.True(t, errors.As(encErr, &invalidInput),
+							"expected InvalidInputException for negative/%s/%s, got %T: %v",
+							mode, fileName, encErr, encErr)
 					}
+					// For DISABLED mode, any non-nil error is sufficient —
+					// Glue uses a different rejection code path.
 				})
 			}
 		})

@@ -1,20 +1,17 @@
 //go:build integration
 
-// Phase 4.16 Layer C — Java<->Go cross-language interop with shared Avro
-// fixtures.
+// Phase 4.16 Layer C — Same-version Java<->Go interop with multi-version
+// schema registration as precondition.
 //
-// Exercises the multi-version .avsc evolution fixtures (shared/test/avro/)
-// through both directions of the Java sidecar <-> Go client pipeline via a
-// real Kafka broker. Only compatibility modes that test evolution are used:
-// backward, forward, full (dropped: disabled, none — they don't constrain
-// evolution and therefore don't add cross-language interop value).
+// Registers all .avsc fixture versions (shared/test/avro/) in Glue to set up
+// the schema evolution lineage, then round-trips v1 through both directions
+// (Java produce -> Go consume, Go produce -> Java consume). Only backward,
+// forward, and full compatibility modes are exercised (disabled/none don't
+// constrain evolution and add no interop value).
 //
-// For each mode:
-//   1. Reads .avsc files from the fixture directory (sorted alphabetically).
-//   2. Registers all versions in Glue via the Java sidecar (implicit
-//      registration via /kafka-produce to a throwaway topic).
-//   3. Java -> Go: Java produces v1, Go consumes + deserializes.
-//   4. Go -> Java: Go produces v1, Java consumes + deserializes.
+// Cross-version round-trip (e.g., Java writes v1, Go reads against v3) is
+// deferred to Phase 5 — the multi-version registration here sets the stage
+// for those cells but they are not yet implemented.
 //
 // THIS BILLS AWS. Gated by AWS_INTEGRATION=1 + GSR_GLUE=real +
 // GSR_INTEROP_MODE=local.
@@ -44,9 +41,12 @@ import (
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer"
 )
 
-// TestFixtureAvroInterop_Real exercises Java<->Go Avro interop using the
-// shared multilang .avsc fixtures for evolution modes backward/forward/full.
-func TestFixtureAvroInterop_Real(t *testing.T) {
+// TestFixtureAvroSameVersionInterop_Real exercises same-version Java<->Go Avro
+// interop using the shared multilang .avsc fixtures. Multi-version registration
+// is performed as a precondition (to exercise the schema evolution lineage in
+// Glue), but the actual produce/consume round-trip uses v1 only.
+// Cross-version round-trip cells are deferred to Phase 5.
+func TestFixtureAvroSameVersionInterop_Real(t *testing.T) {
 	requireKafkaInterop(t)
 
 	startCtx, startCancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -207,6 +207,12 @@ func TestFixtureAvroInterop_Real(t *testing.T) {
 				// schema via GetSchemaByDefinition.
 				topic := schemaName + "-g2j"
 
+				// Track the schema BEFORE registration so cleanup catches leaks
+				// even if the pre-register call fails partway through (schema
+				// created but error returned). Matches the safe pattern in
+				// fixture_avro_evolution_test.go:124.
+				cleanup.TrackSchema("default-registry", topic)
+
 				// We need to pre-register under topic name for Go's lookup.
 				// Register via Java to the exact topic name so
 				// GetSchemaByDefinition resolves.
@@ -225,7 +231,6 @@ func TestFixtureAvroInterop_Real(t *testing.T) {
 					Compatibility: compat,
 				})
 				require.NoError(t, regErr, "pre-register for Go->Java (%s)", mode)
-				cleanup.TrackSchema("default-registry", topic)
 
 				// Go serializes the v1 record.
 				cfg := buildAvroInteropConfig(real.Region, "NONE")

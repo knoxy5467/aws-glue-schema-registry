@@ -27,11 +27,13 @@ in three layers:
 - **Layer C** (`integration-tests/tests/fixture_avro_interop_test.go` +
   `fixture_proto_interop_test.go`): Java↔Go cross-language interop via the
   Phase 4.13 Java sidecar + real Kafka + real Glue. Avro fixtures exercise
-  backward/forward/full evolution modes in both directions (Java produce →
-  Go consume, Go produce → Java consume). Protobuf fixtures exercise 5
-  representative .proto files (proto2 baseline, proto3 baseline, oneOf,
-  complex nesting, all scalar types) in both directions with same-version
-  round-trip.
+  same-version round-trip in both directions (Java produce → Go consume, Go
+  produce → Java consume) for backward/forward/full modes; multi-version
+  registration sets the stage for future cross-version cells but
+  cross-version round-trip itself is deferred to Phase 5. Protobuf fixtures
+  exercise 5 representative .proto files (proto2 baseline, proto3 baseline,
+  oneOf, complex nesting, all scalar types) in both directions with
+  same-version round-trip.
 
 **Out-of-scope .proto fixtures** (not exercised in any layer):
 - `◉◉◉unicode⏩.proto`

@@ -71,10 +71,11 @@ The Go client is verified against the shared multilang test fixtures in
 locally (30+ .proto files via `bufbuild/protocompile`, all .avsc files via
 `hamba/avro/v2`). Layer B registers all Avro evolution fixtures against real
 AWS Glue under backward/forward/full/disabled/none compatibility modes.
-Layer C exercises cross-language interop (Java sidecar via real Kafka + real
-Glue) for Avro evolution fixtures in three compatibility modes and 5
-representative protobuf fixtures (proto2, proto3, oneOf, complex nesting,
-all scalar types) in both Java-to-Go and Go-to-Java directions.
+Layer C exercises same-version Java-to-Go and Go-to-Java interop (via real
+Kafka + real Glue) for Avro fixtures in three compatibility modes (with
+multi-version registration as a precondition) and 5 representative protobuf
+fixtures (proto2, proto3, oneOf, complex nesting, all scalar types).
+Cross-version round-trip cells are deferred to Phase 5.
 
 ## Contributing
 

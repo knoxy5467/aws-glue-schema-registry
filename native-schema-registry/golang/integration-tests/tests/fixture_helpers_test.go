@@ -100,13 +100,25 @@ func buildSampleValue(schema hambaavro.Schema) interface{} {
 		types := us.Types()
 		// Prefer the first non-null type in the union.
 		for _, t := range types {
-			if t.Type() != hambaavro.Null {
-				val := buildSampleValue(t)
-				// hamba/avro union encoding for map[string]interface{} requires
-				// the value to be wrapped in a map with the type name as key
-				// ONLY for named types (record, enum, fixed). For primitives,
-				// the raw value works directly.
-				return val
+			if t.Type() == hambaavro.Null {
+				continue
+			}
+			// Scalar-branch unions (string, int, long, float, double, bool,
+			// bytes) get a real value — hamba's resolver maps the raw Go type
+			// to the correct union branch automatically.
+			switch t.Type() {
+			case hambaavro.String, hambaavro.Int, hambaavro.Long,
+				hambaavro.Float, hambaavro.Double, hambaavro.Boolean,
+				hambaavro.Bytes:
+				return buildSampleValue(t)
+			default:
+				// Complex/named branches (map, array, record, enum, fixed)
+				// default to nil (picks the null branch). hamba's resolver
+				// cannot map a bare Go map/slice to a named union branch
+				// without explicit type-name wrapping, and these fixtures'
+				// purpose (negative-evolution rejection) doesn't depend on
+				// populating the complex branch. See code-review finding #3.
+				return nil
 			}
 		}
 		// All-null union (unusual but valid).
@@ -248,9 +260,16 @@ func sampleProtoValue(t *testing.T, fd protoreflect.FieldDescriptor) protoreflec
 	case protoreflect.BytesKind:
 		return protoreflect.ValueOfBytes([]byte("data"))
 	case protoreflect.EnumKind:
-		// Use the first enum value (index 0).
+		// Use the LAST enum value (or first non-zero) to guarantee a
+		// non-default value on the wire. In proto3, enum value 0 is the
+		// default and the field is omitted during serialization;
+		// assertProtoFieldsMatch skips fields where !expected.Has(fd), so
+		// picking 0 would silently skip enum round-trip validation.
 		enumValues := fd.Enum().Values()
-		if enumValues.Len() > 0 {
+		if enumValues.Len() > 1 {
+			return protoreflect.ValueOfEnum(enumValues.Get(enumValues.Len() - 1).Number())
+		}
+		if enumValues.Len() == 1 {
 			return protoreflect.ValueOfEnum(enumValues.Get(0).Number())
 		}
 		return protoreflect.ValueOfEnum(0)

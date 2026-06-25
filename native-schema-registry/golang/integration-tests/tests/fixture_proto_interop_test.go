@@ -171,6 +171,10 @@ func TestFixtureProtoInterop_Real(t *testing.T) {
 				// name). Pre-register under the topic name via Java.
 				topic := schemaName + "-g2j"
 
+				// Track the schema BEFORE registration so cleanup catches leaks
+				// even if the pre-register call fails partway through.
+				cleanup.TrackSchema("default-registry", topic)
+
 				javaRecord := map[string]any{
 					"messageTypeFullName": fullName,
 					"fieldsJson":         fieldsJSON,
@@ -186,7 +190,6 @@ func TestFixtureProtoInterop_Real(t *testing.T) {
 					Region:      real.Region,
 				})
 				require.NoError(t, regErr, "pre-register for Go->Java (%s)", fixture.filename)
-				cleanup.TrackSchema("default-registry", topic)
 
 				// Go serializes the dynamic message.
 				cfg := buildProtoInteropConfig(t, real.Region, "NONE", md)
