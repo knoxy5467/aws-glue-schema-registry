@@ -13,16 +13,19 @@
 # order of magnitude as a full run.
 # Pass `--full` to drop the overrides and use the JMH defaults from
 # @Warmup/@Measurement/@Fork on EncodeDecodeBench (3 warmup × 1s,
-# 5 measurement × 1s, fork 2) — that takes ~10 min.
+# 5 measurement × 1s, fork 2) — that takes ~20 min.
 #
 # Output files:
-#   perf/baselines/java/wireformat-<UTC>.txt    timestamped copy
-#   perf/baselines/java/wireformat-smoke.txt    latest smoke run
-#   perf/baselines/java/wireformat-full.txt     latest full run
+#   perf/baselines/java/wireformat-<UTC>.txt      timestamped (EncodeDecodeBench)
+#   perf/baselines/java/wireformat-smoke.txt      latest smoke run
+#   perf/baselines/java/wireformat-full.txt       latest full run
+#   perf/baselines/java/orchestrator-<UTC>.txt    timestamped (OrchestratorBench)
+#   perf/baselines/java/orchestrator-smoke.txt    latest smoke run
+#   perf/baselines/java/orchestrator-full.txt     latest full run
 #
 # Usage:
 #   perf/scripts/run-java-bench.sh           # smoke
-#   perf/scripts/run-java-bench.sh --full    # full (~10 min)
+#   perf/scripts/run-java-bench.sh --full    # full (~20 min)
 #
 set -euo pipefail
 
@@ -60,12 +63,20 @@ case "$MODE" in
     --full|full) MODE_LABEL=full ;;
 esac
 
-echo "==> JMH benchmark ($MODE_LABEL): java -jar benchmarks.jar $JMH_FLAGS"
-java -jar "$JAR" $JMH_FLAGS 2>&1 | tee "$OUT_DIR/wireformat-$TS.txt"
+# Run EncodeDecodeBench (wire-format level)
+echo "==> JMH EncodeDecodeBench ($MODE_LABEL): java -jar benchmarks.jar EncodeDecodeBench $JMH_FLAGS"
+java -jar "$JAR" "EncodeDecodeBench" $JMH_FLAGS 2>&1 | tee "$OUT_DIR/wireformat-$TS.txt"
 cp "$OUT_DIR/wireformat-$TS.txt" "$OUT_DIR/wireformat-$MODE_LABEL.txt"
+
+# Run OrchestratorBench (Kafka serializer/deserializer level)
+echo "==> JMH OrchestratorBench ($MODE_LABEL): java -jar benchmarks.jar OrchestratorBench $JMH_FLAGS"
+java -jar "$JAR" "OrchestratorBench" $JMH_FLAGS 2>&1 | tee "$OUT_DIR/orchestrator-$TS.txt"
+cp "$OUT_DIR/orchestrator-$TS.txt" "$OUT_DIR/orchestrator-$MODE_LABEL.txt"
 
 echo
 echo "Wrote:"
 echo "  $OUT_DIR/wireformat-$TS.txt"
+echo "  $OUT_DIR/orchestrator-$TS.txt"
 echo "Updated:"
 echo "  $OUT_DIR/wireformat-$MODE_LABEL.txt"
+echo "  $OUT_DIR/orchestrator-$MODE_LABEL.txt"
