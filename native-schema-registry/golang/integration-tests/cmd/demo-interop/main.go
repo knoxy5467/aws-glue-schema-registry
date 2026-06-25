@@ -130,7 +130,7 @@ func main() {
 	fmt.Println()
 
 	// ── Run scenarios ─────────────────────────────────────────────────────────
-	results := runAllScenarios(ctx, sc, broker, cleanup)
+	results := runAllScenarios(ctx, sc, broker, cleanup, region)
 
 	// ── Summary ───────────────────────────────────────────────────────────────
 	exitCode := printSummary(results)
