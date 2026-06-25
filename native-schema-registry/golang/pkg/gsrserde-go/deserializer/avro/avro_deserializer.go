@@ -117,13 +117,39 @@ func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 		}
 	}
 
-	// Parse AVRO schema using hamba/avro
-	avroSchema, err := hambaavro.Parse(schema.SchemaDefinition)
+	// Parse the writer schema (from the GSR header's resolved schema-version UUID).
+	writerSchema, err := hambaavro.Parse(schema.SchemaDefinition)
 	if err != nil {
 		return nil, &AvroDeserializationError{
 			Message: "failed to parse AVRO schema",
 			Cause:   err,
 		}
+	}
+
+	// Resolve the effective decode schema. When AvroReaderSchema is set, use
+	// hamba/avro/v2's SchemaCompatibility.Resolve to produce a composite schema
+	// that maps writer-encoded bytes into the reader's field shape: drops fields
+	// the reader doesn't know about, fills defaults for fields the reader added,
+	// and applies type-promotion rules (int->long, float->double, etc.).
+	// This matches Java GSR's ResolvingDecoder pattern.
+	avroSchema := writerSchema
+	if d.config.AvroReaderSchema != "" {
+		readerSchema, err := hambaavro.Parse(d.config.AvroReaderSchema)
+		if err != nil {
+			return nil, &AvroDeserializationError{
+				Message: "failed to parse reader schema",
+				Cause:   err,
+			}
+		}
+		sc := hambaavro.NewSchemaCompatibility()
+		resolved, err := sc.Resolve(readerSchema, writerSchema)
+		if err != nil {
+			return nil, &AvroDeserializationError{
+				Message: "reader schema is incompatible with writer schema",
+				Cause:   err,
+			}
+		}
+		avroSchema = resolved
 	}
 
 	// Dispatch based on AvroRecordType.
