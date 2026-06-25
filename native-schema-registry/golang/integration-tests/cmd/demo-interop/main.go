@@ -13,9 +13,10 @@
 //   - Java sidecar JAR built: make java-sidecar-build
 //   - default-registry exists in Glue in us-east-2
 //
-// The binary runs all 6 scenario pairs (3 formats × 2 directions), narrates
-// each step to stdout, cleans up all demo-4.15-* Glue schemas on exit
-// (success or failure), and exits 0 only when all 6 pairs pass.
+// The binary runs all 12 scenario cells (3 formats × 2 directions × 2
+// compressions {NONE, ZLIB}), narrates each step to stdout, cleans up all
+// demo-4.15-* Glue schemas on exit (success or failure), and exits 0 only
+// when all 12 cells pass.
 package main
 
 import (
@@ -66,15 +67,15 @@ func main() {
 	// Run cleanup on exit; captures the current context via the cancel above.
 	cleanupAndExit := func(code int) {
 		fmt.Println()
-		printStage("CLEANUP", "Deleting demo schemas from Glue...")
+		printStage("demo", "Deleting demo schemas from Glue...")
 		cleanCtx, cleanCancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cleanCancel()
 		if err := cleanup.Run(cleanCtx); err != nil {
-			fmt.Fprintf(os.Stderr, "[CLEANUP] Warning: cleanup errors: %v\n", err)
+			fmt.Fprintf(os.Stderr, "[demo] Warning: cleanup errors: %v\n", err)
 		} else {
-			fmt.Println("[CLEANUP] All demo-4.15-* schemas deleted.")
+			fmt.Println("[demo] All demo-4.15-* schemas deleted.")
 		}
-		printStage("DONE", fmt.Sprintf("Demo completed. Exit code: %d", code))
+		printStage("demo", fmt.Sprintf("Demo completed. Exit code: %d", code))
 		printSeparator()
 		os.Exit(code)
 	}
@@ -93,7 +94,7 @@ func main() {
 	printBanner(demoVersion, demoAccountID, region)
 
 	// ── Kafka startup ─────────────────────────────────────────────────────────
-	printStage("STARTUP", "Kafka broker starting (testcontainers-go)...")
+	printStage("demo", "Kafka broker starting (testcontainers-go)...")
 	startCtx, startCancel := context.WithTimeout(ctx, 2*time.Minute)
 	broker, stopBroker, err := kafkaharness.StartShared(startCtx)
 	startCancel()
@@ -106,10 +107,10 @@ func main() {
 			fmt.Fprintf(os.Stderr, "[KAFKA] Stop returned error (non-fatal): %v\n", stopErr)
 		}
 	}()
-	printStage("STARTUP", fmt.Sprintf("Kafka broker ready at %s", broker.Bootstrap))
+	printStage("demo", fmt.Sprintf("Kafka broker ready at %s", broker.Bootstrap))
 
 	// ── Java sidecar startup ──────────────────────────────────────────────────
-	printStage("STARTUP", "Java sidecar starting (local mode)...")
+	printStage("demo", "Java sidecar starting (local mode)...")
 	sidecarCtx, sidecarCancel := context.WithTimeout(ctx, 60*time.Second)
 	sc, err := javasidecar.New(sidecarCtx, javasidecar.Options{
 		StartTimeout: 30 * time.Second,
@@ -126,7 +127,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "[SIDECAR] Stop returned error (non-fatal): %v\n", stopErr)
 		}
 	}()
-	printStage("STARTUP", fmt.Sprintf("Java sidecar ready at %s", sc.BaseURL()))
+	printStage("demo", fmt.Sprintf("Java sidecar ready at %s", sc.BaseURL()))
 	fmt.Println()
 
 	// ── Run scenarios ─────────────────────────────────────────────────────────
@@ -176,7 +177,7 @@ func printSummary(results []ScenarioResult) int {
 			svID = svID[:8] + "..."
 		}
 		fmt.Printf("| %-9s | %-6s | %-11s | %-14s | %-6s |\n",
-			direction, r.Format, "NONE", svID, status)
+			direction, r.Format, r.Compression, svID, status)
 	}
 
 	fmt.Println()

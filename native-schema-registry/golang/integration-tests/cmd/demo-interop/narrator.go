@@ -48,6 +48,7 @@ func printSectionHeader(title string) {
 //	bytes 18+  — serialized payload body
 //
 // label is printed as the top-level heading for the dump block.
+// Each segment line is prefixed with [wire-format] for grep-ability.
 func printHexDump(label string, payload []byte) {
 	fmt.Printf("  %s (%d bytes total):\n", label, len(payload))
 	if len(payload) == 0 {
@@ -56,34 +57,30 @@ func printHexDump(label string, payload []byte) {
 	}
 
 	// Header byte
-	fmt.Printf("    %s\n", formatHexLine(payload[0:1]))
-	fmt.Printf("    ├── Header byte:      0x%02X (GSR v3 wire format)\n", payload[0])
+	printStage("wire-format", fmt.Sprintf("Header byte: 0x%02X (GSR v3 wire format)  %s", payload[0], formatHexLine(payload[0:1])))
 
 	if len(payload) < 2 {
 		return
 	}
 	// Compression byte
-	fmt.Printf("    %s\n", formatHexLine(payload[1:2]))
 	compressionLabel := compressionName(payload[1])
-	fmt.Printf("    ├── Compression byte: 0x%02X (%s)\n", payload[1], compressionLabel)
+	printStage("wire-format", fmt.Sprintf("Compression byte: 0x%02X (%s)  %s", payload[1], compressionLabel, formatHexLine(payload[1:2])))
 
 	if len(payload) < 18 {
-		fmt.Printf("    └── (truncated — expected ≥18 bytes for UUID)\n")
+		printStage("wire-format", "(truncated — expected ≥18 bytes for UUID)")
 		return
 	}
 
 	// 16-byte schema-version UUID
 	uuidBytes := payload[2:18]
-	fmt.Printf("    %s\n", formatHexLine(uuidBytes))
-	fmt.Printf("    ├── Schema version UUID: %s\n", formatUUID(uuidBytes))
+	printStage("wire-format", fmt.Sprintf("Schema version UUID: %s  %s", formatUUID(uuidBytes), formatHexLine(uuidBytes)))
 
 	// Payload body
 	body := payload[18:]
 	if len(body) > 0 {
-		fmt.Printf("    %s\n", formatHexLine(body))
-		fmt.Printf("    └── Payload body: %s (%d bytes)\n", hexString(body), len(body))
+		printStage("wire-format", fmt.Sprintf("Payload body: %d bytes  %s", len(body), formatHexLine(body)))
 	} else {
-		fmt.Printf("    └── Payload body: (empty)\n")
+		printStage("wire-format", "Payload body: (empty)")
 	}
 	fmt.Println()
 }

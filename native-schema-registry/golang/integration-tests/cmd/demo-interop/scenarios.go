@@ -123,15 +123,17 @@ message CrossVersionMessage {
 
 // ---------------------------------------------------------------------------
 // ScenarioResult is the shared result type consumed by PBI-04's summary table.
-// All 6 required fields (PBI-01 contract) are present.
+// All required fields (PBI-01 contract) are present.
 // ---------------------------------------------------------------------------
 
 // ScenarioResult carries the outcome of one scenario (one format × one
-// direction). PBI-02 (Direction A) and PBI-03 (Direction B) populate slices
-// of ScenarioResult; PBI-04 aggregates them into the summary table.
+// direction × one compression). PBI-02 (Direction A) and PBI-03 (Direction B)
+// populate slices of ScenarioResult; PBI-04 aggregates them into the summary
+// table.
 type ScenarioResult struct {
 	Format          string // e.g. "AVRO", "JSON", "PROTOBUF"
 	Direction       string // "A" (Java→Go) or "B" (Go→Java)
+	Compression     string // "NONE" or "ZLIB"
 	Pass            bool
 	Err             error
 	Topic           string
@@ -141,23 +143,27 @@ type ScenarioResult struct {
 }
 
 // ---------------------------------------------------------------------------
-// ScenarioCell carries per-format, per-direction context needed by the
-// scenario runner (PBI-02/03). It is constructed once per format at demo
-// start so both directions share the same schema name and random suffix.
+// ScenarioCell carries per-format, per-direction, per-compression context
+// needed by the scenario runner (PBI-02/03). It is constructed once per
+// (format, compression) at demo start so both directions share the same
+// schema name and random suffix.
 // ---------------------------------------------------------------------------
 
-// ScenarioCell is one (format, direction) cell in the 6-entry demo matrix.
+// ScenarioCell is one (format, direction, compression) cell in the 12-entry
+// demo matrix.
 type ScenarioCell struct {
 	// Format is one of "AVRO", "JSON", "PROTOBUF".
 	Format string
 	// Direction is "A" (Java→Go) or "B" (Go→Java).
 	Direction string
+	// Compression is "NONE" or "ZLIB".
+	Compression string
 	// SchemaName is the Glue schema name, e.g. "demo-4.15-avro-a1b2c3d4".
 	// Both Direction A and Direction B share the same SchemaName for a given
 	// format so Direction B can reuse the versions registered by Direction A.
 	SchemaName string
 	// Topic is the Kafka topic for this cell,
-	// e.g. "demo-4.15-avro-a-a1b2c3d4" or "demo-4.15-avro-b-a1b2c3d4".
+	// e.g. "demo-4.15-avro-a-none-a1b2c3d4" or "demo-4.15-avro-b-zlib-a1b2c3d4".
 	Topic string
 	// ThrowawayTopic is used for the v2 registration step (Direction A) or
 	// the pre-registration step (Direction B).
@@ -262,11 +268,11 @@ func randomSuffix() (string, error) {
 // (Java produces v1, Go consumes). For PROTOBUF, the descriptor is derived
 // at runtime from the v1 schema text via buildDynamicProtoMessage so the demo
 // does not depend on compiled testpb types.
-func buildDemoConfigCellA(region, format, v1Schema string) (*common.Configuration, error) {
+func buildDemoConfigCellA(region, format, compression, v1Schema string) (*common.Configuration, error) {
 	gsrMap := map[string]string{
 		"region":                        region,
 		"registry.name":                 "default-registry",
-		"compression":                   "NONE",
+		"compression":                   compression,
 		"schemaAutoRegistrationEnabled": "true",
 	}
 	configMap := map[string]interface{}{
@@ -331,11 +337,11 @@ func consumeOneRaw(ctx context.Context, bootstrap, topic string) ([]byte, error)
 // formatConfigForPrint builds the human-readable key list for printGoConfig.
 // ---------------------------------------------------------------------------
 
-func configMapForFormat(region, format string) map[string]string {
+func configMapForFormat(region, format, compression string) map[string]string {
 	m := map[string]string{
 		"region":                        region,
 		"registry.name":                 "default-registry",
-		"compression":                   "NONE",
+		"compression":                   compression,
 		"schemaAutoRegistrationEnabled": "true",
 	}
 	switch format {
@@ -475,14 +481,14 @@ func verifyDecodedResult(format string, got interface{}) (bool, error) {
 }
 
 // ---------------------------------------------------------------------------
-// narrateVerify prints [VERIFY] output for a given format / result.
+// narrateVerify prints [verdict] output for a given format / result.
 // ---------------------------------------------------------------------------
 
 func narrateVerify(format string, got interface{}, pass bool, err error) {
-	printStage("VERIFY", "Equality check:")
+	printStage("verdict", "Equality check:")
 	if err != nil {
 		fmt.Printf("  Error decoding result: %v\n", err)
-		printStage("VERIFY", "FAIL — decode error.")
+		printStage("verdict", "FAIL — decode error.")
 		return
 	}
 	switch format {
@@ -527,18 +533,18 @@ func narrateVerify(format string, got interface{}, pass bool, err error) {
 }
 
 // ---------------------------------------------------------------------------
-// runDirectionAFormat runs Direction A for a single format.
+// runDirectionAFormat runs Direction A for a single format × compression cell.
 // ---------------------------------------------------------------------------
 
 // runDirectionAFormat executes Direction A (Java produces v1, Go consumes) for
-// one format. It:
-//  1. Registers v1 schema via Java sidecar (BACKWARD compat), narrated [SCHEMA-V1].
-//  2. Registers v2 schema via a throwaway topic, narrated [SCHEMA-V2].
-//  3. Java sidecar produces a v1 record to the main Direction A topic, [JAVA-PRODUCE].
-//  4. Go deserializer consumes + decodes the framed bytes, [GO-CONSUME].
-//  5. Verifies decoded fields against demo constants, [VERIFY].
+// one format × compression. It:
+//  1. Registers v1 schema via Java sidecar (BACKWARD compat), narrated [glue] + [schema-evolution].
+//  2. Registers v2 schema via a throwaway topic, narrated [glue] + [schema-evolution].
+//  3. Java sidecar produces a v1 record to the main Direction A topic, [java-producer].
+//  4. Go deserializer consumes + decodes the framed bytes, [go-consumer].
+//  5. Verifies decoded fields against demo constants, [verdict].
 //
-// Returns a ScenarioResult for the format.
+// Returns a ScenarioResult for the cell.
 func runDirectionAFormat(
 	ctx context.Context,
 	sc *javasidecar.Sidecar,
@@ -546,20 +552,18 @@ func runDirectionAFormat(
 	cell ScenarioCell,
 ) ScenarioResult {
 	result := ScenarioResult{
-		Format:    cell.Format,
-		Direction: "A",
-		Topic:     cell.Topic,
+		Format:      cell.Format,
+		Direction:   "A",
+		Compression: cell.Compression,
+		Topic:       cell.Topic,
 	}
 
 	// ── Section header ───────────────────────────────────────────────────────
-	printSectionHeader(fmt.Sprintf("FORMAT: %s | Direction A: Java produces at v1, Go consumes", cell.Format))
+	printSectionHeader(fmt.Sprintf("FORMAT: %s | Direction A: Java produces at v1, Go consumes | Compression: %s", cell.Format, cell.Compression))
 
 	// ── Step 1: Register v1 via Java sidecar, main topic ────────────────────
 
-	printStage("SCHEMA-V1", fmt.Sprintf("Registering schema v1 via Java sidecar..."))
-	fmt.Printf("  Schema name:   %s\n", cell.SchemaName)
-	fmt.Printf("  Registry:      %s\n", cell.RegistryName)
-	fmt.Printf("  Compatibility: BACKWARD\n")
+	printStage("glue", fmt.Sprintf("CreateSchema schema=%s registry=%s compatibility=BACKWARD", cell.SchemaName, cell.RegistryName))
 	fmt.Printf("  Schema body:\n")
 	for _, line := range strings.Split(cell.V1Schema, "\n") {
 		fmt.Printf("    %s\n", line)
@@ -577,26 +581,25 @@ func runDirectionAFormat(
 		Schema:        cell.V1Schema,
 		SchemaName:    cell.SchemaName,
 		Record:        record,
-		Compression:   "NONE",
+		Compression:   cell.Compression,
 		Bootstrap:     broker.Bootstrap,
 		Topic:         cell.Topic,
 		Region:        cell.Region,
 		Compatibility: "BACKWARD",
 	})
 	if err != nil {
-		result.Err = fmt.Errorf("SCHEMA-V1 / java produce: %w", err)
-		printStage("SCHEMA-V1", fmt.Sprintf("FAIL: %v", result.Err))
+		result.Err = fmt.Errorf("glue / java produce: %w", err)
+		printStage("glue", fmt.Sprintf("FAIL: %v", result.Err))
 		return result
 	}
 
-	printStage("SCHEMA-V1", fmt.Sprintf("Glue schema-version-id: %s", v1Resp.SchemaVersionID))
+	printStage("schema-evolution", fmt.Sprintf("v1 registered: %s", v1Resp.SchemaVersionID))
 	fmt.Println()
 	result.SchemaVersionID = v1Resp.SchemaVersionID
 
 	// ── Step 2: Register v2 via throwaway topic ──────────────────────────────
 
-	printStage("SCHEMA-V2", "Registering schema v2 (evolution: added optional \"email\" field)...")
-	fmt.Printf("  Schema name: %s (same schema, new version)\n", cell.SchemaName)
+	printStage("glue", fmt.Sprintf("RegisterSchemaVersion schema=%s (v2 evolution: added optional \"email\" field)", cell.SchemaName))
 	fmt.Printf("  Schema body:\n")
 	for _, line := range strings.Split(cell.V2Schema, "\n") {
 		fmt.Printf("    %s\n", line)
@@ -613,26 +616,26 @@ func runDirectionAFormat(
 		Schema:        cell.V2Schema,
 		SchemaName:    cell.SchemaName,
 		Record:        throwawayRecord,
-		Compression:   "NONE",
+		Compression:   cell.Compression,
 		Bootstrap:     broker.Bootstrap,
 		Topic:         cell.ThrowawayTopic,
 		Region:        cell.Region,
 		Compatibility: "BACKWARD",
 	})
 	if err != nil {
-		result.Err = fmt.Errorf("SCHEMA-V2 / register v2: %w", err)
-		printStage("SCHEMA-V2", fmt.Sprintf("FAIL: %v", result.Err))
+		result.Err = fmt.Errorf("glue / register v2: %w", err)
+		printStage("glue", fmt.Sprintf("FAIL: %v", result.Err))
 		return result
 	}
 
-	printStage("SCHEMA-V2", fmt.Sprintf("Glue schema-version-id: %s", v2Resp.SchemaVersionID))
+	printStage("schema-evolution", fmt.Sprintf("v2 registered (BACKWARD-evolution): %s", v2Resp.SchemaVersionID))
 	fmt.Println()
 
 	// ── Step 3: Java sidecar produces v1 record (already done in step 1) ────
 	// The v1 record was already produced to cell.Topic in Step 1 above.
 	// Narrate that produce step now.
 
-	printStage("JAVA-PRODUCE", "Java sidecar producing v1 record to Kafka...")
+	printStage("java-producer", "Java sidecar producing v1 record to Kafka...")
 	fmt.Printf("  Topic:       %s\n", cell.Topic)
 	switch cell.Format {
 	case "AVRO":
@@ -642,55 +645,55 @@ func runDirectionAFormat(
 	case "PROTOBUF":
 		fmt.Printf("  Record:      CrossVersionMessage{id: %q, name: %q, age: %d}\n", demoID, demoName, demoAge)
 	}
-	fmt.Printf("  Compression: NONE\n")
+	fmt.Printf("  Compression: %s\n", cell.Compression)
 	fmt.Println()
 
-	printStage("JAVA-PRODUCE", "Produced. Framed bytes (hex):")
+	printStage("java-producer", "Produced. Framed bytes (hex):")
 	printHexDump("Wire bytes", v1Resp.Bytes)
 
 	// ── Step 4: Go deserializer consumes raw bytes from Kafka ────────────────
 
-	printStage("GO-CONSUME", fmt.Sprintf("Go deserializer consuming from Kafka topic..."))
+	printStage("go-consumer", "Go deserializer consuming from Kafka topic...")
 	fmt.Printf("  Topic: %s\n", cell.Topic)
 	fmt.Println()
 
-	goConfig := configMapForFormat(cell.Region, cell.Format)
+	goConfig := configMapForFormat(cell.Region, cell.Format, cell.Compression)
 	printGoConfig(goConfig)
 
 	consumeCtx, consumeCancel := context.WithTimeout(ctx, 60*time.Second)
 	framed, err := consumeOneRaw(consumeCtx, broker.Bootstrap, cell.Topic)
 	consumeCancel()
 	if err != nil {
-		result.Err = fmt.Errorf("GO-CONSUME / read kafka: %w", err)
-		printStage("GO-CONSUME", fmt.Sprintf("FAIL: %v", result.Err))
+		result.Err = fmt.Errorf("go-consumer / read kafka: %w", err)
+		printStage("go-consumer", fmt.Sprintf("FAIL: %v", result.Err))
 		return result
 	}
 
 	// ── Step 5: Deserialize via Go GSR client ────────────────────────────────
 
-	cfg, err := buildDemoConfigCellA(cell.Region, cell.Format, cell.V1Schema)
+	cfg, err := buildDemoConfigCellA(cell.Region, cell.Format, cell.Compression, cell.V1Schema)
 	if err != nil {
-		result.Err = fmt.Errorf("GO-CONSUME / build config: %w", err)
-		printStage("GO-CONSUME", fmt.Sprintf("FAIL: %v", result.Err))
+		result.Err = fmt.Errorf("go-consumer / build config: %w", err)
+		printStage("go-consumer", fmt.Sprintf("FAIL: %v", result.Err))
 		return result
 	}
 
 	des, err := deserializer.NewDeserializer(cfg)
 	if err != nil {
-		result.Err = fmt.Errorf("GO-CONSUME / NewDeserializer: %w", err)
-		printStage("GO-CONSUME", fmt.Sprintf("FAIL: %v", result.Err))
+		result.Err = fmt.Errorf("go-consumer / NewDeserializer: %w", err)
+		printStage("go-consumer", fmt.Sprintf("FAIL: %v", result.Err))
 		return result
 	}
 	defer des.Close() //nolint:errcheck
 
 	got, err := des.Deserialize(cell.Topic, framed)
 	if err != nil {
-		result.Err = fmt.Errorf("GO-CONSUME / Deserialize: %w", err)
-		printStage("GO-CONSUME", fmt.Sprintf("FAIL: %v", result.Err))
+		result.Err = fmt.Errorf("go-consumer / Deserialize: %w", err)
+		printStage("go-consumer", fmt.Sprintf("FAIL: %v", result.Err))
 		return result
 	}
 
-	printStage("GO-CONSUME", "Deserialized successfully.")
+	printStage("go-consumer", "Deserialized successfully.")
 	fmt.Printf("  Schema version retrieved: %s (v1)\n", v1Resp.SchemaVersionID)
 	fmt.Printf("  Decoded Go value:\n")
 	switch cell.Format {
@@ -737,17 +740,21 @@ func runDirectionAFormat(
 }
 
 // ---------------------------------------------------------------------------
-// runDirectionAWithSuffix — runs Direction A for all 3 formats, returns suffix.
+// runDirectionAWithSuffix — runs Direction A for all 3 formats × 2
+// compressions, returns suffix.
 // ---------------------------------------------------------------------------
 
 // runDirectionAWithSuffix orchestrates Direction A (Java produces v1, Go
-// consumes) for Avro, JSON Schema, and Protobuf. It generates a shared random
-// 8-hex suffix for schema/topic naming, constructs ScenarioCell values for each
-// format, runs each scenario in sequence, and returns the three ScenarioResults
-// plus the suffix so Direction B can reuse the same schema names.
+// consumes) for Avro, JSON Schema, and Protobuf across both NONE and ZLIB
+// compression. It generates a shared random 8-hex suffix for schema/topic
+// naming, constructs ScenarioCell values for each (format, compression),
+// runs each scenario in sequence, and returns the ScenarioResults plus the
+// suffix so Direction B can reuse the same schema names.
 //
 // Per spec §6.3: schema name = "demo-4.15-<format>-<suffix>" (no direction),
-// so Direction B (PBI-03) can reuse the same registered schema.
+// so Direction B (PBI-03) can reuse the same registered schema. Compression
+// does not affect schema registration — the same schema versions are shared
+// across NONE and ZLIB cells.
 //
 // The cleanup argument is used to register each schema for deferred deletion.
 func runDirectionAWithSuffix(
@@ -759,7 +766,7 @@ func runDirectionAWithSuffix(
 ) ([]ScenarioResult, string) {
 	suffix, err := randomSuffix()
 	if err != nil {
-		printStage("ERROR", fmt.Sprintf("runDirectionA: generate suffix: %v", err))
+		printStage("demo", fmt.Sprintf("runDirectionA: generate suffix: %v", err))
 		return []ScenarioResult{}, ""
 	}
 
@@ -774,33 +781,39 @@ func runDirectionAWithSuffix(
 		{"PROTOBUF", "proto", crossVersionProtoV1, crossVersionProtoV2},
 	}
 
+	compressions := []string{"NONE", "ZLIB"}
+
 	var results []ScenarioResult
 	for _, f := range formats {
 		schemaName := fmt.Sprintf("%s%s-%s", demoPrefix, f.fmtLabel, suffix)
-		topic := fmt.Sprintf("%s%s-a-%s", demoPrefix, f.fmtLabel, suffix)
-		throwawayTopic := fmt.Sprintf("%s%s-reg-%s", demoPrefix, f.fmtLabel, suffix)
-
 		cleanup.TrackSchema(demoRegistryName, schemaName)
 
-		cell := ScenarioCell{
-			Format:         f.key,
-			Direction:      "A",
-			SchemaName:     schemaName,
-			Topic:          topic,
-			ThrowawayTopic: throwawayTopic,
-			V1Schema:       f.v1Schema,
-			V2Schema:       f.v2Schema,
-			RecordFields: map[string]interface{}{
-				"id":   demoID,
-				"name": demoName,
-				"age":  demoAge,
-			},
-			Region:       region,
-			RegistryName: demoRegistryName,
-		}
+		for _, comp := range compressions {
+			compLabel := strings.ToLower(comp)
+			topic := fmt.Sprintf("%s%s-a-%s-%s", demoPrefix, f.fmtLabel, compLabel, suffix)
+			throwawayTopic := fmt.Sprintf("%s%s-reg-%s-%s", demoPrefix, f.fmtLabel, compLabel, suffix)
 
-		res := runDirectionAFormat(ctx, sc, broker, cell)
-		results = append(results, res)
+			cell := ScenarioCell{
+				Format:         f.key,
+				Direction:      "A",
+				Compression:    comp,
+				SchemaName:     schemaName,
+				Topic:          topic,
+				ThrowawayTopic: throwawayTopic,
+				V1Schema:       f.v1Schema,
+				V2Schema:       f.v2Schema,
+				RecordFields: map[string]interface{}{
+					"id":   demoID,
+					"name": demoName,
+					"age":  demoAge,
+				},
+				Region:       region,
+				RegistryName: demoRegistryName,
+			}
+
+			res := runDirectionAFormat(ctx, sc, broker, cell)
+			results = append(results, res)
+		}
 	}
 	return results, suffix
 }
@@ -814,11 +827,11 @@ func runDirectionAWithSuffix(
 // buildDemoConfigCellB builds the Go-side Configuration for Direction B
 // (Go produces v1, Java consumes). The serializer needs schemaAutoRegistration
 // enabled and the correct format configuration.
-func buildDemoConfigCellB(region, format, v1Schema string) (*common.Configuration, error) {
+func buildDemoConfigCellB(region, format, compression, v1Schema string) (*common.Configuration, error) {
 	gsrMap := map[string]string{
 		"region":                        region,
 		"registry.name":                 "default-registry",
-		"compression":                   "NONE",
+		"compression":                   compression,
 		"schemaAutoRegistrationEnabled": "true",
 	}
 	configMap := map[string]interface{}{
@@ -1036,11 +1049,11 @@ func narrateVerifyJava(format string, record map[string]any, pass bool, err erro
 }
 
 // ---------------------------------------------------------------------------
-// runDirectionBFormat runs Direction B for a single format.
+// runDirectionBFormat runs Direction B for a single format × compression cell.
 // ---------------------------------------------------------------------------
 
 // runDirectionBFormat executes Direction B (Go produces v1, Java consumes) for
-// one format. It:
+// one format × compression. It:
 //  1. Reuses Direction A's schema registrations (no re-registration).
 //  2. Builds Go serializer with the schema config.
 //  3. Go serializer encodes a v1 record, narrated [go-producer].
@@ -1048,7 +1061,7 @@ func narrateVerifyJava(format string, record map[string]any, pass bool, err erro
 //  5. Java sidecar consumes via KafkaConsume, [java-consumer].
 //  6. Verifies Java's deserialized result matches source record, [verdict].
 //
-// Returns a ScenarioResult for the format.
+// Returns a ScenarioResult for the cell.
 func runDirectionBFormat(
 	ctx context.Context,
 	sc *javasidecar.Sidecar,
@@ -1056,14 +1069,15 @@ func runDirectionBFormat(
 	cell ScenarioCell,
 ) ScenarioResult {
 	result := ScenarioResult{
-		Format:     cell.Format,
-		Direction:  "B",
-		Topic:      cell.Topic,
-		SchemaName: cell.SchemaName,
+		Format:      cell.Format,
+		Direction:   "B",
+		Compression: cell.Compression,
+		Topic:       cell.Topic,
+		SchemaName:  cell.SchemaName,
 	}
 
 	// ── Section header ───────────────────────────────────────────────────────
-	printSectionHeader(fmt.Sprintf("FORMAT: %s | Direction B: Go produces at v1, Java consumes", cell.Format))
+	printSectionHeader(fmt.Sprintf("FORMAT: %s | Direction B: Go produces at v1, Java consumes | Compression: %s", cell.Format, cell.Compression))
 
 	// ── Step 1: Confirm schema reuse (no registration) ──────────────────────
 
@@ -1076,10 +1090,10 @@ func runDirectionBFormat(
 	// ── Step 2: Build Go serializer ─────────────────────────────────────────
 
 	printStage("go-producer", "Building Go serializer...")
-	goConfig := configMapForFormat(cell.Region, cell.Format)
+	goConfig := configMapForFormat(cell.Region, cell.Format, cell.Compression)
 	printGoConfig(goConfig)
 
-	cfg, err := buildDemoConfigCellB(cell.Region, cell.Format, cell.V1Schema)
+	cfg, err := buildDemoConfigCellB(cell.Region, cell.Format, cell.Compression, cell.V1Schema)
 	if err != nil {
 		result.Err = fmt.Errorf("go-producer / build config: %w", err)
 		printStage("go-producer", fmt.Sprintf("FAIL: %v", result.Err))
@@ -1105,7 +1119,7 @@ func runDirectionBFormat(
 	case "PROTOBUF":
 		fmt.Printf("  Record:      CrossVersionMessage{id: %q, name: %q, age: %d}\n", demoID, demoName, demoAge)
 	}
-	fmt.Printf("  Compression: NONE\n")
+	fmt.Printf("  Compression: %s\n", cell.Compression)
 	fmt.Println()
 
 	goRecord, err := goRecordForFormat(cell.Format, cell.V1Schema)
@@ -1184,12 +1198,13 @@ func runDirectionBFormat(
 }
 
 // ---------------------------------------------------------------------------
-// runDirectionB — runs Direction B for all 3 formats.
+// runDirectionB — runs Direction B for all 3 formats × 2 compressions.
 // ---------------------------------------------------------------------------
 
 // runDirectionB orchestrates Direction B (Go produces v1, Java consumes) for
-// Avro, JSON Schema, and Protobuf. It reuses the schema registrations from
-// Direction A (same schema names) but produces to different Kafka topics.
+// Avro, JSON Schema, and Protobuf across both NONE and ZLIB compression. It
+// reuses the schema registrations from Direction A (same schema names) but
+// produces to different Kafka topics.
 //
 // The suffix parameter must match Direction A's suffix so schema names align.
 func runDirectionB(
@@ -1210,31 +1225,38 @@ func runDirectionB(
 		{"PROTOBUF", "proto", crossVersionProtoV1, crossVersionProtoV2},
 	}
 
+	compressions := []string{"NONE", "ZLIB"}
+
 	var results []ScenarioResult
 	for _, f := range formats {
 		// Schema name matches Direction A: no direction suffix in schema name.
 		schemaName := fmt.Sprintf("%s%s-%s", demoPrefix, f.fmtLabel, suffix)
-		// Direction B Kafka topic uses "-b-" to avoid reading Direction A's messages.
-		topic := fmt.Sprintf("%s%s-b-%s", demoPrefix, f.fmtLabel, suffix)
 
-		cell := ScenarioCell{
-			Format:       f.key,
-			Direction:    "B",
-			SchemaName:   schemaName,
-			Topic:        topic,
-			V1Schema:     f.v1Schema,
-			V2Schema:     f.v2Schema,
-			RecordFields: map[string]interface{}{
-				"id":   demoID,
-				"name": demoName,
-				"age":  demoAge,
-			},
-			Region:       region,
-			RegistryName: demoRegistryName,
+		for _, comp := range compressions {
+			compLabel := strings.ToLower(comp)
+			// Direction B Kafka topic uses "-b-" to avoid reading Direction A's messages.
+			topic := fmt.Sprintf("%s%s-b-%s-%s", demoPrefix, f.fmtLabel, compLabel, suffix)
+
+			cell := ScenarioCell{
+				Format:      f.key,
+				Direction:   "B",
+				Compression: comp,
+				SchemaName:  schemaName,
+				Topic:       topic,
+				V1Schema:    f.v1Schema,
+				V2Schema:    f.v2Schema,
+				RecordFields: map[string]interface{}{
+					"id":   demoID,
+					"name": demoName,
+					"age":  demoAge,
+				},
+				Region:       region,
+				RegistryName: demoRegistryName,
+			}
+
+			res := runDirectionBFormat(ctx, sc, broker, cell)
+			results = append(results, res)
 		}
-
-		res := runDirectionBFormat(ctx, sc, broker, cell)
-		results = append(results, res)
 	}
 	return results
 }
@@ -1243,9 +1265,10 @@ func runDirectionB(
 // runAllScenarios — wires Direction A (PBI-02) + Direction B (PBI-03).
 // ---------------------------------------------------------------------------
 
-// runAllScenarios orchestrates the full 6-pair demo (3 formats x 2 directions).
-// Direction A (Java->Go) runs first to register schemas in Glue. Direction B
-// (Go->Java) reuses those registrations by sharing the same random suffix.
+// runAllScenarios orchestrates the full 12-cell demo (3 formats × 2
+// compressions × 2 directions). Direction A (Java->Go) runs first to register
+// schemas in Glue. Direction B (Go->Java) reuses those registrations by
+// sharing the same random suffix.
 func runAllScenarios(
 	ctx context.Context,
 	sc *javasidecar.Sidecar,

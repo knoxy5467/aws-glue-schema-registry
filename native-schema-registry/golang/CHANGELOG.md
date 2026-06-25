@@ -5,6 +5,16 @@ Changes to the GSR Go client live here. The top-level repository
 
 ## Unreleased
 
+### Phase 4.15 demo binary
+- Added `cmd/demo-interop` binary that narrates a full cross-language
+  cross-version interop demo across 12 cells (3 formats × 2 directions × 2
+  compressions {NONE, ZLIB}). Output uses verbatim lowercase tags per spec:
+  `[java-producer]`, `[java-consumer]`, `[go-producer]`, `[go-consumer]`,
+  `[glue]`, `[cache]`, `[kafka]`, `[schema-evolution]`, `[wire-format]`,
+  `[demo]`, `[verdict]`.
+- Deferred to Phase 5: cache-behavior scenarios, auto-register-fall-through
+  scenarios, same-version-baseline scenarios.
+
 ### Configuration
 - `LoadConfigFromMap` now synthesizes a default value for `Config.Description`
   of `DEFAULT-DESCRIPTION-<region>-<registryName>` when the `description` key
