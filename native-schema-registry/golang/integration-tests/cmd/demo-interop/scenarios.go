@@ -32,8 +32,11 @@ import (
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/javasidecar"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/kafkaharness"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/pkg/realglue"
+	gsravro "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/avro"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/common"
 	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/deserializer"
+	"github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer"
+	gsrjson "github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/pkg/gsrserde-go/serializer/json"
 )
 
 // ---------------------------------------------------------------------------
@@ -734,29 +737,30 @@ func runDirectionAFormat(
 }
 
 // ---------------------------------------------------------------------------
-// runDirectionA — runs Direction A for all 3 formats.
+// runDirectionAWithSuffix — runs Direction A for all 3 formats, returns suffix.
 // ---------------------------------------------------------------------------
 
-// runDirectionA orchestrates Direction A (Java produces v1, Go consumes) for
-// Avro, JSON Schema, and Protobuf. It generates a shared random 8-hex suffix
-// for schema/topic naming, constructs ScenarioCell values for each format,
-// runs each scenario in sequence, and returns the three ScenarioResults.
+// runDirectionAWithSuffix orchestrates Direction A (Java produces v1, Go
+// consumes) for Avro, JSON Schema, and Protobuf. It generates a shared random
+// 8-hex suffix for schema/topic naming, constructs ScenarioCell values for each
+// format, runs each scenario in sequence, and returns the three ScenarioResults
+// plus the suffix so Direction B can reuse the same schema names.
 //
 // Per spec §6.3: schema name = "demo-4.15-<format>-<suffix>" (no direction),
 // so Direction B (PBI-03) can reuse the same registered schema.
 //
 // The cleanup argument is used to register each schema for deferred deletion.
-func runDirectionA(
+func runDirectionAWithSuffix(
 	ctx context.Context,
 	sc *javasidecar.Sidecar,
 	broker *kafkaharness.Broker,
 	cleanup *realglue.Cleanup,
 	region string,
-) []ScenarioResult {
+) ([]ScenarioResult, string) {
 	suffix, err := randomSuffix()
 	if err != nil {
 		printStage("ERROR", fmt.Sprintf("runDirectionA: generate suffix: %v", err))
-		return []ScenarioResult{}
+		return []ScenarioResult{}, ""
 	}
 
 	formats := []struct {
@@ -798,16 +802,450 @@ func runDirectionA(
 		res := runDirectionAFormat(ctx, sc, broker, cell)
 		results = append(results, res)
 	}
+	return results, suffix
+}
+
+// ---------------------------------------------------------------------------
+// buildDemoConfigCellB — mirrors buildGoConfigCellB from
+//   integration-tests/tests/interop_crossversion_kafka_test.go (lines 606-634)
+// The testing.T dependency has been removed; errors are returned directly.
+// ---------------------------------------------------------------------------
+
+// buildDemoConfigCellB builds the Go-side Configuration for Direction B
+// (Go produces v1, Java consumes). The serializer needs schemaAutoRegistration
+// enabled and the correct format configuration.
+func buildDemoConfigCellB(region, format, v1Schema string) (*common.Configuration, error) {
+	gsrMap := map[string]string{
+		"region":                        region,
+		"registry.name":                 "default-registry",
+		"compression":                   "NONE",
+		"schemaAutoRegistrationEnabled": "true",
+	}
+	configMap := map[string]interface{}{
+		common.GSRConfigPathKey: gsrMap,
+	}
+	switch format {
+	case "AVRO":
+		configMap[common.DataFormatTypeKey] = common.DataFormatAvro
+		configMap[common.AvroRecordTypeKey] = common.AvroRecordTypeGeneric
+	case "JSON":
+		configMap[common.DataFormatTypeKey] = common.DataFormatJSON
+	case "PROTOBUF":
+		zeroMsg, err := buildDynamicProtoMessage(v1Schema, nil)
+		if err != nil {
+			return nil, fmt.Errorf("buildDemoConfigCellB: build proto descriptor: %w", err)
+		}
+		configMap[common.DataFormatTypeKey] = common.DataFormatProtobuf
+		configMap[common.ProtobufMessageDescriptorKey] = zeroMsg.ProtoReflect().Descriptor()
+	default:
+		return nil, fmt.Errorf("buildDemoConfigCellB: unsupported format %q", format)
+	}
+	return common.NewConfiguration(configMap), nil
+}
+
+// ---------------------------------------------------------------------------
+// goRecordForFormat builds the Go-typed record for ser.Serialize per format.
+// ---------------------------------------------------------------------------
+
+func goRecordForFormat(format, v1Schema string) (interface{}, error) {
+	switch format {
+	case "AVRO":
+		return &gsravro.AvroRecord{
+			Schema: v1Schema,
+			Data: map[string]any{
+				"id":   demoID,
+				"name": demoName,
+				"age":  demoAge,
+			},
+		}, nil
+	case "JSON":
+		payload := mustJSONString(map[string]any{
+			"id":   demoID,
+			"name": demoName,
+			"age":  demoAge,
+		})
+		return &gsrjson.JsonDataWithSchema{
+			Schema:  v1Schema,
+			Payload: payload,
+		}, nil
+	case "PROTOBUF":
+		msg, err := buildDynamicProtoMessage(v1Schema, map[string]interface{}{
+			"id":   demoID,
+			"name": demoName,
+			"age":  demoAge,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("goRecordForFormat(PROTOBUF): %w", err)
+		}
+		return msg, nil
+	default:
+		return nil, fmt.Errorf("goRecordForFormat: unsupported format %q", format)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// produceOneToKafka — produces raw framed bytes to Kafka using sarama.
+// Mirrors produceOne from interop_kafka_roundtrip_test.go without testing.T.
+// ---------------------------------------------------------------------------
+
+func produceOneToKafka(ctx context.Context, bootstrap, topic string, value []byte) error {
+	cfg := sarama.NewConfig()
+	cfg.Producer.RequiredAcks = sarama.WaitForAll
+	cfg.Producer.Retry.Max = 3
+	cfg.Producer.Return.Successes = true
+	producer, err := sarama.NewSyncProducer([]string{bootstrap}, cfg)
+	if err != nil {
+		return fmt.Errorf("produceOneToKafka: sarama.NewSyncProducer: %w", err)
+	}
+	defer producer.Close() //nolint:errcheck
+
+	type result struct{ err error }
+	done := make(chan result, 1)
+	go func() {
+		_, _, sendErr := producer.SendMessage(&sarama.ProducerMessage{
+			Topic: topic,
+			Value: sarama.ByteEncoder(value),
+		})
+		done <- result{err: sendErr}
+	}()
+	select {
+	case r := <-done:
+		if r.err != nil {
+			return fmt.Errorf("produceOneToKafka: send: %w", r.err)
+		}
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("produceOneToKafka: timed out producing to %s: %w", topic, ctx.Err())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// verifyJavaConsumeResult checks the Java sidecar's consumed Record envelope
+// against the expected demo values, returning true if all fields match.
+// ---------------------------------------------------------------------------
+
+func verifyJavaConsumeResult(format string, record map[string]any) (bool, error) {
+	switch format {
+	case "AVRO":
+		fields, ok := record["fields"].(map[string]any)
+		if !ok {
+			return false, fmt.Errorf("AVRO: expected fields map, got %T", record["fields"])
+		}
+		idVal, _ := fields["id"].(string)
+		nameVal, _ := fields["name"].(string)
+		ageRaw := fields["age"]
+		ageFloat, ageOK := ageRaw.(float64)
+		if !ageOK {
+			return false, fmt.Errorf("AVRO: age expected float64 from JSON, got %T (%v)", ageRaw, ageRaw)
+		}
+		pass := idVal == demoID && nameVal == demoName && int(ageFloat) == int(demoAge)
+		return pass, nil
+
+	case "JSON":
+		payload, ok := record["payload"].(string)
+		if !ok {
+			return false, fmt.Errorf("JSON: expected payload string, got %T", record["payload"])
+		}
+		var parsed map[string]any
+		if err := json.Unmarshal([]byte(payload), &parsed); err != nil {
+			return false, fmt.Errorf("JSON: parse payload: %w", err)
+		}
+		idVal, _ := parsed["id"].(string)
+		nameVal, _ := parsed["name"].(string)
+		ageRaw := parsed["age"]
+		ageFloat, ageOK := ageRaw.(float64)
+		if !ageOK {
+			return false, fmt.Errorf("JSON: age expected float64, got %T (%v)", ageRaw, ageRaw)
+		}
+		pass := idVal == demoID && nameVal == demoName && int(ageFloat) == int(demoAge)
+		return pass, nil
+
+	case "PROTOBUF":
+		fieldsJSON, ok := record["fieldsJson"].(string)
+		if !ok {
+			return false, fmt.Errorf("PROTOBUF: expected fieldsJson string, got %T", record["fieldsJson"])
+		}
+		var parsed map[string]any
+		if err := json.Unmarshal([]byte(fieldsJSON), &parsed); err != nil {
+			return false, fmt.Errorf("PROTOBUF: parse fieldsJson: %w", err)
+		}
+		idVal, _ := parsed["id"].(string)
+		nameVal, _ := parsed["name"].(string)
+		ageRaw := parsed["age"]
+		ageFloat, ageOK := ageRaw.(float64)
+		if !ageOK {
+			return false, fmt.Errorf("PROTOBUF: age expected float64, got %T (%v)", ageRaw, ageRaw)
+		}
+		pass := idVal == demoID && nameVal == demoName && int(ageFloat) == int(demoAge)
+		return pass, nil
+
+	default:
+		return false, fmt.Errorf("verifyJavaConsumeResult: unsupported format %q", format)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// narrateVerifyJava prints [verdict] output for Direction B (Java consumed).
+// ---------------------------------------------------------------------------
+
+func narrateVerifyJava(format string, record map[string]any, pass bool, err error) {
+	printStage("verdict", "Equality check (Java sidecar envelope):")
+	if err != nil {
+		fmt.Printf("  Error verifying result: %v\n", err)
+		printStage("verdict", "FAIL - verification error.")
+		return
+	}
+	switch format {
+	case "AVRO":
+		if fields, ok := record["fields"].(map[string]any); ok {
+			printEqualityCheck(demoID, fields["id"], "id")
+			printEqualityCheck(demoName, fields["name"], "name")
+			if ageFloat, ok := fields["age"].(float64); ok {
+				printEqualityCheck(int(demoAge), int(ageFloat), "age")
+			}
+		}
+	case "JSON":
+		if payload, ok := record["payload"].(string); ok {
+			var parsed map[string]any
+			if jerr := json.Unmarshal([]byte(payload), &parsed); jerr == nil {
+				printEqualityCheck(demoID, parsed["id"], "id")
+				printEqualityCheck(demoName, parsed["name"], "name")
+				if ageFloat, ok := parsed["age"].(float64); ok {
+					printEqualityCheck(int(demoAge), int(ageFloat), "age")
+				}
+			}
+		}
+	case "PROTOBUF":
+		if fieldsJSON, ok := record["fieldsJson"].(string); ok {
+			var parsed map[string]any
+			if jerr := json.Unmarshal([]byte(fieldsJSON), &parsed); jerr == nil {
+				printEqualityCheck(demoID, parsed["id"], "id")
+				printEqualityCheck(demoName, parsed["name"], "name")
+				if ageFloat, ok := parsed["age"].(float64); ok {
+					printEqualityCheck(int(demoAge), int(ageFloat), "age")
+				}
+			}
+		}
+	}
+	if pass {
+		fmt.Printf("  PASS - Go v1 encode -> Java decode (v2 registered) succeeded.\n")
+	} else {
+		fmt.Printf("  FAIL - one or more field mismatches.\n")
+	}
+	fmt.Println()
+}
+
+// ---------------------------------------------------------------------------
+// runDirectionBFormat runs Direction B for a single format.
+// ---------------------------------------------------------------------------
+
+// runDirectionBFormat executes Direction B (Go produces v1, Java consumes) for
+// one format. It:
+//  1. Reuses Direction A's schema registrations (no re-registration).
+//  2. Builds Go serializer with the schema config.
+//  3. Go serializer encodes a v1 record, narrated [go-producer].
+//  4. Produces framed bytes to the Direction B Kafka topic, [kafka].
+//  5. Java sidecar consumes via KafkaConsume, [java-consumer].
+//  6. Verifies Java's deserialized result matches source record, [verdict].
+//
+// Returns a ScenarioResult for the format.
+func runDirectionBFormat(
+	ctx context.Context,
+	sc *javasidecar.Sidecar,
+	broker *kafkaharness.Broker,
+	cell ScenarioCell,
+) ScenarioResult {
+	result := ScenarioResult{
+		Format:     cell.Format,
+		Direction:  "B",
+		Topic:      cell.Topic,
+		SchemaName: cell.SchemaName,
+	}
+
+	// ── Section header ───────────────────────────────────────────────────────
+	printSectionHeader(fmt.Sprintf("FORMAT: %s | Direction B: Go produces at v1, Java consumes", cell.Format))
+
+	// ── Step 1: Confirm schema reuse (no registration) ──────────────────────
+
+	printStage("glue", "Reusing schema registered by Direction A (no re-registration).")
+	fmt.Printf("  Schema name:   %s\n", cell.SchemaName)
+	fmt.Printf("  Registry:      %s\n", cell.RegistryName)
+	fmt.Printf("  v1 + v2 already present from Direction A.\n")
+	fmt.Println()
+
+	// ── Step 2: Build Go serializer ─────────────────────────────────────────
+
+	printStage("go-producer", "Building Go serializer...")
+	goConfig := configMapForFormat(cell.Region, cell.Format)
+	printGoConfig(goConfig)
+
+	cfg, err := buildDemoConfigCellB(cell.Region, cell.Format, cell.V1Schema)
+	if err != nil {
+		result.Err = fmt.Errorf("go-producer / build config: %w", err)
+		printStage("go-producer", fmt.Sprintf("FAIL: %v", result.Err))
+		return result
+	}
+
+	ser, err := serializer.NewSerializer(cfg)
+	if err != nil {
+		result.Err = fmt.Errorf("go-producer / NewSerializer: %w", err)
+		printStage("go-producer", fmt.Sprintf("FAIL: %v", result.Err))
+		return result
+	}
+	defer ser.Close() //nolint:errcheck
+
+	// ── Step 3: Encode v1 record via Go serializer ──────────────────────────
+
+	printStage("go-producer", "Encoding v1 record via Go serializer...")
+	switch cell.Format {
+	case "AVRO":
+		fmt.Printf("  Record:      {\"id\": %q, \"name\": %q, \"age\": %d}\n", demoID, demoName, demoAge)
+	case "JSON":
+		fmt.Printf("  Record:      {\"id\": %q, \"name\": %q, \"age\": %d}\n", demoID, demoName, demoAge)
+	case "PROTOBUF":
+		fmt.Printf("  Record:      CrossVersionMessage{id: %q, name: %q, age: %d}\n", demoID, demoName, demoAge)
+	}
+	fmt.Printf("  Compression: NONE\n")
+	fmt.Println()
+
+	goRecord, err := goRecordForFormat(cell.Format, cell.V1Schema)
+	if err != nil {
+		result.Err = fmt.Errorf("go-producer / build record: %w", err)
+		printStage("go-producer", fmt.Sprintf("FAIL: %v", result.Err))
+		return result
+	}
+
+	// Serialize with schemaName as the topic parameter so
+	// DefaultSchemaNameStrategy resolves to Direction A's registered schema.
+	framed, err := ser.Serialize(cell.SchemaName, goRecord)
+	if err != nil {
+		result.Err = fmt.Errorf("go-producer / Serialize: %w", err)
+		printStage("go-producer", fmt.Sprintf("FAIL: %v", result.Err))
+		return result
+	}
+
+	printStage("go-producer", "Encoded. Framed bytes (hex):")
+	printHexDump("Wire bytes", framed)
+
+	// ── Step 4: Produce to Kafka ────────────────────────────────────────────
+
+	printStage("kafka", fmt.Sprintf("Producing framed bytes to Kafka topic: %s", cell.Topic))
+	produceCtx, produceCancel := context.WithTimeout(ctx, 30*time.Second)
+	err = produceOneToKafka(produceCtx, broker.Bootstrap, cell.Topic, framed)
+	produceCancel()
+	if err != nil {
+		result.Err = fmt.Errorf("kafka / produce: %w", err)
+		printStage("kafka", fmt.Sprintf("FAIL: %v", result.Err))
+		return result
+	}
+	printStage("kafka", "Produced successfully.")
+	fmt.Println()
+
+	// ── Step 5: Java sidecar consumes from Kafka ────────────────────────────
+
+	printStage("java-consumer", fmt.Sprintf("Java sidecar consuming from topic: %s", cell.Topic))
+	fmt.Printf("  Format:    %s\n", cell.Format)
+	fmt.Printf("  Region:    %s\n", cell.Region)
+	fmt.Printf("  Timeout:   60s\n")
+	fmt.Println()
+
+	consumeCtx, consumeCancel := context.WithTimeout(ctx, 60*time.Second)
+	resp, err := sc.KafkaConsume(consumeCtx, javasidecar.KafkaConsumeRequest{
+		Bootstrap: broker.Bootstrap,
+		Topic:     cell.Topic,
+		Format:    cell.Format,
+		Region:    cell.Region,
+		TimeoutMs: 60_000,
+	})
+	consumeCancel()
+	if err != nil {
+		result.Err = fmt.Errorf("java-consumer / KafkaConsume: %w", err)
+		printStage("java-consumer", fmt.Sprintf("FAIL: %v", result.Err))
+		return result
+	}
+
+	printStage("java-consumer", "Java sidecar deserialized successfully.")
+	fmt.Printf("  DataFormat:        %s\n", resp.DataFormat)
+	fmt.Printf("  SchemaVersionID:   %s\n", resp.SchemaVersionID)
+	fmt.Printf("  Record envelope:   %v\n", resp.Record)
+	fmt.Println()
+	result.SchemaVersionID = resp.SchemaVersionID
+
+	// ── Step 6: Verify ──────────────────────────────────────────────────────
+
+	pass, verifyErr := verifyJavaConsumeResult(cell.Format, resp.Record)
+	narrateVerifyJava(cell.Format, resp.Record, pass, verifyErr)
+
+	result.Pass = pass
+	if verifyErr != nil {
+		result.Err = verifyErr
+	}
+	return result
+}
+
+// ---------------------------------------------------------------------------
+// runDirectionB — runs Direction B for all 3 formats.
+// ---------------------------------------------------------------------------
+
+// runDirectionB orchestrates Direction B (Go produces v1, Java consumes) for
+// Avro, JSON Schema, and Protobuf. It reuses the schema registrations from
+// Direction A (same schema names) but produces to different Kafka topics.
+//
+// The suffix parameter must match Direction A's suffix so schema names align.
+func runDirectionB(
+	ctx context.Context,
+	sc *javasidecar.Sidecar,
+	broker *kafkaharness.Broker,
+	suffix string,
+	region string,
+) []ScenarioResult {
+	formats := []struct {
+		key      string // "AVRO", "JSON", "PROTOBUF"
+		fmtLabel string // "avro", "json", "proto"
+		v1Schema string
+		v2Schema string
+	}{
+		{"AVRO", "avro", crossVersionAvroV1, crossVersionAvroV2},
+		{"JSON", "json", crossVersionJSONV1, crossVersionJSONV2},
+		{"PROTOBUF", "proto", crossVersionProtoV1, crossVersionProtoV2},
+	}
+
+	var results []ScenarioResult
+	for _, f := range formats {
+		// Schema name matches Direction A: no direction suffix in schema name.
+		schemaName := fmt.Sprintf("%s%s-%s", demoPrefix, f.fmtLabel, suffix)
+		// Direction B Kafka topic uses "-b-" to avoid reading Direction A's messages.
+		topic := fmt.Sprintf("%s%s-b-%s", demoPrefix, f.fmtLabel, suffix)
+
+		cell := ScenarioCell{
+			Format:       f.key,
+			Direction:    "B",
+			SchemaName:   schemaName,
+			Topic:        topic,
+			V1Schema:     f.v1Schema,
+			V2Schema:     f.v2Schema,
+			RecordFields: map[string]interface{}{
+				"id":   demoID,
+				"name": demoName,
+				"age":  demoAge,
+			},
+			Region:       region,
+			RegistryName: demoRegistryName,
+		}
+
+		res := runDirectionBFormat(ctx, sc, broker, cell)
+		results = append(results, res)
+	}
 	return results
 }
 
 // ---------------------------------------------------------------------------
-// runAllScenarios — wires Direction A (PBI-02); Direction B added by PBI-03.
+// runAllScenarios — wires Direction A (PBI-02) + Direction B (PBI-03).
 // ---------------------------------------------------------------------------
 
-// runAllScenarios orchestrates the full 6-pair demo (3 formats × 2 directions).
-// PBI-02 implements Direction A (Java→Go). PBI-03 will add Direction B (Go→Java).
-// PBI-04 will add the summary table and exit-code logic.
+// runAllScenarios orchestrates the full 6-pair demo (3 formats x 2 directions).
+// Direction A (Java->Go) runs first to register schemas in Glue. Direction B
+// (Go->Java) reuses those registrations by sharing the same random suffix.
 func runAllScenarios(
 	ctx context.Context,
 	sc *javasidecar.Sidecar,
@@ -815,5 +1253,16 @@ func runAllScenarios(
 	cleanup *realglue.Cleanup,
 	region string,
 ) []ScenarioResult {
-	return runDirectionA(ctx, sc, broker, cleanup, region)
+	resultsA, suffix := runDirectionAWithSuffix(ctx, sc, broker, cleanup, region)
+	if suffix == "" {
+		// Direction A failed to even start — no schemas registered.
+		return resultsA
+	}
+
+	fmt.Println()
+	printStage("demo", "Direction A complete. Starting Direction B (Go->Java)...")
+	fmt.Println()
+
+	resultsB := runDirectionB(ctx, sc, broker, suffix, region)
+	return append(resultsA, resultsB...)
 }
