@@ -328,6 +328,27 @@ test-integ-interop-real: setup-dirs java-sidecar-build
 	  $(GO) test -tags integration -count=1 -timeout=30m -run='TestInterop_Kafka' ./tests/ \
 	  2>&1 | tee ../$(BUILD_DIR)/integration-test-interop-real.txt
 
+# demo-interop — Narrated Java↔Go cross-language cross-version interop demo.
+#
+# Runs the demo binary in integration-tests/cmd/demo-interop against real AWS
+# Glue (account 850995546034, region us-east-2 by default). Narrates every step:
+# schema registration, wire-byte hex dumps, UUID assignment, deserialized values.
+# Covers all three formats (Avro, JSON Schema, Protobuf) in both directions.
+# Cleans up all created schemas on exit (success or failure).
+#
+# Required:  AWS_PROFILE  or  AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY
+# Optional:  AWS_REGION (default: us-east-2), DEMO_REGISTRY (default: default-registry)
+# Capture:   make demo-interop 2>&1 | tee demo.log
+.PHONY: demo-interop
+demo-interop: java-sidecar-build
+	@if [ -z "$$AWS_PROFILE" ] && [ -z "$$AWS_ACCESS_KEY_ID" ]; then \
+		echo "ERROR: demo-interop requires AWS credentials" >&2; \
+		echo "  set AWS_PROFILE=<your-profile> OR" >&2; \
+		echo "  set AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY" >&2; \
+		exit 1; \
+	fi
+	cd integration-tests && $(GO) run -tags integration ./cmd/demo-interop/
+
 # ---- Phase 6 benchmarks ----------------------------------------------------
 #
 # bench-go         Smoke-runs the Go benchmark matrix and writes the output
@@ -407,6 +428,7 @@ help:
 	@echo "  bench-java                  Phase 6 JMH benchmark smoke (writes perf/baselines/java/)"
 	@echo "  bench-java-full             Phase 6 JMH benchmark default config (~10 min)"
 	@echo "  bench-compare               Pairwise benchstat over the two most recent Go baselines"
+	@echo "  demo-interop                Narrated Java↔Go cross-language cross-version interop demo (bills AWS)"
 	@echo "  test-all                    Run all tests (unit, component, and integration)"
 	@echo "  cover-test                  Run unit + component tests with coverage"
 	@echo "  cover-test-integ            Run integration tests with coverage"

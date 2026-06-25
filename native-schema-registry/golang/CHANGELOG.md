@@ -5,6 +5,7 @@ Changes to the GSR Go client live here. The top-level repository
 
 ## Unreleased
 
+<<<<<<< HEAD
 ### Phase 4.16 fixture coverage
 
 Added shared multilang fixture test coverage for the Go GSR client, organized
@@ -68,6 +69,16 @@ strip them before registering with Glue (or normalize the schema at
 registration time). Documented in `pkg/gsrserde-go/fixtures_test.go` via the
 `TestOrderingSyntax3Options.proto` skipList entry. Phase 5 may add a
 pre-process step to the Go parser for full parity; deferred for now.
+
+### Phase 4.15 demo binary
+- Added `cmd/demo-interop` binary that narrates a full cross-language
+  cross-version interop demo across 12 cells (3 formats × 2 directions × 2
+  compressions {NONE, ZLIB}). Output uses verbatim lowercase tags per spec:
+  `[java-producer]`, `[java-consumer]`, `[go-producer]`, `[go-consumer]`,
+  `[glue]`, `[cache]`, `[kafka]`, `[schema-evolution]`, `[wire-format]`,
+  `[demo]`, `[verdict]`.
+- Deferred to Phase 5: cache-behavior scenarios, auto-register-fall-through
+  scenarios, same-version-baseline scenarios.
 
 ### Configuration
 - `LoadConfigFromMap` now synthesizes a default value for `Config.Description`
