@@ -5,7 +5,37 @@ Changes to the GSR Go client live here. The top-level repository
 
 ## Unreleased
 
-<<<<<<< HEAD
+### Reader-schema projection (Phase 4.17)
+
+Added consumer-side reader-schema support for the Avro deserializer,
+achieving parity with Java GSR's `ResolvingDecoder` pattern.
+
+**New config key:** `avroReaderSchema` — the raw Avro schema JSON string
+for the consumer's reader schema. When set, the deserializer projects
+writer-encoded bytes into the reader schema's field shape using Avro
+resolution rules:
+- Fields present in the writer but absent in the reader are dropped
+- Fields present in the reader but absent in the writer get their defaults
+- Type promotions apply (int->long, float->double, string<->bytes)
+
+When unset (default), decode uses the writer schema alone — backward
+compatible with all existing consumers.
+
+**Validation:** non-empty values that are not parseable as Avro JSON fail
+at `LoadConfigFromMap` time with `ErrInvalidAvroReaderSchema`.
+
+**API entry point used:** `hamba/avro/v2.NewSchemaCompatibility().Resolve(reader, writer)`
+followed by `avro.Unmarshal(resolvedSchema, data, &dest)`.
+
+Java reference: `GlueSchemaRegistryDefaultDeserializer` uses
+`ResolvingDecoder` from Apache Avro to achieve the same projection when a
+consumer-side `readerSchema` is provided.
+
+**Integration coverage:** exercised by `TestFixtureAvroCrossVersionInterop_Real`
+(Layer C cross-version cells) — Java produces one schema version, Go
+consumes with a different reader schema. Covers backward (v1->v2, v1->v3),
+forward (v2->v1), and full (v1->v2) directions with 7 cells total.
+
 ### Phase 4.16 fixture coverage
 
 Added shared multilang fixture test coverage for the Go GSR client, organized
@@ -28,10 +58,10 @@ in three layers:
 - **Layer C** (`integration-tests/tests/fixture_avro_interop_test.go` +
   `fixture_proto_interop_test.go`): Java↔Go cross-language interop via the
   Phase 4.13 Java sidecar + real Kafka + real Glue. Avro fixtures exercise
-  same-version round-trip in both directions (Java produce → Go consume, Go
-  produce → Java consume) for backward/forward/full modes; multi-version
-  registration sets the stage for future cross-version cells but
-  cross-version round-trip itself is deferred to Phase 5. Protobuf fixtures
+  same-version round-trip via `TestFixtureAvroSameVersionInterop_Real` in
+  both directions (Java produce → Go consume, Go produce → Java consume)
+  for backward/forward/full modes; cross-version round-trip exercised via
+  Phase 4.17's `TestFixtureAvroCrossVersionInterop_Real`. Protobuf fixtures
   exercise 5 representative .proto files (proto2 baseline, proto3 baseline,
   oneOf, complex nesting, all scalar types) in both directions with
   same-version round-trip.

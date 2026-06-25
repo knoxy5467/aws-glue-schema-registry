@@ -1,0 +1,53 @@
+2026/06/25 02:40:45 github.com/testcontainers/testcontainers-go - Connected to docker: 
+  Server Version: 25.0.16
+  API Version: 1.44
+  Operating System: Amazon Linux 2
+  Total Memory: 189067 MB
+  Testcontainers for Go Version: v0.43.0
+  Resolved Docker Host: unix:///var/run/docker.sock
+  Resolved Docker Socket Path: /var/run/docker.sock
+  Test SessionID: 136d46fe0cb72ebbb23607433ed7db7007e0c96adea96899d17b907e532e75a6
+  Test ProcessID: f5974dab-bfbd-4141-a07c-0bb14a0fd4a6
+2026/06/25 02:40:45 🐳 Creating container for image confluentinc/confluent-local:7.6.1
+2026/06/25 02:40:45 🐳 Creating container for image testcontainers/ryuk:0.14.0
+2026/06/25 02:40:45 ✅ Container created: 21c602a0fa6e
+2026/06/25 02:40:45 🐳 Starting container: 21c602a0fa6e
+2026/06/25 02:40:46 ✅ Container started: 21c602a0fa6e
+2026/06/25 02:40:46 ⏳ Waiting for container id 21c602a0fa6e image: testcontainers/ryuk:0.14.0. Waiting for: all of: [log message "Started", port 8080/tcp to be listening]
+2026/06/25 02:40:46 Shell not executable in container, only external port validated
+2026/06/25 02:40:46 🔔 Container is ready: 21c602a0fa6e
+2026/06/25 02:40:46 ✅ Container created: 1edd0dd689a2
+2026/06/25 02:40:46 🐳 Starting container: 1edd0dd689a2
+2026/06/25 02:40:51 ✅ Container started: 1edd0dd689a2
+2026/06/25 02:40:51 🔔 Container is ready: 1edd0dd689a2
+=== RUN   TestFixtureAvroCrossVersionInterop_Real
+    fixture_avro_crossversion_interop_test.go:69: kafkaharness: KAFKA_BROKER=localhost:33053 — skipping testcontainers and using the supplied broker
+=== RUN   TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/backward
+=== PAUSE TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/backward
+=== RUN   TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/forward
+=== PAUSE TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/forward
+=== RUN   TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/full
+=== PAUSE TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/full
+=== CONT  TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/backward
+=== CONT  TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/forward
+=== CONT  TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/full
+=== RUN   TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/full/java-to-go/v1-to-v2
+=== RUN   TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/backward/java-to-go/v1-to-v2
+=== RUN   TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/forward/java-to-go/v2-to-v1
+=== RUN   TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/full/go-to-java/v1
+=== RUN   TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/backward/java-to-go/v1-to-v3
+=== RUN   TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/forward/go-to-java/v1
+=== RUN   TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/backward/go-to-java/v1
+--- PASS: TestFixtureAvroCrossVersionInterop_Real (0.92s)
+    --- PASS: TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/full (5.95s)
+        --- PASS: TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/full/java-to-go/v1-to-v2 (0.69s)
+        --- PASS: TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/full/go-to-java/v1 (1.65s)
+    --- PASS: TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/forward (6.16s)
+        --- PASS: TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/forward/java-to-go/v2-to-v1 (0.90s)
+        --- PASS: TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/forward/go-to-java/v1 (1.38s)
+    --- PASS: TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/backward (6.54s)
+        --- PASS: TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/backward/java-to-go/v1-to-v2 (0.92s)
+        --- PASS: TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/backward/java-to-go/v1-to-v3 (0.39s)
+        --- PASS: TestFixtureAvroCrossVersionInterop_Real/fixture-avro-crossversion/backward/go-to-java/v1 (1.41s)
+PASS
+ok  	github.com/awslabs/aws-glue-schema-registry/native-schema-registry/golang/integration-tests/tests	15.337s

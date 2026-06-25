@@ -97,6 +97,12 @@ var ErrInvalidAvroRecordType = fmt.Errorf("%w: invalid avroRecordType", ErrGSR)
 // this error at LoadConfigFromMap time.
 var ErrInvalidProtobufMessageType = fmt.Errorf("%w: invalid protobufMessageType", ErrGSR)
 
+// ErrInvalidAvroReaderSchema wraps rejections of the `avroReaderSchema` config
+// key when the value is non-empty but cannot be parsed as valid Avro JSON by
+// hamba/avro/v2.Parse. Returned at LoadConfigFromMap time so callers get a
+// clear config-time error rather than a cryptic runtime failure. Wraps ErrGSR.
+var ErrInvalidAvroReaderSchema = fmt.Errorf("%w: invalid avroReaderSchema", ErrGSR)
+
 // ErrMalformedJSON is the per-format sentinel for a JSON payload that fails
 // the JSON deserializer's malformed-payload contract: syntactic parse failures
 // (encoding/json rejection) and non-UTF-8 payloads. Does NOT cover

@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -101,16 +100,22 @@ func (s *BaseIntegrationSuite) runKafkaIntegrationTest(
 	configMap map[string]interface{},
 ) {
 
-	gsrConfigAbsolutePath, err := filepath.Abs("./gsr.properties")
-	if err != nil {
-		s.T().Fatal("Failed to get absolute path of gsr.properties")
+	// Inline GSR config map — the earlier filepath.Abs("./gsr.properties")
+	// pattern silently failed: validateAndSetGsrConfig only honors
+	// map[string]string under GSRConfigPathKey, so the string path was
+	// dropped and SchemaAutoRegistrationEnabled defaulted to false.
+	gsrMap := map[string]string{
+		"region":                        defaultAWSRegion,
+		"registry.name":                 testRegistryName,
+		"schemaAutoRegistrationEnabled": "true",
 	}
-	configMap[common.GSRConfigPathKey] = gsrConfigAbsolutePath
+	configMap[common.GSRConfigPathKey] = gsrMap
 	config := common.NewConfiguration(configMap)
 	ctx := context.Background()
 
 	// Step 1: Create Serializer with GSR configuration
-	s.gsr_serializer, err= serializer.NewSerializer(config)
+	var err error
+	s.gsr_serializer, err = serializer.NewSerializer(config)
 	if err != nil {
 		s.T().Fatal("Failed to create serializer")
 	}
@@ -131,7 +136,7 @@ func (s *BaseIntegrationSuite) runKafkaIntegrationTest(
 	require.Equal(s.T(), gsrEncodedData, consumedData, "Data consumed from Kafka should match published data")
 
 	// Step 5: Create Deserializer and deserialize the GSR-encoded data
-	s.gsr_deserializer, err= deserializer.NewDeserializer(config)
+	s.gsr_deserializer, err = deserializer.NewDeserializer(config)
 	if err != nil {
 		s.T().Fatal("Failed to create deserializer")
 	}

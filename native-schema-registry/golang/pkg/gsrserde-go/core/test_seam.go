@@ -158,3 +158,33 @@ func DecoderCacheHas(d *GsrDecoder, schemaVersionID string) bool {
 	_, ok := d.schemaCache.Get(schemaVersionID)
 	return ok
 }
+
+// EvictEncoderCache removes the entry for (schemaName, dataFormat) from the
+// encoder's cache. Returns true if an entry was present and evicted, false if
+// no entry existed. Used by the Phase 4.15 demo binary to demonstrate
+// cache-miss → hit → eviction → re-fetch behavior against real Glue.
+func EvictEncoderCache(e *GsrEncoder, schemaName, dataFormat string) bool {
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+	key := fmt.Sprintf("%s:%s", schemaName, dataFormat)
+	_, had := e.schemaCache.Get(key)
+	if had {
+		// LRUCacheWrapper doesn't expose Remove directly, but we can
+		// overwrite with nil and immediately close — or use the underlying
+		// Purge approach. Simpler: just set an expired entry via direct
+		// lru access. Safest portable approach: close + rebuild is too
+		// heavy. Instead, we exploit that Set overwrites the entry, then
+		// we rely on the TTL never being hit. Actually the simplest
+		// approach: access the underlying LRU.
+		//
+		// The Cache interface only exposes Get/Set/Close. To evict a
+		// single key, we downcast to *LRUCacheWrapper and call Remove on
+		// the underlying simplelru.
+		if lruCache, ok := e.schemaCache.(*LRUCacheWrapper); ok {
+			lruCache.mu.Lock()
+			lruCache.lru.Remove(key)
+			lruCache.mu.Unlock()
+		}
+	}
+	return had
+}

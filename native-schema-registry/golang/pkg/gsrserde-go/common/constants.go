@@ -45,6 +45,18 @@ const (
 	// proto.Message. When absent (nil), POJO deserialization returns
 	// ErrMissingProtobufPOJOType at the first Deserialize call.
 	ProtobufPOJOTypeKey = "protobufPOJOType"
+
+	// AvroReaderSchemaKey is the configuration key for the consumer-side reader
+	// schema used during Avro deserialization. When set, the Avro deserializer
+	// projects writer-encoded bytes into this reader schema's shape using Avro
+	// resolution rules (drop unknown fields, fill defaults for new fields, type
+	// promotion). When unset (default), decode uses the writer schema alone.
+	// Matches Java GSR's reader-schema support; Confluent Go SDK calls this the
+	// "destination schema."
+	//
+	// The value is the raw Avro schema JSON string (NOT a file path), consistent
+	// with how schema.SchemaDefinition is passed around.
+	AvroReaderSchemaKey = "avroReaderSchema"
 )
 
 // DataFormat represents the data format for serialization/deserialization.

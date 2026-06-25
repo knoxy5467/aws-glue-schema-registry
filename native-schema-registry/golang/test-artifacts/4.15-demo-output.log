@@ -1,22 +1,22 @@
 ================================================================================
   GSR Go Client — Java↔Go Cross-Language Cross-Version Interop Demo
-  Date:     2026-06-25T01:41:11Z
+  Date:     2026-06-25T02:33:40Z
   Version:  4.15
   Account:  850995546034
-  Region:   us-east-1
+  Region:   us-east-2
   Registry: default-registry
 ================================================================================
 
 [demo] Kafka broker starting (testcontainers-go)...
-[demo] Kafka broker ready at localhost:33034
+[demo] Kafka broker ready at localhost:33051
 [demo] Java sidecar starting (local mode)...
-[demo] Java sidecar ready at http://127.0.0.1:34565
+[demo] Java sidecar ready at http://127.0.0.1:36441
 
 ────────────────────────────────────────────────────────────────────────────────
   FORMAT: AVRO | Direction A: Java produces at v1, Go consumes | Compression: NONE
 ────────────────────────────────────────────────────────────────────────────────
 
-[glue] CreateSchema schema=demo-4.15-avro-dd26a97a registry=default-registry compatibility=BACKWARD
+[glue] CreateSchema schema=demo-4.15-avro-89fd2c07 registry=default-registry compatibility=BACKWARD
   Schema body:
     {
     	"type": "record",
@@ -29,9 +29,9 @@
     	]
     }
 
-[schema-evolution] v1 registered: ada5262d-5919-4916-9b22-5cb3e0862fae
+[schema-evolution] v1 registered: 5077eeba-3210-4db3-a11c-e3bcfd83a278
 
-[glue] RegisterSchemaVersion schema=demo-4.15-avro-dd26a97a (v2 evolution: added optional "email" field)
+[glue] RegisterSchemaVersion schema=demo-4.15-avro-89fd2c07 (v2 evolution: added optional "email" field)
   Schema body:
     {
     	"type": "record",
@@ -45,10 +45,10 @@
     	]
     }
 
-[schema-evolution] v2 registered (BACKWARD-evolution): 227c6715-4e30-4480-860e-91162c0ef77e
+[schema-evolution] v2 registered (BACKWARD-evolution): a63055cd-4264-49bd-afe7-298170aedc8f
 
 [java-producer] Java sidecar producing v1 record to Kafka...
-  Topic:       demo-4.15-avro-a-none-dd26a97a
+  Topic:       demo-4.15-avro-a-none-89fd2c07
   Record:      {"id": "demo-id", "name": "demo-name", "age": 42}
   Compression: NONE
 
@@ -56,14 +56,14 @@
   Wire bytes (37 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x00 (NONE)      00                                                                                               |.|
-[wire-format] Schema version UUID: ada5262d-5919-4916-9b22-5cb3e0862fae      AD A5 26 2D 59 19 49 16 9B 22 5C B3 E0 86 2F AE                                                  |..&-Y.I.."\.../.|
+[wire-format] Schema version UUID: 5077eeba-3210-4db3-a11c-e3bcfd83a278      50 77 EE BA 32 10 4D B3 A1 1C E3 BC FD 83 A2 78                                                  |Pw..2.M........x|
 [wire-format] Payload body: 19 bytes      0E 64 65 6D 6F 2D 69 64 12 64 65 6D 6F 2D 6E 61 6D 65 54                                         |.demo-id.demo-nameT|
 
 [go-consumer] Go deserializer consuming from Kafka topic...
-  Topic: demo-4.15-avro-a-none-dd26a97a
+  Topic: demo-4.15-avro-a-none-89fd2c07
 
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       NONE
     schemaAutoRegistrationEnabled:     true
@@ -71,7 +71,7 @@
     avroRecordType:                    GENERIC_RECORD
 
 [go-consumer] Deserialized successfully.
-  Schema version retrieved: ada5262d-5919-4916-9b22-5cb3e0862fae (v1)
+  Schema version retrieved: 5077eeba-3210-4db3-a11c-e3bcfd83a278 (v1)
   Decoded Go value:
     map[string]interface{}{
       "id":   "demo-id"  (string)
@@ -89,7 +89,7 @@
   FORMAT: AVRO | Direction A: Java produces at v1, Go consumes | Compression: ZLIB
 ────────────────────────────────────────────────────────────────────────────────
 
-[glue] CreateSchema schema=demo-4.15-avro-dd26a97a registry=default-registry compatibility=BACKWARD
+[glue] CreateSchema schema=demo-4.15-avro-89fd2c07 registry=default-registry compatibility=BACKWARD
   Schema body:
     {
     	"type": "record",
@@ -102,9 +102,9 @@
     	]
     }
 
-[schema-evolution] v1 registered: ada5262d-5919-4916-9b22-5cb3e0862fae
+[schema-evolution] v1 registered: 5077eeba-3210-4db3-a11c-e3bcfd83a278
 
-[glue] RegisterSchemaVersion schema=demo-4.15-avro-dd26a97a (v2 evolution: added optional "email" field)
+[glue] RegisterSchemaVersion schema=demo-4.15-avro-89fd2c07 (v2 evolution: added optional "email" field)
   Schema body:
     {
     	"type": "record",
@@ -118,10 +118,10 @@
     	]
     }
 
-[schema-evolution] v2 registered (BACKWARD-evolution): 227c6715-4e30-4480-860e-91162c0ef77e
+[schema-evolution] v2 registered (BACKWARD-evolution): a63055cd-4264-49bd-afe7-298170aedc8f
 
 [java-producer] Java sidecar producing v1 record to Kafka...
-  Topic:       demo-4.15-avro-a-zlib-dd26a97a
+  Topic:       demo-4.15-avro-a-zlib-89fd2c07
   Record:      {"id": "demo-id", "name": "demo-name", "age": 42}
   Compression: ZLIB
 
@@ -129,14 +129,14 @@
   Wire bytes (41 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x05 (ZLIB)      05                                                                                               |.|
-[wire-format] Schema version UUID: ada5262d-5919-4916-9b22-5cb3e0862fae      AD A5 26 2D 59 19 49 16 9B 22 5C B3 E0 86 2F AE                                                  |..&-Y.I.."\.../.|
+[wire-format] Schema version UUID: 5077eeba-3210-4db3-a11c-e3bcfd83a278      50 77 EE BA 32 10 4D B3 A1 1C E3 BC FD 83 A2 78                                                  |Pw..2.M........x|
 [wire-format] Payload body: 23 bytes      78 9C E3 4B 49 CD CD D7 CD 4C 11 02 D3 79 89 B9 A9 21 00 3E 6F 06 87                             |x..KI....L...y...!.>o..|
 
 [go-consumer] Go deserializer consuming from Kafka topic...
-  Topic: demo-4.15-avro-a-zlib-dd26a97a
+  Topic: demo-4.15-avro-a-zlib-89fd2c07
 
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       ZLIB
     schemaAutoRegistrationEnabled:     true
@@ -144,7 +144,7 @@
     avroRecordType:                    GENERIC_RECORD
 
 [go-consumer] Deserialized successfully.
-  Schema version retrieved: ada5262d-5919-4916-9b22-5cb3e0862fae (v1)
+  Schema version retrieved: 5077eeba-3210-4db3-a11c-e3bcfd83a278 (v1)
   Decoded Go value:
     map[string]interface{}{
       "id":   "demo-id"  (string)
@@ -162,7 +162,7 @@
   FORMAT: JSON | Direction A: Java produces at v1, Go consumes | Compression: NONE
 ────────────────────────────────────────────────────────────────────────────────
 
-[glue] CreateSchema schema=demo-4.15-json-dd26a97a registry=default-registry compatibility=BACKWARD
+[glue] CreateSchema schema=demo-4.15-json-89fd2c07 registry=default-registry compatibility=BACKWARD
   Schema body:
     {
     	"$schema": "http://json-schema.org/draft-07/schema#",
@@ -176,9 +176,9 @@
     	"additionalProperties": false
     }
 
-[schema-evolution] v1 registered: d32f3771-738c-434c-b0be-499749423726
+[schema-evolution] v1 registered: e32dae42-385a-47f9-b296-e89aac9bc3d1
 
-[glue] RegisterSchemaVersion schema=demo-4.15-json-dd26a97a (v2 evolution: added optional "email" field)
+[glue] RegisterSchemaVersion schema=demo-4.15-json-89fd2c07 (v2 evolution: added optional "email" field)
   Schema body:
     {
     	"$schema": "http://json-schema.org/draft-07/schema#",
@@ -193,10 +193,10 @@
     	"additionalProperties": false
     }
 
-[schema-evolution] v2 registered (BACKWARD-evolution): c251d3e8-828d-4ef1-9c09-82167f2532b1
+[schema-evolution] v2 registered (BACKWARD-evolution): 24af6291-5b67-4fc6-85f9-337419bb5639
 
 [java-producer] Java sidecar producing v1 record to Kafka...
-  Topic:       demo-4.15-json-a-none-dd26a97a
+  Topic:       demo-4.15-json-a-none-89fd2c07
   Record:      {"id": "demo-id", "name": "demo-name", "age": 42}
   Compression: NONE
 
@@ -204,21 +204,21 @@
   Wire bytes (62 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x00 (NONE)      00                                                                                               |.|
-[wire-format] Schema version UUID: d32f3771-738c-434c-b0be-499749423726      D3 2F 37 71 73 8C 43 4C B0 BE 49 97 49 42 37 26                                                  |./7qs.CL..I.IB7&|
+[wire-format] Schema version UUID: e32dae42-385a-47f9-b296-e89aac9bc3d1      E3 2D AE 42 38 5A 47 F9 B2 96 E8 9A AC 9B C3 D1                                                  |.-.B8ZG.........|
 [wire-format] Payload body: 44 bytes      7B 22 61 67 65 22 3A 34 32 2C 22 69 64 22 3A 22 64 65 6D 6F 2D 69 64 22 2C 22 6E 61 6D 65 22 3A  |{"age":42,"id":"demo-id","name":| ...+12 bytes
 
 [go-consumer] Go deserializer consuming from Kafka topic...
-  Topic: demo-4.15-json-a-none-dd26a97a
+  Topic: demo-4.15-json-a-none-89fd2c07
 
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       NONE
     schemaAutoRegistrationEnabled:     true
     dataFormat:                        JSON
 
 [go-consumer] Deserialized successfully.
-  Schema version retrieved: d32f3771-738c-434c-b0be-499749423726 (v1)
+  Schema version retrieved: e32dae42-385a-47f9-b296-e89aac9bc3d1 (v1)
   Decoded Go value:
     (string) {"age":42,"id":"demo-id","name":"demo-name"}
 
@@ -232,7 +232,7 @@
   FORMAT: JSON | Direction A: Java produces at v1, Go consumes | Compression: ZLIB
 ────────────────────────────────────────────────────────────────────────────────
 
-[glue] CreateSchema schema=demo-4.15-json-dd26a97a registry=default-registry compatibility=BACKWARD
+[glue] CreateSchema schema=demo-4.15-json-89fd2c07 registry=default-registry compatibility=BACKWARD
   Schema body:
     {
     	"$schema": "http://json-schema.org/draft-07/schema#",
@@ -246,9 +246,9 @@
     	"additionalProperties": false
     }
 
-[schema-evolution] v1 registered: d32f3771-738c-434c-b0be-499749423726
+[schema-evolution] v1 registered: e32dae42-385a-47f9-b296-e89aac9bc3d1
 
-[glue] RegisterSchemaVersion schema=demo-4.15-json-dd26a97a (v2 evolution: added optional "email" field)
+[glue] RegisterSchemaVersion schema=demo-4.15-json-89fd2c07 (v2 evolution: added optional "email" field)
   Schema body:
     {
     	"$schema": "http://json-schema.org/draft-07/schema#",
@@ -263,10 +263,10 @@
     	"additionalProperties": false
     }
 
-[schema-evolution] v2 registered (BACKWARD-evolution): c251d3e8-828d-4ef1-9c09-82167f2532b1
+[schema-evolution] v2 registered (BACKWARD-evolution): 24af6291-5b67-4fc6-85f9-337419bb5639
 
 [java-producer] Java sidecar producing v1 record to Kafka...
-  Topic:       demo-4.15-json-a-zlib-dd26a97a
+  Topic:       demo-4.15-json-a-zlib-89fd2c07
   Record:      {"id": "demo-id", "name": "demo-name", "age": 42}
   Compression: ZLIB
 
@@ -274,21 +274,21 @@
   Wire bytes (59 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x05 (ZLIB)      05                                                                                               |.|
-[wire-format] Schema version UUID: d32f3771-738c-434c-b0be-499749423726      D3 2F 37 71 73 8C 43 4C B0 BE 49 97 49 42 37 26                                                  |./7qs.CL..I.IB7&|
+[wire-format] Schema version UUID: e32dae42-385a-47f9-b296-e89aac9bc3d1      E3 2D AE 42 38 5A 47 F9 B2 96 E8 9A AC 9B C3 D1                                                  |.-.B8ZG.........|
 [wire-format] Payload body: 41 bytes      78 9C AB 56 4A 4C 4F 55 B2 32 31 D2 51 CA 4C 51 B2 52 4A 49 CD CD D7 05 B2 74 94 F2 12 73 53 61  |x..VJLOU.21.Q.LQ.RJI.....t...sSa| ...+9 bytes
 
 [go-consumer] Go deserializer consuming from Kafka topic...
-  Topic: demo-4.15-json-a-zlib-dd26a97a
+  Topic: demo-4.15-json-a-zlib-89fd2c07
 
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       ZLIB
     schemaAutoRegistrationEnabled:     true
     dataFormat:                        JSON
 
 [go-consumer] Deserialized successfully.
-  Schema version retrieved: d32f3771-738c-434c-b0be-499749423726 (v1)
+  Schema version retrieved: e32dae42-385a-47f9-b296-e89aac9bc3d1 (v1)
   Decoded Go value:
     (string) {"age":42,"id":"demo-id","name":"demo-name"}
 
@@ -302,7 +302,7 @@
   FORMAT: PROTOBUF | Direction A: Java produces at v1, Go consumes | Compression: NONE
 ────────────────────────────────────────────────────────────────────────────────
 
-[glue] CreateSchema schema=demo-4.15-proto-dd26a97a registry=default-registry compatibility=BACKWARD
+[glue] CreateSchema schema=demo-4.15-proto-89fd2c07 registry=default-registry compatibility=BACKWARD
   Schema body:
     syntax = "proto3";
     package test;
@@ -314,9 +314,9 @@
     }
     
 
-[schema-evolution] v1 registered: 216b91d1-6d3d-4d97-a1f9-0cb8ade951e8
+[schema-evolution] v1 registered: 98e10283-1042-49aa-9953-039f73cc80ca
 
-[glue] RegisterSchemaVersion schema=demo-4.15-proto-dd26a97a (v2 evolution: added optional "email" field)
+[glue] RegisterSchemaVersion schema=demo-4.15-proto-89fd2c07 (v2 evolution: added optional "email" field)
   Schema body:
     syntax = "proto3";
     package test;
@@ -329,10 +329,10 @@
     }
     
 
-[schema-evolution] v2 registered (BACKWARD-evolution): 5e6849f8-ed28-4273-ad22-80e96c9b31e3
+[schema-evolution] v2 registered (BACKWARD-evolution): 27cfb92b-1fbd-4b0d-b7fb-a7291d3d7ab1
 
 [java-producer] Java sidecar producing v1 record to Kafka...
-  Topic:       demo-4.15-proto-a-none-dd26a97a
+  Topic:       demo-4.15-proto-a-none-89fd2c07
   Record:      CrossVersionMessage{id: "demo-id", name: "demo-name", age: 42}
   Compression: NONE
 
@@ -340,22 +340,22 @@
   Wire bytes (41 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x00 (NONE)      00                                                                                               |.|
-[wire-format] Schema version UUID: 216b91d1-6d3d-4d97-a1f9-0cb8ade951e8      21 6B 91 D1 6D 3D 4D 97 A1 F9 0C B8 AD E9 51 E8                                                  |!k..m=M.......Q.|
+[wire-format] Schema version UUID: 98e10283-1042-49aa-9953-039f73cc80ca      98 E1 02 83 10 42 49 AA 99 53 03 9F 73 CC 80 CA                                                  |.....BI..S..s...|
 [wire-format] Payload body: 23 bytes      00 0A 07 64 65 6D 6F 2D 69 64 12 09 64 65 6D 6F 2D 6E 61 6D 65 18 2A                             |...demo-id..demo-name.*|
 
 [go-consumer] Go deserializer consuming from Kafka topic...
-  Topic: demo-4.15-proto-a-none-dd26a97a
+  Topic: demo-4.15-proto-a-none-89fd2c07
 
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       NONE
     schemaAutoRegistrationEnabled:     true
-    dataFormat:                        PROTOBUF
     protobufMessageDescriptor:         <dynamicpb from v1 schema text>
+    dataFormat:                        PROTOBUF
 
 [go-consumer] Deserialized successfully.
-  Schema version retrieved: 216b91d1-6d3d-4d97-a1f9-0cb8ade951e8 (v1)
+  Schema version retrieved: 98e10283-1042-49aa-9953-039f73cc80ca (v1)
   Decoded Go value:
     CrossVersionMessage{
       id:   "demo-id"
@@ -373,7 +373,7 @@
   FORMAT: PROTOBUF | Direction A: Java produces at v1, Go consumes | Compression: ZLIB
 ────────────────────────────────────────────────────────────────────────────────
 
-[glue] CreateSchema schema=demo-4.15-proto-dd26a97a registry=default-registry compatibility=BACKWARD
+[glue] CreateSchema schema=demo-4.15-proto-89fd2c07 registry=default-registry compatibility=BACKWARD
   Schema body:
     syntax = "proto3";
     package test;
@@ -385,9 +385,9 @@
     }
     
 
-[schema-evolution] v1 registered: 216b91d1-6d3d-4d97-a1f9-0cb8ade951e8
+[schema-evolution] v1 registered: 98e10283-1042-49aa-9953-039f73cc80ca
 
-[glue] RegisterSchemaVersion schema=demo-4.15-proto-dd26a97a (v2 evolution: added optional "email" field)
+[glue] RegisterSchemaVersion schema=demo-4.15-proto-89fd2c07 (v2 evolution: added optional "email" field)
   Schema body:
     syntax = "proto3";
     package test;
@@ -400,10 +400,10 @@
     }
     
 
-[schema-evolution] v2 registered (BACKWARD-evolution): 5e6849f8-ed28-4273-ad22-80e96c9b31e3
+[schema-evolution] v2 registered (BACKWARD-evolution): 27cfb92b-1fbd-4b0d-b7fb-a7291d3d7ab1
 
 [java-producer] Java sidecar producing v1 record to Kafka...
-  Topic:       demo-4.15-proto-a-zlib-dd26a97a
+  Topic:       demo-4.15-proto-a-zlib-89fd2c07
   Record:      CrossVersionMessage{id: "demo-id", name: "demo-name", age: 42}
   Compression: ZLIB
 
@@ -411,14 +411,14 @@
   Wire bytes (45 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x05 (ZLIB)      05                                                                                               |.|
-[wire-format] Schema version UUID: 216b91d1-6d3d-4d97-a1f9-0cb8ade951e8      21 6B 91 D1 6D 3D 4D 97 A1 F9 0C B8 AD E9 51 E8                                                  |!k..m=M.......Q.|
+[wire-format] Schema version UUID: 98e10283-1042-49aa-9953-039f73cc80ca      98 E1 02 83 10 42 49 AA 99 53 03 9F 73 CC 80 CA                                                  |.....BI..S..s...|
 [wire-format] Payload body: 27 bytes      78 9C 63 E0 62 4F 49 CD CD D7 CD 4C 11 E2 04 33 F2 12 73 53 25 B4 00 48 1F 06 81                 |x.c.bOI....L...3..sS%..H...|
 
 [go-consumer] Go deserializer consuming from Kafka topic...
-  Topic: demo-4.15-proto-a-zlib-dd26a97a
+  Topic: demo-4.15-proto-a-zlib-89fd2c07
 
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       ZLIB
     schemaAutoRegistrationEnabled:     true
@@ -426,7 +426,7 @@
     protobufMessageDescriptor:         <dynamicpb from v1 schema text>
 
 [go-consumer] Deserialized successfully.
-  Schema version retrieved: 216b91d1-6d3d-4d97-a1f9-0cb8ade951e8 (v1)
+  Schema version retrieved: 98e10283-1042-49aa-9953-039f73cc80ca (v1)
   Decoded Go value:
     CrossVersionMessage{
       id:   "demo-id"
@@ -448,13 +448,13 @@
 ────────────────────────────────────────────────────────────────────────────────
 
 [glue] Reusing schema registered by Direction A (no re-registration).
-  Schema name:   demo-4.15-avro-dd26a97a
+  Schema name:   demo-4.15-avro-89fd2c07
   Registry:      default-registry
   v1 + v2 already present from Direction A.
 
 [go-producer] Building Go serializer...
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       NONE
     schemaAutoRegistrationEnabled:     true
@@ -469,20 +469,20 @@
   Wire bytes (37 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x00 (NONE)      00                                                                                               |.|
-[wire-format] Schema version UUID: ada5262d-5919-4916-9b22-5cb3e0862fae      AD A5 26 2D 59 19 49 16 9B 22 5C B3 E0 86 2F AE                                                  |..&-Y.I.."\.../.|
+[wire-format] Schema version UUID: 5077eeba-3210-4db3-a11c-e3bcfd83a278      50 77 EE BA 32 10 4D B3 A1 1C E3 BC FD 83 A2 78                                                  |Pw..2.M........x|
 [wire-format] Payload body: 19 bytes      0E 64 65 6D 6F 2D 69 64 12 64 65 6D 6F 2D 6E 61 6D 65 54                                         |.demo-id.demo-nameT|
 
-[kafka] Producing framed bytes to Kafka topic: demo-4.15-avro-b-none-dd26a97a
+[kafka] Producing framed bytes to Kafka topic: demo-4.15-avro-b-none-89fd2c07
 [kafka] Produced successfully.
 
-[java-consumer] Java sidecar consuming from topic: demo-4.15-avro-b-none-dd26a97a
+[java-consumer] Java sidecar consuming from topic: demo-4.15-avro-b-none-89fd2c07
   Format:    AVRO
-  Region:    us-east-1
+  Region:    us-east-2
   Timeout:   60s
 
 [java-consumer] Java sidecar deserialized successfully.
   DataFormat:        AVRO
-  SchemaVersionID:   ada5262d-5919-4916-9b22-5cb3e0862fae
+  SchemaVersionID:   5077eeba-3210-4db3-a11c-e3bcfd83a278
   Record envelope:   map[fields:map[age:42 id:demo-id name:demo-name]]
 
 [verdict] Equality check (Java sidecar envelope):
@@ -496,13 +496,13 @@
 ────────────────────────────────────────────────────────────────────────────────
 
 [glue] Reusing schema registered by Direction A (no re-registration).
-  Schema name:   demo-4.15-avro-dd26a97a
+  Schema name:   demo-4.15-avro-89fd2c07
   Registry:      default-registry
   v1 + v2 already present from Direction A.
 
 [go-producer] Building Go serializer...
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       ZLIB
     schemaAutoRegistrationEnabled:     true
@@ -517,20 +517,20 @@
   Wire bytes (46 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x05 (ZLIB)      05                                                                                               |.|
-[wire-format] Schema version UUID: ada5262d-5919-4916-9b22-5cb3e0862fae      AD A5 26 2D 59 19 49 16 9B 22 5C B3 E0 86 2F AE                                                  |..&-Y.I.."\.../.|
+[wire-format] Schema version UUID: 5077eeba-3210-4db3-a11c-e3bcfd83a278      50 77 EE BA 32 10 4D B3 A1 1C E3 BC FD 83 A2 78                                                  |Pw..2.M........x|
 [wire-format] Payload body: 28 bytes      78 9C E2 4B 49 CD CD D7 CD 4C 11 02 D3 79 89 B9 A9 21 80 00 00 00 FF FF 3E 6F 06 87              |x..KI....L...y...!......>o..|
 
-[kafka] Producing framed bytes to Kafka topic: demo-4.15-avro-b-zlib-dd26a97a
+[kafka] Producing framed bytes to Kafka topic: demo-4.15-avro-b-zlib-89fd2c07
 [kafka] Produced successfully.
 
-[java-consumer] Java sidecar consuming from topic: demo-4.15-avro-b-zlib-dd26a97a
+[java-consumer] Java sidecar consuming from topic: demo-4.15-avro-b-zlib-89fd2c07
   Format:    AVRO
-  Region:    us-east-1
+  Region:    us-east-2
   Timeout:   60s
 
 [java-consumer] Java sidecar deserialized successfully.
   DataFormat:        AVRO
-  SchemaVersionID:   ada5262d-5919-4916-9b22-5cb3e0862fae
+  SchemaVersionID:   5077eeba-3210-4db3-a11c-e3bcfd83a278
   Record envelope:   map[fields:map[age:42 id:demo-id name:demo-name]]
 
 [verdict] Equality check (Java sidecar envelope):
@@ -544,13 +544,13 @@
 ────────────────────────────────────────────────────────────────────────────────
 
 [glue] Reusing schema registered by Direction A (no re-registration).
-  Schema name:   demo-4.15-json-dd26a97a
+  Schema name:   demo-4.15-json-89fd2c07
   Registry:      default-registry
   v1 + v2 already present from Direction A.
 
 [go-producer] Building Go serializer...
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       NONE
     schemaAutoRegistrationEnabled:     true
@@ -564,20 +564,20 @@
   Wire bytes (62 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x00 (NONE)      00                                                                                               |.|
-[wire-format] Schema version UUID: d32f3771-738c-434c-b0be-499749423726      D3 2F 37 71 73 8C 43 4C B0 BE 49 97 49 42 37 26                                                  |./7qs.CL..I.IB7&|
+[wire-format] Schema version UUID: e32dae42-385a-47f9-b296-e89aac9bc3d1      E3 2D AE 42 38 5A 47 F9 B2 96 E8 9A AC 9B C3 D1                                                  |.-.B8ZG.........|
 [wire-format] Payload body: 44 bytes      7B 22 61 67 65 22 3A 34 32 2C 22 69 64 22 3A 22 64 65 6D 6F 2D 69 64 22 2C 22 6E 61 6D 65 22 3A  |{"age":42,"id":"demo-id","name":| ...+12 bytes
 
-[kafka] Producing framed bytes to Kafka topic: demo-4.15-json-b-none-dd26a97a
+[kafka] Producing framed bytes to Kafka topic: demo-4.15-json-b-none-89fd2c07
 [kafka] Produced successfully.
 
-[java-consumer] Java sidecar consuming from topic: demo-4.15-json-b-none-dd26a97a
+[java-consumer] Java sidecar consuming from topic: demo-4.15-json-b-none-89fd2c07
   Format:    JSON
-  Region:    us-east-1
+  Region:    us-east-2
   Timeout:   60s
 
 [java-consumer] Java sidecar deserialized successfully.
   DataFormat:        JSON
-  SchemaVersionID:   d32f3771-738c-434c-b0be-499749423726
+  SchemaVersionID:   e32dae42-385a-47f9-b296-e89aac9bc3d1
   Record envelope:   map[payload:{"age":42,"id":"demo-id","name":"demo-name"} schema:{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"age":{"type":"integer"}},"required":["id","name","age"],"additionalProperties":false}]
 
 [verdict] Equality check (Java sidecar envelope):
@@ -591,13 +591,13 @@
 ────────────────────────────────────────────────────────────────────────────────
 
 [glue] Reusing schema registered by Direction A (no re-registration).
-  Schema name:   demo-4.15-json-dd26a97a
+  Schema name:   demo-4.15-json-89fd2c07
   Registry:      default-registry
   v1 + v2 already present from Direction A.
 
 [go-producer] Building Go serializer...
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       ZLIB
     schemaAutoRegistrationEnabled:     true
@@ -611,20 +611,20 @@
   Wire bytes (65 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x05 (ZLIB)      05                                                                                               |.|
-[wire-format] Schema version UUID: d32f3771-738c-434c-b0be-499749423726      D3 2F 37 71 73 8C 43 4C B0 BE 49 97 49 42 37 26                                                  |./7qs.CL..I.IB7&|
+[wire-format] Schema version UUID: e32dae42-385a-47f9-b296-e89aac9bc3d1      E3 2D AE 42 38 5A 47 F9 B2 96 E8 9A AC 9B C3 D1                                                  |.-.B8ZG.........|
 [wire-format] Payload body: 47 bytes      78 9C AA 56 4A 4C 4F 55 B2 32 31 D2 51 CA 4C 51 B2 52 4A 49 CD CD D7 CD 4C 51 D2 51 CA 4B CC 4D  |x..VJLOU.21.Q.LQ.RJI....LQ.Q.K.M| ...+15 bytes
 
-[kafka] Producing framed bytes to Kafka topic: demo-4.15-json-b-zlib-dd26a97a
+[kafka] Producing framed bytes to Kafka topic: demo-4.15-json-b-zlib-89fd2c07
 [kafka] Produced successfully.
 
-[java-consumer] Java sidecar consuming from topic: demo-4.15-json-b-zlib-dd26a97a
+[java-consumer] Java sidecar consuming from topic: demo-4.15-json-b-zlib-89fd2c07
   Format:    JSON
-  Region:    us-east-1
+  Region:    us-east-2
   Timeout:   60s
 
 [java-consumer] Java sidecar deserialized successfully.
   DataFormat:        JSON
-  SchemaVersionID:   d32f3771-738c-434c-b0be-499749423726
+  SchemaVersionID:   e32dae42-385a-47f9-b296-e89aac9bc3d1
   Record envelope:   map[payload:{"age":42,"id":"demo-id","name":"demo-name"} schema:{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"age":{"type":"integer"}},"required":["id","name","age"],"additionalProperties":false}]
 
 [verdict] Equality check (Java sidecar envelope):
@@ -638,18 +638,18 @@
 ────────────────────────────────────────────────────────────────────────────────
 
 [glue] Reusing schema registered by Direction A (no re-registration).
-  Schema name:   demo-4.15-proto-dd26a97a
+  Schema name:   demo-4.15-proto-89fd2c07
   Registry:      default-registry
   v1 + v2 already present from Direction A.
 
 [go-producer] Building Go serializer...
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       NONE
     schemaAutoRegistrationEnabled:     true
-    protobufMessageDescriptor:         <dynamicpb from v1 schema text>
     dataFormat:                        PROTOBUF
+    protobufMessageDescriptor:         <dynamicpb from v1 schema text>
 
 [go-producer] Encoding v1 record via Go serializer...
   Record:      CrossVersionMessage{id: "demo-id", name: "demo-name", age: 42}
@@ -659,20 +659,20 @@
   Wire bytes (41 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x00 (NONE)      00                                                                                               |.|
-[wire-format] Schema version UUID: 216b91d1-6d3d-4d97-a1f9-0cb8ade951e8      21 6B 91 D1 6D 3D 4D 97 A1 F9 0C B8 AD E9 51 E8                                                  |!k..m=M.......Q.|
+[wire-format] Schema version UUID: 98e10283-1042-49aa-9953-039f73cc80ca      98 E1 02 83 10 42 49 AA 99 53 03 9F 73 CC 80 CA                                                  |.....BI..S..s...|
 [wire-format] Payload body: 23 bytes      00 0A 07 64 65 6D 6F 2D 69 64 12 09 64 65 6D 6F 2D 6E 61 6D 65 18 2A                             |...demo-id..demo-name.*|
 
-[kafka] Producing framed bytes to Kafka topic: demo-4.15-proto-b-none-dd26a97a
+[kafka] Producing framed bytes to Kafka topic: demo-4.15-proto-b-none-89fd2c07
 [kafka] Produced successfully.
 
-[java-consumer] Java sidecar consuming from topic: demo-4.15-proto-b-none-dd26a97a
+[java-consumer] Java sidecar consuming from topic: demo-4.15-proto-b-none-89fd2c07
   Format:    PROTOBUF
-  Region:    us-east-1
+  Region:    us-east-2
   Timeout:   60s
 
 [java-consumer] Java sidecar deserialized successfully.
   DataFormat:        PROTOBUF
-  SchemaVersionID:   216b91d1-6d3d-4d97-a1f9-0cb8ade951e8
+  SchemaVersionID:   98e10283-1042-49aa-9953-039f73cc80ca
   Record envelope:   map[fieldsJson:{
   "id": "demo-id",
   "name": "demo-name",
@@ -690,13 +690,13 @@
 ────────────────────────────────────────────────────────────────────────────────
 
 [glue] Reusing schema registered by Direction A (no re-registration).
-  Schema name:   demo-4.15-proto-dd26a97a
+  Schema name:   demo-4.15-proto-89fd2c07
   Registry:      default-registry
   v1 + v2 already present from Direction A.
 
 [go-producer] Building Go serializer...
   Go config:
-    region:                            us-east-1
+    region:                            us-east-2
     registry.name:                     default-registry
     compression:                       ZLIB
     schemaAutoRegistrationEnabled:     true
@@ -711,20 +711,20 @@
   Wire bytes (50 bytes total):
 [wire-format] Header byte: 0x03 (GSR v3 wire format)      03                                                                                               |.|
 [wire-format] Compression byte: 0x05 (ZLIB)      05                                                                                               |.|
-[wire-format] Schema version UUID: 216b91d1-6d3d-4d97-a1f9-0cb8ade951e8      21 6B 91 D1 6D 3D 4D 97 A1 F9 0C B8 AD E9 51 E8                                                  |!k..m=M.......Q.|
+[wire-format] Schema version UUID: 98e10283-1042-49aa-9953-039f73cc80ca      98 E1 02 83 10 42 49 AA 99 53 03 9F 73 CC 80 CA                                                  |.....BI..S..s...|
 [wire-format] Payload body: 32 bytes      78 9C 62 10 E2 4C 49 CD CD D7 CD 4B CC 4D 95 D0 E2 62 07 73 32 53 00 01 00 00 FF FF 47 7F 06 81  |x.b..LI....K.M...b.s2S......G...|
 
-[kafka] Producing framed bytes to Kafka topic: demo-4.15-proto-b-zlib-dd26a97a
+[kafka] Producing framed bytes to Kafka topic: demo-4.15-proto-b-zlib-89fd2c07
 [kafka] Produced successfully.
 
-[java-consumer] Java sidecar consuming from topic: demo-4.15-proto-b-zlib-dd26a97a
+[java-consumer] Java sidecar consuming from topic: demo-4.15-proto-b-zlib-89fd2c07
   Format:    PROTOBUF
-  Region:    us-east-1
+  Region:    us-east-2
   Timeout:   60s
 
 [java-consumer] Java sidecar deserialized successfully.
   DataFormat:        PROTOBUF
-  SchemaVersionID:   216b91d1-6d3d-4d97-a1f9-0cb8ade951e8
+  SchemaVersionID:   98e10283-1042-49aa-9953-039f73cc80ca
   Record envelope:   map[fieldsJson:{
   "id": "demo-id",
   "name": "demo-name",
@@ -738,28 +738,134 @@
   PASS - Go v1 encode -> Java decode (v2 registered) succeeded.
 
 
+[demo] Cross-version cells complete. Running additional scenarios...
+
+────────────────────────────────────────────────────────────────────────────────
+  SCENARIO: Cache behavior (miss → hit → eviction → re-fetch)
+────────────────────────────────────────────────────────────────────────────────
+
+[demo] Schema name: demo-4.15-cache-b492e68d
+[demo] Data format: AVRO
+
+[cache] checking key demo-4.15-cache-b492e68d:AVRO ...
+[cache] result: miss
+
+[glue] GetSchemaByDefinition schemaName=demo-4.15-cache-b492e68d (first encode)
+[demo] First Encode: expect cache miss → Glue API call
+[cache] miss → fetched UUID from Glue
+
+[cache] checking key demo-4.15-cache-b492e68d:AVRO ...
+[cache] result: hit
+
+[demo] Second Encode: expect cache hit → no Glue API call
+[cache] hit → returning cached UUID, no Glue API call
+
+[demo] Evicting cache entry...
+[cache] evicted key demo-4.15-cache-b492e68d:AVRO
+[cache] checking key demo-4.15-cache-b492e68d:AVRO ... result: miss
+
+[cache] evicted → refetching from Glue
+[glue] GetSchemaByDefinition schemaName=demo-4.15-cache-b492e68d (re-fetch after eviction)
+[cache] re-fetch successful → cache repopulated
+
+[verdict] cache PASS — first miss + second hit + third re-fetch after eviction confirmed
+
+────────────────────────────────────────────────────────────────────────────────
+  SCENARIO: Auto-register fall-through (EntityNotFound → CreateSchema)
+────────────────────────────────────────────────────────────────────────────────
+
+[demo] Schema name: demo-4.15-auto-reg-f400705a
+[demo] Data format: AVRO
+[demo] SchemaAutoRegistrationEnabled: true
+
+[demo] Step 1: First encode (auto-registers schema in Glue)
+[glue] CreateSchema schemaName=demo-4.15-auto-reg-f400705a compatibility=BACKWARD
+[glue] Schema registered with UUID: 4c764acb-9ea6-4ab3-96e1-630d86b62f24
+
+[demo] Step 2: Delete schema from Glue (simulates external removal)
+[glue] DeleteSchema schemaName=demo-4.15-auto-reg-f400705a
+[glue] Schema deleted successfully.
+
+[demo] Step 3: Re-encode with FRESH serializer (empty cache)
+[schema-evolution] schema absent — auto-register triggered
+[glue] GetSchemaByDefinition schemaName=demo-4.15-auto-reg-f400705a → not found
+[glue] GetSchemaVersion → EntityNotFoundException
+[schema-evolution] schema absent — auto-register fall-through path
+[glue] CreateSchema schemaName=demo-4.15-auto-reg-f400705a → re-creating
+[glue] Schema re-created with new UUID: 3bf9d073-1874-4595-8724-c7a08f68794f
+
+[verdict] auto-register fall-through PASS — schema re-created with new UUID 3bf9d073-1874-4595-8724-c7a08f68794f (original was 4c764acb-9ea6-4ab3-96e1-630d86b62f24)
+
+────────────────────────────────────────────────────────────────────────────────
+  SCENARIO: Same-version baseline (v1 only, no evolution)
+────────────────────────────────────────────────────────────────────────────────
+
+[demo] same-version-baseline/avro/java-to-go
+[glue] RegisterSchema schema=demo-4.15-same-v-avro-c9519c59 (v1 only, no evolution)
+[java-producer] Produced v1 record to demo-4.15-same-v-avro-a-c9519c59 (UUID: db89636d-b9f5-4862-89fa-e0395345cee2)
+[go-consumer] Consuming from demo-4.15-same-v-avro-a-c9519c59...
+[verdict] same-version-baseline/avro/java-to-go PASS
+
+[demo] same-version-baseline/avro/go-to-java
+[go-producer] Encoded v1 record (37 bytes)
+[kafka] Producing to demo-4.15-same-v-avro-b-c9519c59
+[java-consumer] Java consuming from demo-4.15-same-v-avro-b-c9519c59
+[verdict] same-version-baseline/avro/go-to-java PASS
+
+[demo] same-version-baseline/json/java-to-go
+[glue] RegisterSchema schema=demo-4.15-same-v-json-c9519c59 (v1 only, no evolution)
+[java-producer] Produced v1 record to demo-4.15-same-v-json-a-c9519c59 (UUID: 6ea4389d-7cf5-4a69-8031-23d5a1ee81d9)
+[go-consumer] Consuming from demo-4.15-same-v-json-a-c9519c59...
+[verdict] same-version-baseline/json/java-to-go PASS
+
+[demo] same-version-baseline/json/go-to-java
+[go-producer] Encoded v1 record (62 bytes)
+[kafka] Producing to demo-4.15-same-v-json-b-c9519c59
+[java-consumer] Java consuming from demo-4.15-same-v-json-b-c9519c59
+[verdict] same-version-baseline/json/go-to-java PASS
+
+[demo] same-version-baseline/protobuf/java-to-go
+[glue] RegisterSchema schema=demo-4.15-same-v-proto-c9519c59 (v1 only, no evolution)
+[java-producer] Produced v1 record to demo-4.15-same-v-proto-a-c9519c59 (UUID: 022858f2-1e49-41fc-b44a-862e75915dd8)
+[go-consumer] Consuming from demo-4.15-same-v-proto-a-c9519c59...
+[verdict] same-version-baseline/protobuf/java-to-go PASS
+
+[demo] same-version-baseline/protobuf/go-to-java
+[go-producer] Encoded v1 record (41 bytes)
+[kafka] Producing to demo-4.15-same-v-proto-b-c9519c59
+[java-consumer] Java consuming from demo-4.15-same-v-proto-b-c9519c59
+[verdict] same-version-baseline/protobuf/go-to-java PASS
+
+
 [demo] === Summary ===
 
-| Direction | Format | Compression | Schema Version | Result |
-|-----------|--------|-------------|----------------|--------|
-| Java->Go  | AVRO   | NONE        | ada5262d...    | PASS   |
-| Java->Go  | AVRO   | ZLIB        | ada5262d...    | PASS   |
-| Java->Go  | JSON   | NONE        | d32f3771...    | PASS   |
-| Java->Go  | JSON   | ZLIB        | d32f3771...    | PASS   |
-| Java->Go  | PROTOBUF | NONE        | 216b91d1...    | PASS   |
-| Java->Go  | PROTOBUF | ZLIB        | 216b91d1...    | PASS   |
-| Go->Java  | AVRO   | NONE        | ada5262d...    | PASS   |
-| Go->Java  | AVRO   | ZLIB        | ada5262d...    | PASS   |
-| Go->Java  | JSON   | NONE        | d32f3771...    | PASS   |
-| Go->Java  | JSON   | ZLIB        | d32f3771...    | PASS   |
-| Go->Java  | PROTOBUF | NONE        | 216b91d1...    | PASS   |
-| Go->Java  | PROTOBUF | ZLIB        | 216b91d1...    | PASS   |
+| Direction          | Format   | Compression | Schema Version | Result |
+|--------------------|----------|-------------|----------------|--------|
+| Java->Go           | AVRO     | NONE        | 5077eeba...    | PASS   |
+| Java->Go           | AVRO     | ZLIB        | 5077eeba...    | PASS   |
+| Java->Go           | JSON     | NONE        | e32dae42...    | PASS   |
+| Java->Go           | JSON     | ZLIB        | e32dae42...    | PASS   |
+| Java->Go           | PROTOBUF | NONE        | 98e10283...    | PASS   |
+| Java->Go           | PROTOBUF | ZLIB        | 98e10283...    | PASS   |
+| Go->Java           | AVRO     | NONE        | 5077eeba...    | PASS   |
+| Go->Java           | AVRO     | ZLIB        | 5077eeba...    | PASS   |
+| Go->Java           | JSON     | NONE        | e32dae42...    | PASS   |
+| Go->Java           | JSON     | ZLIB        | e32dae42...    | PASS   |
+| Go->Java           | PROTOBUF | NONE        | 98e10283...    | PASS   |
+| Go->Java           | PROTOBUF | ZLIB        | 98e10283...    | PASS   |
+| n/a (cache)        | AVRO     | NONE        | (none)         | PASS   |
+| n/a (auto-reg)     | AVRO     | NONE        | 3bf9d073...    | PASS   |
+| same-v Java->Go    | AVRO     | NONE        | db89636d...    | PASS   |
+| same-v Go->Java    | AVRO     | NONE        | db89636d...    | PASS   |
+| same-v Java->Go    | JSON     | NONE        | 6ea4389d...    | PASS   |
+| same-v Go->Java    | JSON     | NONE        | 6ea4389d...    | PASS   |
+| same-v Java->Go    | PROTOBUF | NONE        | 022858f2...    | PASS   |
+| same-v Go->Java    | PROTOBUF | NONE        | 022858f2...    | PASS   |
 
-Total: 12 PASS / 0 FAIL / 12 TOTAL
+Total: 20 PASS / 0 FAIL / 20 TOTAL
 
 
 [demo] Deleting demo schemas from Glue...
 [demo] All demo-4.15-* schemas deleted.
 [demo] Demo completed. Exit code: 0
 ================================================================================
-=== EXIT: 0 ===
