@@ -82,7 +82,7 @@ func runCacheScenario(
 	}
 	defer ser.Close() //nolint:errcheck
 
-	enc := ser.CoreEncoder()
+	enc := ser.CoreEncoderForTest()
 
 	// Build the Avro record.
 	record, err := goRecordForFormat("AVRO", crossVersionAvroV1)
@@ -313,7 +313,7 @@ func runAutoRegisterScenario(
 	defer ser2.Close() //nolint:errcheck
 
 	printStage("glue", fmt.Sprintf("GetSchemaByDefinition schemaName=%s → not found", schemaName))
-	printStage("glue", fmt.Sprintf("GetSchemaVersion → EntityNotFoundException", ))
+	printStage("glue", "GetSchemaVersion → EntityNotFoundException")
 	printStage("schema-evolution", "schema absent — auto-register fall-through path")
 	printStage("glue", fmt.Sprintf("CreateSchema schemaName=%s → re-creating", schemaName))
 
