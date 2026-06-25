@@ -352,11 +352,28 @@ func TestFixtureAvroNegativeEvolution_Real(t *testing.T) {
 						"expected compatibility violation for negative/%s/%s", mode, fileName)
 
 					if isCompatChecked {
-						// For backward/forward/full modes, Glue rejects via
-						// InvalidInputException. Assert the specific error type.
+						// For backward/forward/full modes, Glue rejects the
+						// incompatible v2/v3 in one of two ways:
+						//   1. SYNCHRONOUS — CreateSchema/RegisterSchemaVersion
+						//      returns InvalidInputException at submission.
+						//   2. ASYNCHRONOUS — the schema registers and gets a
+						//      UUID, then Glue's compatibility checker
+						//      transitions status PENDING → FAILURE. The Go
+						//      GSR client's waitForSchemaEvolutionCheck poll
+						//      (Phase 4.10 PBI-5) surfaces this as a wrapped
+						//      ErrGSR whose message contains "schema evolution
+						//      check failed".
+						// Both paths prove Glue rejected the incompatible
+						// version; the client just observes the rejection at
+						// different points. Real-AWS empirically returns the
+						// async form for negative/backward, /forward, /full
+						// (Phase 4.16 first real-AWS run). Accept either.
 						var invalidInput *types.InvalidInputException
-						require.True(t, errors.As(encErr, &invalidInput),
-							"expected InvalidInputException for negative/%s/%s, got %T: %v",
+						isInvalidInput := errors.As(encErr, &invalidInput)
+						isEvolutionFail := strings.Contains(encErr.Error(),
+							"schema evolution check failed")
+						require.True(t, isInvalidInput || isEvolutionFail,
+							"expected InvalidInputException OR evolution-check FAILURE for negative/%s/%s, got %T: %v",
 							mode, fileName, encErr, encErr)
 					}
 					// For DISABLED mode, any non-nil error is sufficient —

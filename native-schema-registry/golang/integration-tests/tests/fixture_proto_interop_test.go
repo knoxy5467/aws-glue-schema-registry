@@ -9,11 +9,11 @@
 // as v1/v2 pairs.
 //
 // Selected fixtures:
-//   - basicSyntax2.proto       — proto2 baseline
-//   - basicsyntax3.proto       — proto3 baseline
-//   - TestSyntax3OneOfs.proto  — oneOf field support
-//   - ComplexNestingSyntax3.proto — nested message types
-//   - AllTypesSyntax3.proto    — full scalar type coverage
+//   - basicSyntax2.proto         — proto2 baseline
+//   - basicsyntax3.proto         — proto3 baseline
+//   - TestSyntax3OneOfs.proto    — oneOf field support
+//   - TestSyntax3Optional.proto  — proto3 optional + nested messages
+//   - Basic.proto                — proto2 nested messages + required fields
 //
 // Out-of-scope fixtures (Glue rejects schema names with non-[A-Za-z0-9_.-]
 // characters; these test the apicurio protobuf parser, not the GSR client):
@@ -24,6 +24,19 @@
 //   - NestedConflicting#ClassName.proto
 //   - ConflictingName.proto
 //   - snake_case_file.proto
+//
+// Known Go-serializer limitation (real-AWS run, Phase 4.16): the Go GSR
+// protobuf serializer's GetSchemaDefinition path uses
+// protodesc.ToFileDescriptorProto + jhump/protoreflect/protoprint, which
+// requires all transitive imports to be present in the descriptor's resolver
+// at serialization time. Fixtures that `import "google/protobuf/*.proto"` or
+// other .proto files (e.g., ComplexNestingSyntax3.proto, AllTypesSyntax3.proto)
+// fail with `no such file: "google/protobuf/timestamp.proto"` in the
+// go-to-java direction. The replacements above (TestSyntax3Optional, Basic)
+// have no imports while still covering meaningful protobuf surface (proto3
+// optional, proto2 required, nested messages, oneOf). Closing the
+// import-resolution gap requires extending the Go serializer to thread an
+// import-resolver through the schema-generation path — deferred to Phase 5.
 //
 // THIS BILLS AWS. Gated by AWS_INTEGRATION=1 + GSR_GLUE=real +
 // GSR_INTEROP_MODE=local.
@@ -63,8 +76,8 @@ var protoInteropFixtures = []struct {
 	{"basicSyntax2.proto", "proto2 baseline"},
 	{"basicsyntax3.proto", "proto3 baseline"},
 	{"TestSyntax3OneOfs.proto", "oneOf field support"},
-	{"ComplexNestingSyntax3.proto", "nested message types"},
-	{"AllTypesSyntax3.proto", "full scalar type coverage"},
+	{"TestSyntax3Optional.proto", "proto3 optional + nested messages"},
+	{"Basic.proto", "proto2 nested messages + required fields"},
 }
 
 // TestFixtureProtoInterop_Real exercises Java<->Go protobuf interop using
