@@ -14,10 +14,62 @@
 package avro
 
 import (
+	"sync"
 	"testing"
 
 	hambaavro "github.com/hamba/avro/v2"
 )
+
+// TestParseSchemaCached_Concurrent runs many goroutines against the cache
+// simultaneously to surface data races. Run via `go test -race`. The cache
+// must serialize parsing without dropping updates or returning nil for
+// late-arriving goroutines, and the hamba/avro Schema's lazy internal
+// state (fingerprint, canonical-form cache) must remain race-free when
+// accessed concurrently.
+func TestParseSchemaCached_Concurrent(t *testing.T) {
+	schemaCacheClearForTest()
+
+	const goroutines = 32
+	const schemaText = `{"type":"record","name":"User","fields":[{"name":"id","type":"string"}]}`
+
+	var wg sync.WaitGroup
+	results := make([]hambaavro.Schema, goroutines)
+	errs := make([]error, goroutines)
+
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			s, err := ParseSchemaCached(schemaText)
+			results[idx] = s
+			errs[idx] = err
+			// Touch lazy internal state to provoke any race on hamba's
+			// atomic.Value-protected fingerprint/canonical caches.
+			if s != nil {
+				_ = s.Fingerprint()
+				_ = s.String()
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	for i := 0; i < goroutines; i++ {
+		if errs[i] != nil {
+			t.Fatalf("goroutine %d: %v", i, errs[i])
+		}
+		if results[i] == nil {
+			t.Fatalf("goroutine %d: returned nil schema", i)
+		}
+	}
+	// Eventual consistency: once the cache settles, every goroutine should
+	// observe the same cached pointer.
+	first := results[0]
+	for i := 1; i < goroutines; i++ {
+		if results[i] != first {
+			t.Errorf("goroutine %d: cached pointer drift (got %p, want %p)", i, results[i], first)
+		}
+	}
+}
 
 const cacheTestSchema = `{
   "type": "record",

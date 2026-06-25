@@ -263,8 +263,11 @@ func parseSchemaDefinitionToDescriptorUncached(schemaDefinition string) (*desc.F
 	parser.Accessor = accessor
 
 	fileDescs, err := parser.ParseFiles("schema.proto")
-	if err != nil || len(fileDescs) == 0 {
+	if err != nil {
 		return nil, err
+	}
+	if len(fileDescs) == 0 {
+		return nil, fmt.Errorf("protobuf parser returned empty descriptor set for schema text")
 	}
 
 	return fileDescs[0], nil

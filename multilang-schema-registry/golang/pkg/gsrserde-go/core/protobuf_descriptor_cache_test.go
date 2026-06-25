@@ -1,6 +1,7 @@
 package gsrserde
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -62,6 +63,63 @@ func TestParseSchemaDefinitionToDescriptor_MalformedSchemaErrorsNotCached(t *tes
 		return true
 	})
 	assert.Equal(t, 0, count, "errors must not be cached")
+}
+
+// TestParseSchemaDefinitionToDescriptor_EmptyDescriptorSetNotCached covers
+// the corner case where the underlying parser returns (nil descriptors, nil
+// error) — historically this poisoned the cache with a typed-nil entry that
+// every subsequent caller would nil-deref. The uncached path now synthesizes
+// an error for empty descriptor sets and the wrapper rejects it before
+// LoadOrStore, so the cache stays empty.
+func TestParseSchemaDefinitionToDescriptor_EmptyDescriptorSetNotCached(t *testing.T) {
+	protoDescriptorCacheClearForTest()
+
+	// A .proto with only `syntax` + an `option` produces a FileDescriptorProto
+	// with zero message types but is well-formed; protoparse may return it
+	// as an empty descriptor set rather than an error, depending on version.
+	// Either way the wrapper must NOT cache a nil descriptor.
+	const emptyProto = `syntax = "proto3"; package empty;`
+	_, _ = parseSchemaDefinitionToDescriptor(emptyProto)
+
+	// Whatever the parse outcome, no nil descriptor may sit in the cache.
+	protoDescriptorCache.Range(func(_, v interface{}) bool {
+		assert.NotNil(t, v, "cache must never store a nil descriptor")
+		return true
+	})
+}
+
+// TestParseSchemaDefinitionToDescriptor_Concurrent fires many goroutines
+// against the cache simultaneously to surface data races. Run via
+// `go test -race`. The cache must serialize the parse without losing
+// updates or returning nil for late arrivals.
+func TestParseSchemaDefinitionToDescriptor_Concurrent(t *testing.T) {
+	protoDescriptorCacheClearForTest()
+
+	const goroutines = 32
+	var wg sync.WaitGroup
+	results := make([]interface{}, goroutines)
+	errs := make([]error, goroutines)
+
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			fd, err := parseSchemaDefinitionToDescriptor(singleMessageSchema)
+			results[idx] = fd
+			errs[idx] = err
+		}(i)
+	}
+	wg.Wait()
+
+	for i := 0; i < goroutines; i++ {
+		require.NoErrorf(t, errs[i], "goroutine %d", i)
+		require.NotNilf(t, results[i], "goroutine %d returned nil descriptor", i)
+	}
+	// All goroutines must observe the same cached pointer once the cache settles.
+	first := results[0]
+	for i := 1; i < goroutines; i++ {
+		assert.Samef(t, first, results[i], "goroutine %d saw a different descriptor pointer", i)
+	}
 }
 
 // BenchmarkParseSchemaDefinitionToDescriptor_Cached measures the cache-hit

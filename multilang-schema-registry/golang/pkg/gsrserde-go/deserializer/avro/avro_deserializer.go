@@ -99,7 +99,7 @@ func NewAvroDeserializer(config *common.Configuration) (*AvroDeserializer, error
 	var parsedReader hambaavro.Schema
 	if config.AvroReaderSchema != "" {
 		var err error
-		parsedReader, err = hambaavro.Parse(config.AvroReaderSchema)
+		parsedReader, err = avro.ParseSchemaCached(config.AvroReaderSchema)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrInvalidAvroReaderSchema, err)
 		}
