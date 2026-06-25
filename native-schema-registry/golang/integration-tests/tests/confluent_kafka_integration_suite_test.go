@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -47,15 +46,20 @@ func (s *ConfluentKafkaIntegrationSuite) TestConfluentKafkaProtobufIntegration()
 
 	// Extract the message descriptor using protobuf reflection
 	messageDescriptor := message.ProtoReflect().Descriptor()
-	gsrConfigAbsolutePath, err := filepath.Abs("./gsr.properties")
-	if err != nil {
-		s.T().Fatal("Failed to get absolute path of gsr.properties")
+	// Inline GSR config map — the earlier filepath.Abs("./gsr.properties")
+	// pattern silently failed: validateAndSetGsrConfig only honors
+	// map[string]string under GSRConfigPathKey, so the string path was
+	// dropped and SchemaAutoRegistrationEnabled defaulted to false.
+	gsrMap := map[string]string{
+		"region":                        defaultAWSRegion,
+		"registry.name":                 testRegistryName,
+		"schemaAutoRegistrationEnabled": "true",
 	}
 	// Create Protobuf configuration
 	configMap := map[string]interface{}{
 		common.DataFormatTypeKey:            common.DataFormatProtobuf,
 		common.ProtobufMessageDescriptorKey: messageDescriptor,
-		common.GSRConfigPathKey:			gsrConfigAbsolutePath,
+		common.GSRConfigPathKey:             gsrMap,
 	}
 	config := common.NewConfiguration(configMap)
 

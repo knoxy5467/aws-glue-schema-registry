@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -97,17 +96,22 @@ func (s *MultiThreadedIntegrationSuite) TestConcurrentSerializationDeserializati
 	
 	const numGoroutines = 2 
 	
-	// Create GSR configuration
-	gsrConfigAbsolutePath, err := filepath.Abs("./gsr.properties")
-	require.NoError(s.T(), err, "Should get absolute path of gsr.properties")
-	
 	// Create test messages for each goroutine
 	testMessages := s.createTestMessages(numGoroutines)
-	
+
+	// Inline GSR config map — the earlier filepath.Abs("./gsr.properties")
+	// pattern silently failed: validateAndSetGsrConfig only honors
+	// map[string]string under GSRConfigPathKey, so the string path was
+	// dropped and SchemaAutoRegistrationEnabled defaulted to false.
+	gsrMap := map[string]string{
+		"region":                        defaultAWSRegion,
+		"registry.name":                 testRegistryName,
+		"schemaAutoRegistrationEnabled": "true",
+	}
 	configMap := map[string]interface{}{
 		common.DataFormatTypeKey:            common.DataFormatProtobuf,
 		common.ProtobufMessageDescriptorKey: testMessages[0].ProtoReflect().Descriptor(),
-		common.GSRConfigPathKey:             gsrConfigAbsolutePath,
+		common.GSRConfigPathKey:             gsrMap,
 	}
 	config := common.NewConfiguration(configMap)
 	
