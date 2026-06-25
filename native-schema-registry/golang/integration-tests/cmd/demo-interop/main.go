@@ -133,6 +133,23 @@ func main() {
 	// ── Run scenarios ─────────────────────────────────────────────────────────
 	results := runAllScenarios(ctx, sc, broker, cleanup, region)
 
+	// ── Extra scenarios (Phase 4.17 Item C) ───────────────────────────────────
+	fmt.Println()
+	printStage("demo", "Cross-version cells complete. Running additional scenarios...")
+	fmt.Println()
+
+	// C.1: Cache behavior
+	cacheResult := runCacheScenario(ctx, real, cleanup, region)
+	results = append(results, cacheResult)
+
+	// C.2: Auto-register fall-through
+	autoRegResult := runAutoRegisterScenario(ctx, real, cleanup, region)
+	results = append(results, autoRegResult)
+
+	// C.3: Same-version baseline (3 formats × 2 directions = 6 rows)
+	sameVersionResults := runSameVersionBaseline(ctx, sc, broker, cleanup, region)
+	results = append(results, sameVersionResults...)
+
 	// ── Summary ───────────────────────────────────────────────────────────────
 	exitCode := printSummary(results)
 	cleanupAndExit(exitCode)
@@ -152,16 +169,13 @@ func printSummary(results []ScenarioResult) int {
 	}
 
 	// Markdown-style table: | Direction | Format | Compression | Schema Version | Result |
-	fmt.Println("| Direction | Format | Compression | Schema Version | Result |")
-	fmt.Println("|-----------|--------|-------------|----------------|--------|")
+	fmt.Println("| Direction          | Format   | Compression | Schema Version | Result |")
+	fmt.Println("|--------------------|----------|-------------|----------------|--------|")
 
 	passing := 0
 	total := len(results)
 	for _, r := range results {
-		direction := "Java->Go"
-		if r.Direction == "B" {
-			direction = "Go->Java"
-		}
+		direction := directionLabel(r.Direction)
 		status := "PASS"
 		if !r.Pass {
 			status = "FAIL"
@@ -176,7 +190,7 @@ func printSummary(results []ScenarioResult) int {
 		if len(svID) > 8 {
 			svID = svID[:8] + "..."
 		}
-		fmt.Printf("| %-9s | %-6s | %-11s | %-14s | %-6s |\n",
+		fmt.Printf("| %-18s | %-8s | %-11s | %-14s | %-6s |\n",
 			direction, r.Format, r.Compression, svID, status)
 	}
 
@@ -188,4 +202,24 @@ func printSummary(results []ScenarioResult) int {
 		return 0
 	}
 	return 1
+}
+
+// directionLabel maps a ScenarioResult.Direction to a human-readable label
+// for the summary table. Standard cross-version cells use "A"/"B"; the Phase
+// 4.17 extra scenarios use custom strings.
+func directionLabel(d string) string {
+	switch d {
+	case "A":
+		return "Java->Go"
+	case "B":
+		return "Go->Java"
+	case "same-v A":
+		return "same-v Java->Go"
+	case "same-v B":
+		return "same-v Go->Java"
+	default:
+		// Custom direction strings (e.g. "n/a (cache)", "n/a (auto-reg)")
+		// are used as-is.
+		return d
+	}
 }
