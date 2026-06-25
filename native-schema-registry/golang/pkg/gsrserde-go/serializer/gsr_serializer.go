@@ -1,3 +1,16 @@
+// Package serializer provides the orchestrating Serializer that combines
+// format-layer payload encoding with core wire-format encoding.
+//
+// # Transport-agnostic
+//
+// Although the Serialize method accepts a `topic` parameter (named after
+// Kafka convention), this package has no Kafka dependency. The `topic`
+// argument is simply a string identifier that the configured
+// SchemaNameStrategy maps to a Glue schema name. Callers may pass a Kinesis
+// stream name, an SQS queue name, an S3 key prefix, an HTTP path, or any
+// other application-defined identifier. The production library at
+// pkg/gsrserde-go/ imports no Kafka libraries; reference Kafka adapters live
+// in integration-tests/pkg/clients/.
 package serializer
 
 import (

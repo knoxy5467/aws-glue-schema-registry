@@ -2,6 +2,21 @@
 
 This is a standalone Go module for the AWS Glue Schema Registry, providing high-performance serialization and deserialization capabilities through native bindings.
 
+## Transport-agnostic
+
+Although the public API uses the parameter name `topic` (after Kafka
+convention), the Go GSR client has no Kafka dependency. The `topic`
+argument is simply a string identifier that the configured
+`SchemaNameStrategy` maps to a Glue schema name. Customers can use the
+library with any byte-oriented transport: Kinesis, SQS, S3 object
+payloads, HTTP request/response bodies, gRPC, custom binary protocols,
+or in-process serde with no transport at all.
+
+The integration-tests module provides reference Kafka adapters (sarama,
+confluent-kafka-go, segmentio/kafka-go) under
+`integration-tests/pkg/clients/`, but the production library at
+`pkg/gsrserde-go/` imports none of them.
+
 ## Installation
 
 Extract the archive and use as a local Go module:

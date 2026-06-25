@@ -5,6 +5,14 @@ Changes to the GSR Go client live here. The top-level repository
 
 ## Unreleased
 
+### Transport-agnostic clarification
+
+Documented that `pkg/gsrserde-go/` has zero Kafka dependency. The `topic`
+parameter is just a string routed through `SchemaNameStrategy` — customers
+can use the library with Kinesis, SQS, S3, HTTP, gRPC, or any other
+byte-oriented transport. See the "Transport-agnostic" section in
+`native-schema-registry/golang/README.md`.
+
 ### Reader-schema projection (Phase 4.17)
 
 Added consumer-side reader-schema support for the Avro deserializer,
