@@ -811,6 +811,163 @@ func TestAvroDeserializer_SpecificRecord_PointerType(t *testing.T) {
 	assert.Equal(t, "dave", typed.Name)
 }
 
+// ---------------------------------------------------------------------------
+// Phase 4.17 — Reader-schema projection tests
+// ---------------------------------------------------------------------------
+
+// TestAvroDeserialize_ReaderSchema_AddedField verifies that a v2 reader schema
+// with an additional field (email, default null) correctly fills the default
+// when decoding v1-encoded bytes (which lack the email field).
+func TestAvroDeserialize_ReaderSchema_AddedField(t *testing.T) {
+	// Writer schema v1: {id, name}
+	writerSchema := `{
+		"type": "record",
+		"name": "User",
+		"fields": [
+			{"name": "id", "type": "int"},
+			{"name": "name", "type": "string"}
+		]
+	}`
+
+	// Reader schema v2: {id, name, email (default null)}
+	readerSchema := `{
+		"type": "record",
+		"name": "User",
+		"fields": [
+			{"name": "id", "type": "int"},
+			{"name": "name", "type": "string"},
+			{"name": "email", "type": ["null", "string"], "default": null}
+		]
+	}`
+
+	// Encode data using the writer schema (v1 shape: only id + name).
+	writerData := map[string]interface{}{
+		"id":   int32(42),
+		"name": "Alice",
+	}
+	encodedBytes, err := createAvroData(writerSchema, writerData)
+	require.NoError(t, err)
+
+	// Configure deserializer with the reader schema.
+	config := common.NewConfiguration(map[string]interface{}{
+		common.DataFormatTypeKey:    common.DataFormatAvro,
+		common.AvroReaderSchemaKey:  readerSchema,
+	})
+	d, err := NewAvroDeserializer(config)
+	require.NoError(t, err)
+
+	result, err := d.Deserialize(encodedBytes, &gsrcore.Schema{SchemaDefinition: writerSchema})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	resultMap, ok := result.(map[string]interface{})
+	require.True(t, ok, "expected map[string]interface{}, got %T", result)
+
+	// Original fields preserved.
+	assert.Equal(t, int(42), resultMap["id"])
+	assert.Equal(t, "Alice", resultMap["name"])
+
+	// Added field filled with default (null branch of the union).
+	assert.Contains(t, resultMap, "email", "reader-added field 'email' must be present")
+	assert.Nil(t, resultMap["email"], "email default is null")
+}
+
+// TestAvroDeserialize_ReaderSchema_RemovedField verifies that a reader schema
+// with fewer fields than the writer correctly drops the unknown field during
+// decode (field present in writer but absent in reader is ignored).
+func TestAvroDeserialize_ReaderSchema_RemovedField(t *testing.T) {
+	// Writer schema: {id, name, email}
+	writerSchema := `{
+		"type": "record",
+		"name": "User",
+		"fields": [
+			{"name": "id", "type": "int"},
+			{"name": "name", "type": "string"},
+			{"name": "email", "type": "string"}
+		]
+	}`
+
+	// Reader schema: {id, name} — email has been removed.
+	readerSchema := `{
+		"type": "record",
+		"name": "User",
+		"fields": [
+			{"name": "id", "type": "int"},
+			{"name": "name", "type": "string"}
+		]
+	}`
+
+	// Encode data with all 3 fields.
+	writerData := map[string]interface{}{
+		"id":    int32(7),
+		"name":  "Bob",
+		"email": "bob@example.com",
+	}
+	encodedBytes, err := createAvroData(writerSchema, writerData)
+	require.NoError(t, err)
+
+	// Configure deserializer with the reader schema.
+	config := common.NewConfiguration(map[string]interface{}{
+		common.DataFormatTypeKey:    common.DataFormatAvro,
+		common.AvroReaderSchemaKey:  readerSchema,
+	})
+	d, err := NewAvroDeserializer(config)
+	require.NoError(t, err)
+
+	result, err := d.Deserialize(encodedBytes, &gsrcore.Schema{SchemaDefinition: writerSchema})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	resultMap, ok := result.(map[string]interface{})
+	require.True(t, ok, "expected map[string]interface{}, got %T", result)
+
+	// Only reader fields present.
+	assert.Equal(t, int(7), resultMap["id"])
+	assert.Equal(t, "Bob", resultMap["name"])
+
+	// email was dropped — not present in the result.
+	_, hasEmail := resultMap["email"]
+	assert.False(t, hasEmail, "field 'email' must be absent from result (dropped by reader projection)")
+}
+
+// TestAvroDeserialize_ReaderSchema_Default verifies that when AvroReaderSchema
+// is NOT set (empty string), the deserializer uses writer-only decode —
+// regression guard: existing behavior must not break.
+func TestAvroDeserialize_ReaderSchema_Default(t *testing.T) {
+	writerSchema := `{
+		"type": "record",
+		"name": "User",
+		"fields": [
+			{"name": "id", "type": "int"},
+			{"name": "name", "type": "string"}
+		]
+	}`
+
+	writerData := map[string]interface{}{
+		"id":   int32(99),
+		"name": "Carol",
+	}
+	encodedBytes, err := createAvroData(writerSchema, writerData)
+	require.NoError(t, err)
+
+	// No AvroReaderSchema — empty/unset.
+	config := common.NewConfiguration(map[string]interface{}{
+		common.DataFormatTypeKey: common.DataFormatAvro,
+	})
+	d, err := NewAvroDeserializer(config)
+	require.NoError(t, err)
+
+	result, err := d.Deserialize(encodedBytes, &gsrcore.Schema{SchemaDefinition: writerSchema})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	resultMap, ok := result.(map[string]interface{})
+	require.True(t, ok, "expected map[string]interface{}, got %T", result)
+
+	assert.Equal(t, int(99), resultMap["id"])
+	assert.Equal(t, "Carol", resultMap["name"])
+}
+
 // BenchmarkAvroDeserializer_Deserialize benchmarks the deserialization performance
 func BenchmarkAvroDeserializer_Deserialize(b *testing.B) {
 	config := createAvroConfig()
