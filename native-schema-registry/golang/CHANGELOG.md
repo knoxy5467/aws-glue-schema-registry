@@ -5,6 +5,50 @@ Changes to the GSR Go client live here. The top-level repository
 
 ## Unreleased
 
+### Phase 4.16 fixture coverage
+
+Added shared multilang fixture test coverage for the Go GSR client, organized
+in three layers:
+
+- **Layer A** (`pkg/gsrserde-go/fixtures_test.go`): parse sweep of all 33
+  top-level .proto files via `bufbuild/protocompile` and all 23 .avsc files via
+  `hamba/avro/v2`. Asserts round-trip structural equality for proto descriptors
+  and fingerprint stability for Avro schemas. Skips
+  `TestOrderingSyntax3Options.proto` (Java parity gap — see entry below on
+  deprecated `*_generic_services` options).
+
+- **Layer B** (`integration-tests/tests/fixture_avro_evolution_test.go`):
+  real-AWS integration test registering all .avsc fixtures in
+  `shared/test/avro/{backward,forward,full,disabled,none}/` under the
+  appropriate Glue compatibility mode. Encodes + decodes a sample record at
+  each schema version. Negative-evolution test asserts that incompatible
+  schema versions are rejected by Glue.
+
+- **Layer C** (`integration-tests/tests/fixture_avro_interop_test.go` +
+  `fixture_proto_interop_test.go`): Java↔Go cross-language interop via the
+  Phase 4.13 Java sidecar + real Kafka + real Glue. Avro fixtures exercise
+  backward/forward/full evolution modes in both directions (Java produce →
+  Go consume, Go produce → Java consume). Protobuf fixtures exercise 5
+  representative .proto files (proto2 baseline, proto3 baseline, oneOf,
+  complex nesting, all scalar types) in both directions with same-version
+  round-trip.
+
+**Out-of-scope .proto fixtures** (not exercised in any layer):
+- `◉◉◉unicode⏩.proto`
+- `.protodevelasl.proto.proto.protodevel$---$$.bar.3.proto`
+- `hyphen-ated-proto_file-.proto`
+- `foo$$$1.proto`
+- `NestedConflicting#ClassName.proto`
+- `ConflictingName.proto`
+- `snake_case_file.proto`
+
+Rationale: AWS Glue Schema Registry rejects schema names containing characters
+outside `[A-Za-z0-9_.-]`. These fixtures exist to test the Apicurio protobuf
+parser's handling of exotic file names, not the GSR client's wire-format or
+registration logic. They parse cleanly in Layer A's sweep but cannot be
+registered in Glue without schema-name sanitization (a customer-facing concern
+outside the scope of the Go client library).
+
 ### Known parity gap: deprecated `*_generic_services` proto options
 Schemas with `option php_generic_services = true;` (or the related deprecated
 `py_generic_services`, `cc_generic_services`, `java_generic_services` options
