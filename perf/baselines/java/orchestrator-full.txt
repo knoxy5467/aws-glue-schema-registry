@@ -8,46 +8,21 @@
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 100)
 
 # Run progress: 0.00% complete, ETA 00:01:36
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-18.366 ops/us
-Iteration   1: 48.827 ops/us
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+1.479 ops/us
+Iteration   1: 1.665 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  48.827 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 10240)
-
-# Run progress: 2.08% complete, ETA 00:01:49
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.299 ops/us
-Iteration   1: 0.630 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.630 ops/us
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  1.665 ops/us
 
 
 # JMH version: 1.37
@@ -60,20 +35,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 10240)
 
-# Run progress: 4.17% complete, ETA 00:01:46
+# Run progress: 2.08% complete, ETA 00:03:09
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.003 ops/us
-Iteration   1: 0.004 ops/us
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.114 ops/us
+Iteration   1: 0.296 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.004 ops/us
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  0.296 ops/us
 
 
 # JMH version: 1.37
@@ -86,305 +62,20 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 1048576)
 
-# Run progress: 6.25% complete, ETA 00:01:43
+# Run progress: 4.17% complete, ETA 00:03:02
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-18.204 ops/us
-Iteration   1: 47.587 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  47.587 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 10240)
-
-# Run progress: 8.33% complete, ETA 00:01:42
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.241 ops/us
-Iteration   1: 0.592 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.592 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 1048576)
-
-# Run progress: 10.42% complete, ETA 00:01:40
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.003 ops/us
-Iteration   1: 0.004 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.004 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 100)
-
-# Run progress: 12.50% complete, ETA 00:01:37
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.543 ops/us
-Iteration   1: 0.608 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.608 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 10240)
-
-# Run progress: 14.58% complete, ETA 00:01:35
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.014 ops/us
-Iteration   1: 0.013 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.013 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 1048576)
-
-# Run progress: 16.67% complete, ETA 00:01:32
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-≈ 10⁻⁴ ops/us
-Iteration   1: ≈ 10⁻⁴ ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  ≈ 10⁻⁴ ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 100)
-
-# Run progress: 18.75% complete, ETA 00:01:30
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.527 ops/us
-Iteration   1: 0.580 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.580 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 10240)
-
-# Run progress: 20.83% complete, ETA 00:01:28
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.014 ops/us
-Iteration   1: 0.013 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.013 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 1048576)
-
-# Run progress: 22.92% complete, ETA 00:01:26
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-≈ 10⁻⁴ ops/us
-Iteration   1: ≈ 10⁻⁴ ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  ≈ 10⁻⁴ ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 100)
-
-# Run progress: 25.00% complete, ETA 00:01:24
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-7.490 ops/us
-Iteration   1: 18.731 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  18.731 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 10240)
-
-# Run progress: 27.08% complete, ETA 00:01:22
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.178 ops/us
-Iteration   1: 0.366 ops/us
-
-
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.366 ops/us
-
-
-# JMH version: 1.37
-# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
-# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
-# VM options: -Xms2g -Xmx2g
-# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
-# Warmup: 1 iterations, 1 s each
-# Measurement: 1 iterations, 1 s each
-# Timeout: 10 min per iteration
-# Threads: 1 thread, will synchronize iterations
-# Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 1048576)
-
-# Run progress: 29.17% complete, ETA 00:01:19
-# Fork: 1 of 1
-# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 0.002 ops/us
 Iteration   1: 0.002 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
   0.002 ops/us
 
 
@@ -398,20 +89,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 100)
 
-# Run progress: 31.25% complete, ETA 00:01:17
+# Run progress: 6.25% complete, ETA 00:02:57
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-5.006 ops/us
-Iteration   1: 13.073 ops/us
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.169 ops/us
+Iteration   1: 0.194 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  13.073 ops/us
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  0.194 ops/us
 
 
 # JMH version: 1.37
@@ -424,20 +116,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 10240)
 
-# Run progress: 33.33% complete, ETA 00:01:14
+# Run progress: 8.33% complete, ETA 00:02:55
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.110 ops/us
-Iteration   1: 0.235 ops/us
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.028 ops/us
+Iteration   1: 0.031 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.235 ops/us
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  0.031 ops/us
 
 
 # JMH version: 1.37
@@ -450,20 +143,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 1048576)
 
-# Run progress: 35.42% complete, ETA 00:01:12
+# Run progress: 10.42% complete, ETA 00:02:52
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.001 ops/us
-Iteration   1: 0.002 ops/us
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+≈ 10⁻⁴ ops/us
+Iteration   1: ≈ 10⁻⁴ ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.002 ops/us
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  ≈ 10⁻⁴ ops/us
 
 
 # JMH version: 1.37
@@ -476,19 +170,101 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 100)
 
-# Run progress: 37.50% complete, ETA 00:01:10
+# Run progress: 12.50% complete, ETA 00:02:49
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.120 ops/us
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.393 ops/us
+Iteration   1: 0.329 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  0.329 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 10240)
+
+# Run progress: 14.58% complete, ETA 00:02:44
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.013 ops/us
+Iteration   1: 0.013 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  0.013 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 1048576)
+
+# Run progress: 16.67% complete, ETA 00:02:40
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+≈ 10⁻⁴ ops/us
+Iteration   1: ≈ 10⁻⁴ ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  ≈ 10⁻⁴ ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 100)
+
+# Run progress: 18.75% complete, ETA 00:02:35
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.116 ops/us
 Iteration   1: 0.119 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
   0.119 ops/us
 
 
@@ -502,20 +278,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 10240)
 
-# Run progress: 39.58% complete, ETA 00:01:07
+# Run progress: 20.83% complete, ETA 00:02:32
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.004 ops/us
-Iteration   1: 0.004 ops/us
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.009 ops/us
+Iteration   1: 0.009 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.004 ops/us
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  0.009 ops/us
 
 
 # JMH version: 1.37
@@ -528,19 +305,182 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 1048576)
 
-# Run progress: 41.67% complete, ETA 00:01:05
+# Run progress: 22.92% complete, ETA 00:02:28
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+≈ 10⁻⁴ ops/us
+Iteration   1: ≈ 10⁻⁴ ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  ≈ 10⁻⁴ ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 100)
+
+# Run progress: 25.00% complete, ETA 00:02:25
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+1.507 ops/us
+Iteration   1: 2.354 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  2.354 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 10240)
+
+# Run progress: 27.08% complete, ETA 00:02:21
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.065 ops/us
+Iteration   1: 0.139 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  0.139 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 1048576)
+
+# Run progress: 29.17% complete, ETA 00:02:16
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.001 ops/us
+Iteration   1: 0.001 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  0.001 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 100)
+
+# Run progress: 31.25% complete, ETA 00:02:12
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.015 ops/us
+Iteration   1: 0.022 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  0.022 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 10240)
+
+# Run progress: 33.33% complete, ETA 00:02:08
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.002 ops/us
+Iteration   1: 0.003 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  0.003 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 1048576)
+
+# Run progress: 35.42% complete, ETA 00:02:04
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 ≈ 10⁻⁵ ops/us
 Iteration   1: ≈ 10⁻⁵ ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
   ≈ 10⁻⁵ ops/us
 
 
@@ -554,20 +494,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 100)
 
-# Run progress: 43.75% complete, ETA 00:01:03
+# Run progress: 37.50% complete, ETA 00:02:01
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.117 ops/us
-Iteration   1: 0.114 ops/us
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.106 ops/us
+Iteration   1: 0.107 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.114 ops/us
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  0.107 ops/us
 
 
 # JMH version: 1.37
@@ -580,19 +521,20 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 10240)
 
-# Run progress: 45.83% complete, ETA 00:01:00
+# Run progress: 39.58% complete, ETA 00:01:56
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 0.004 ops/us
 Iteration   1: 0.004 ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
   0.004 ops/us
 
 
@@ -606,19 +548,101 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 1048576)
 
-# Run progress: 47.92% complete, ETA 00:00:58
+# Run progress: 41.67% complete, ETA 00:01:52
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 ≈ 10⁻⁵ ops/us
 Iteration   1: ≈ 10⁻⁵ ops/us
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  ≈ 10⁻⁵ ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 100)
+
+# Run progress: 43.75% complete, ETA 00:01:48
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.009 ops/us
+Iteration   1: 0.018 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  0.018 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 10240)
+
+# Run progress: 45.83% complete, ETA 00:01:44
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.001 ops/us
+Iteration   1: 0.002 ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  0.002 ops/us
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.19, OpenJDK 64-Bit Server VM, 17.0.19+10-LTS
+# VM invoker: /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+# VM options: -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 1048576)
+
+# Run progress: 47.92% complete, ETA 00:01:40
+# Fork: 1 of 1
+# Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+≈ 10⁻⁵ ops/us
+Iteration   1: ≈ 10⁻⁵ ops/us
+
+
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
   ≈ 10⁻⁵ ops/us
 
 
@@ -632,20 +656,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 100)
 
-# Run progress: 50.00% complete, ETA 00:00:56
+# Run progress: 50.00% complete, ETA 00:01:36
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.053 us/op
-Iteration   1: 0.020 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.685 us/op
+Iteration   1: 0.604 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.020 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  0.604 us/op
 
 
 # JMH version: 1.37
@@ -658,20 +683,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 10240)
 
-# Run progress: 52.08% complete, ETA 00:00:53
+# Run progress: 52.08% complete, ETA 00:01:32
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-3.303 us/op
-Iteration   1: 1.567 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+8.420 us/op
+Iteration   1: 3.434 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1.567 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  3.434 us/op
 
 
 # JMH version: 1.37
@@ -684,20 +710,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 1048576)
 
-# Run progress: 54.17% complete, ETA 00:00:51
+# Run progress: 54.17% complete, ETA 00:01:28
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-302.456 us/op
-Iteration   1: 239.756 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+663.573 us/op
+Iteration   1: 494.629 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  239.756 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  494.629 us/op
 
 
 # JMH version: 1.37
@@ -710,20 +737,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 100)
 
-# Run progress: 56.25% complete, ETA 00:00:48
+# Run progress: 56.25% complete, ETA 00:01:24
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.056 us/op
-Iteration   1: 0.021 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+5.652 us/op
+Iteration   1: 4.793 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  0.021 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  4.793 us/op
 
 
 # JMH version: 1.37
@@ -736,20 +764,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 10240)
 
-# Run progress: 58.33% complete, ETA 00:00:46
+# Run progress: 58.33% complete, ETA 00:01:20
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-3.350 us/op
-Iteration   1: 1.608 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+35.411 us/op
+Iteration   1: 31.766 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1.608 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  31.766 us/op
 
 
 # JMH version: 1.37
@@ -762,20 +791,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 1048576)
 
-# Run progress: 60.42% complete, ETA 00:00:44
+# Run progress: 60.42% complete, ETA 00:01:16
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-300.936 us/op
-Iteration   1: 241.797 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+6947.448 us/op
+Iteration   1: 5305.228 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  241.797 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  5305.228 us/op
 
 
 # JMH version: 1.37
@@ -788,20 +818,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 100)
 
-# Run progress: 62.50% complete, ETA 00:00:42
+# Run progress: 62.50% complete, ETA 00:01:12
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1.855 us/op
-Iteration   1: 1.645 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+2.480 us/op
+Iteration   1: 2.845 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1.645 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  2.845 us/op
 
 
 # JMH version: 1.37
@@ -814,20 +845,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 10240)
 
-# Run progress: 64.58% complete, ETA 00:00:39
+# Run progress: 64.58% complete, ETA 00:01:08
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-73.493 us/op
-Iteration   1: 79.527 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+80.028 us/op
+Iteration   1: 78.674 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  79.527 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  78.674 us/op
 
 
 # JMH version: 1.37
@@ -840,20 +872,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 1048576)
 
-# Run progress: 66.67% complete, ETA 00:00:37
+# Run progress: 66.67% complete, ETA 00:01:04
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-8281.236 us/op
-Iteration   1: 7442.788 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+9367.898 us/op
+Iteration   1: 7243.838 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  7442.788 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  7243.838 us/op
 
 
 # JMH version: 1.37
@@ -866,20 +899,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 100)
 
-# Run progress: 68.75% complete, ETA 00:00:34
+# Run progress: 68.75% complete, ETA 00:01:00
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-1.878 us/op
-Iteration   1: 1.694 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+7.569 us/op
+Iteration   1: 7.238 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  1.694 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  7.238 us/op
 
 
 # JMH version: 1.37
@@ -892,20 +926,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 10240)
 
-# Run progress: 70.83% complete, ETA 00:00:32
+# Run progress: 70.83% complete, ETA 00:00:56
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-74.025 us/op
-Iteration   1: 78.600 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+106.558 us/op
+Iteration   1: 104.730 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  78.600 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  104.730 us/op
 
 
 # JMH version: 1.37
@@ -918,20 +953,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 1048576)
 
-# Run progress: 72.92% complete, ETA 00:00:30
+# Run progress: 72.92% complete, ETA 00:00:52
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-8292.917 us/op
-Iteration   1: 7418.117 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+16469.449 us/op
+Iteration   1: 12873.108 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
-  7418.117 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.decodeKafka":
+  12873.108 us/op
 
 
 # JMH version: 1.37
@@ -944,20 +980,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.decode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 100)
 
-# Run progress: 75.00% complete, ETA 00:00:28
+# Run progress: 75.00% complete, ETA 00:00:48
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.140 us/op
-Iteration   1: 0.053 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+0.620 us/op
+Iteration   1: 0.392 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.053 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  0.392 us/op
 
 
 # JMH version: 1.37
@@ -970,20 +1007,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 10240)
 
-# Run progress: 77.08% complete, ETA 00:00:25
+# Run progress: 77.08% complete, ETA 00:00:44
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-5.711 us/op
-Iteration   1: 2.710 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+15.497 us/op
+Iteration   1: 7.020 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  2.710 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  7.020 us/op
 
 
 # JMH version: 1.37
@@ -996,20 +1034,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = WIRE_ONLY, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = AVRO, payloadSize = 1048576)
 
-# Run progress: 79.17% complete, ETA 00:00:23
+# Run progress: 79.17% complete, ETA 00:00:40
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-602.448 us/op
-Iteration   1: 394.262 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+1628.944 us/op
+Iteration   1: 1279.012 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  394.262 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  1279.012 us/op
 
 
 # JMH version: 1.37
@@ -1022,20 +1061,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 100)
 
-# Run progress: 81.25% complete, ETA 00:00:21
+# Run progress: 81.25% complete, ETA 00:00:36
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-0.207 us/op
-Iteration   1: 0.077 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+66.119 us/op
+Iteration   1: 44.293 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  0.077 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  44.293 us/op
 
 
 # JMH version: 1.37
@@ -1048,20 +1088,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 10240)
 
-# Run progress: 83.33% complete, ETA 00:00:18
+# Run progress: 83.33% complete, ETA 00:00:32
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-9.483 us/op
-Iteration   1: 4.242 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+493.434 us/op
+Iteration   1: 359.682 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  4.242 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  359.682 us/op
 
 
 # JMH version: 1.37
@@ -1074,20 +1115,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = NONE, format = PROTOBUF_INDEX, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = NONE, format = JSON, payloadSize = 1048576)
 
-# Run progress: 85.42% complete, ETA 00:00:16
+# Run progress: 85.42% complete, ETA 00:00:28
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-933.853 us/op
-Iteration   1: 648.689 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+32737.174 us/op
+Iteration   1: 33741.875 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  648.689 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  33741.875 us/op
 
 
 # JMH version: 1.37
@@ -1100,20 +1142,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 100)
 
-# Run progress: 87.50% complete, ETA 00:00:14
+# Run progress: 87.50% complete, ETA 00:00:24
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-8.576 us/op
-Iteration   1: 8.454 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+9.321 us/op
+Iteration   1: 8.998 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  8.454 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  8.998 us/op
 
 
 # JMH version: 1.37
@@ -1126,20 +1169,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 10240)
 
-# Run progress: 89.58% complete, ETA 00:00:11
+# Run progress: 89.58% complete, ETA 00:00:20
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-245.731 us/op
-Iteration   1: 244.502 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+251.721 us/op
+Iteration   1: 252.325 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  244.502 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  252.325 us/op
 
 
 # JMH version: 1.37
@@ -1152,20 +1196,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = WIRE_ONLY, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = AVRO, payloadSize = 1048576)
 
-# Run progress: 91.67% complete, ETA 00:00:09
+# Run progress: 91.67% complete, ETA 00:00:16
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-52673.494 us/op
-Iteration   1: 54339.708 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+55474.540 us/op
+Iteration   1: 55740.187 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  54339.708 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  55740.187 us/op
 
 
 # JMH version: 1.37
@@ -1178,20 +1223,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 100)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 100)
 
-# Run progress: 93.75% complete, ETA 00:00:06
+# Run progress: 93.75% complete, ETA 00:00:12
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-8.728 us/op
-Iteration   1: 8.603 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+96.707 us/op
+Iteration   1: 54.154 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  8.603 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  54.154 us/op
 
 
 # JMH version: 1.37
@@ -1204,20 +1250,21 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 10240)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 10240)
 
-# Run progress: 95.83% complete, ETA 00:00:04
+# Run progress: 95.83% complete, ETA 00:00:08
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-234.940 us/op
-Iteration   1: 229.052 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+791.771 us/op
+Iteration   1: 663.128 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  229.052 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  663.128 us/op
 
 
 # JMH version: 1.37
@@ -1230,23 +1277,24 @@ Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Average time, time/op
-# Benchmark: com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode
-# Parameters: (compression = ZLIB, format = PROTOBUF_INDEX, payloadSize = 1048576)
+# Benchmark: com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka
+# Parameters: (compression = ZLIB, format = JSON, payloadSize = 1048576)
 
-# Run progress: 97.92% complete, ETA 00:00:02
+# Run progress: 97.92% complete, ETA 00:00:04
 # Fork: 1 of 1
 # Warmup Iteration   1: SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-53606.634 us/op
-Iteration   1: 53214.317 us/op
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+86376.579 us/op
+Iteration   1: 82546.687 us/op
 
 
-Result "com.amazonaws.services.schemaregistry.perf.EncodeDecodeBench.encode":
-  53214.317 us/op
+Result "com.amazonaws.services.schemaregistry.perf.OrchestratorBench.encodeKafka":
+  82546.687 us/op
 
 
-# Run complete. Total time: 00:01:52
+# Run complete. Total time: 00:03:13
 
 REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
 why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
@@ -1260,52 +1308,52 @@ works, and factor in a small probability of new VM bugs. Additionally, while com
 different JVMs are already problematic, the performance difference caused by different Blackhole
 modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
 
-Benchmark                 (compression)        (format)  (payloadSize)   Mode  Cnt      Score   Error   Units
-EncodeDecodeBench.decode           NONE       WIRE_ONLY            100  thrpt          48.827          ops/us
-EncodeDecodeBench.decode           NONE       WIRE_ONLY          10240  thrpt           0.630          ops/us
-EncodeDecodeBench.decode           NONE       WIRE_ONLY        1048576  thrpt           0.004          ops/us
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX            100  thrpt          47.587          ops/us
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX          10240  thrpt           0.592          ops/us
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX        1048576  thrpt           0.004          ops/us
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY            100  thrpt           0.608          ops/us
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY          10240  thrpt           0.013          ops/us
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY        1048576  thrpt          ≈ 10⁻⁴          ops/us
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX            100  thrpt           0.580          ops/us
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX          10240  thrpt           0.013          ops/us
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX        1048576  thrpt          ≈ 10⁻⁴          ops/us
-EncodeDecodeBench.encode           NONE       WIRE_ONLY            100  thrpt          18.731          ops/us
-EncodeDecodeBench.encode           NONE       WIRE_ONLY          10240  thrpt           0.366          ops/us
-EncodeDecodeBench.encode           NONE       WIRE_ONLY        1048576  thrpt           0.002          ops/us
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX            100  thrpt          13.073          ops/us
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX          10240  thrpt           0.235          ops/us
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX        1048576  thrpt           0.002          ops/us
-EncodeDecodeBench.encode           ZLIB       WIRE_ONLY            100  thrpt           0.119          ops/us
-EncodeDecodeBench.encode           ZLIB       WIRE_ONLY          10240  thrpt           0.004          ops/us
-EncodeDecodeBench.encode           ZLIB       WIRE_ONLY        1048576  thrpt          ≈ 10⁻⁵          ops/us
-EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX            100  thrpt           0.114          ops/us
-EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX          10240  thrpt           0.004          ops/us
-EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX        1048576  thrpt          ≈ 10⁻⁵          ops/us
-EncodeDecodeBench.decode           NONE       WIRE_ONLY            100   avgt           0.020           us/op
-EncodeDecodeBench.decode           NONE       WIRE_ONLY          10240   avgt           1.567           us/op
-EncodeDecodeBench.decode           NONE       WIRE_ONLY        1048576   avgt         239.756           us/op
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX            100   avgt           0.021           us/op
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX          10240   avgt           1.608           us/op
-EncodeDecodeBench.decode           NONE  PROTOBUF_INDEX        1048576   avgt         241.797           us/op
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY            100   avgt           1.645           us/op
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY          10240   avgt          79.527           us/op
-EncodeDecodeBench.decode           ZLIB       WIRE_ONLY        1048576   avgt        7442.788           us/op
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX            100   avgt           1.694           us/op
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX          10240   avgt          78.600           us/op
-EncodeDecodeBench.decode           ZLIB  PROTOBUF_INDEX        1048576   avgt        7418.117           us/op
-EncodeDecodeBench.encode           NONE       WIRE_ONLY            100   avgt           0.053           us/op
-EncodeDecodeBench.encode           NONE       WIRE_ONLY          10240   avgt           2.710           us/op
-EncodeDecodeBench.encode           NONE       WIRE_ONLY        1048576   avgt         394.262           us/op
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX            100   avgt           0.077           us/op
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX          10240   avgt           4.242           us/op
-EncodeDecodeBench.encode           NONE  PROTOBUF_INDEX        1048576   avgt         648.689           us/op
-EncodeDecodeBench.encode           ZLIB       WIRE_ONLY            100   avgt           8.454           us/op
-EncodeDecodeBench.encode           ZLIB       WIRE_ONLY          10240   avgt         244.502           us/op
-EncodeDecodeBench.encode           ZLIB       WIRE_ONLY        1048576   avgt       54339.708           us/op
-EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX            100   avgt           8.603           us/op
-EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX          10240   avgt         229.052           us/op
-EncodeDecodeBench.encode           ZLIB  PROTOBUF_INDEX        1048576   avgt       53214.317           us/op
+Benchmark                      (compression)  (format)  (payloadSize)   Mode  Cnt      Score   Error   Units
+OrchestratorBench.decodeKafka           NONE      AVRO            100  thrpt           1.665          ops/us
+OrchestratorBench.decodeKafka           NONE      AVRO          10240  thrpt           0.296          ops/us
+OrchestratorBench.decodeKafka           NONE      AVRO        1048576  thrpt           0.002          ops/us
+OrchestratorBench.decodeKafka           NONE      JSON            100  thrpt           0.194          ops/us
+OrchestratorBench.decodeKafka           NONE      JSON          10240  thrpt           0.031          ops/us
+OrchestratorBench.decodeKafka           NONE      JSON        1048576  thrpt          ≈ 10⁻⁴          ops/us
+OrchestratorBench.decodeKafka           ZLIB      AVRO            100  thrpt           0.329          ops/us
+OrchestratorBench.decodeKafka           ZLIB      AVRO          10240  thrpt           0.013          ops/us
+OrchestratorBench.decodeKafka           ZLIB      AVRO        1048576  thrpt          ≈ 10⁻⁴          ops/us
+OrchestratorBench.decodeKafka           ZLIB      JSON            100  thrpt           0.119          ops/us
+OrchestratorBench.decodeKafka           ZLIB      JSON          10240  thrpt           0.009          ops/us
+OrchestratorBench.decodeKafka           ZLIB      JSON        1048576  thrpt          ≈ 10⁻⁴          ops/us
+OrchestratorBench.encodeKafka           NONE      AVRO            100  thrpt           2.354          ops/us
+OrchestratorBench.encodeKafka           NONE      AVRO          10240  thrpt           0.139          ops/us
+OrchestratorBench.encodeKafka           NONE      AVRO        1048576  thrpt           0.001          ops/us
+OrchestratorBench.encodeKafka           NONE      JSON            100  thrpt           0.022          ops/us
+OrchestratorBench.encodeKafka           NONE      JSON          10240  thrpt           0.003          ops/us
+OrchestratorBench.encodeKafka           NONE      JSON        1048576  thrpt          ≈ 10⁻⁵          ops/us
+OrchestratorBench.encodeKafka           ZLIB      AVRO            100  thrpt           0.107          ops/us
+OrchestratorBench.encodeKafka           ZLIB      AVRO          10240  thrpt           0.004          ops/us
+OrchestratorBench.encodeKafka           ZLIB      AVRO        1048576  thrpt          ≈ 10⁻⁵          ops/us
+OrchestratorBench.encodeKafka           ZLIB      JSON            100  thrpt           0.018          ops/us
+OrchestratorBench.encodeKafka           ZLIB      JSON          10240  thrpt           0.002          ops/us
+OrchestratorBench.encodeKafka           ZLIB      JSON        1048576  thrpt          ≈ 10⁻⁵          ops/us
+OrchestratorBench.decodeKafka           NONE      AVRO            100   avgt           0.604           us/op
+OrchestratorBench.decodeKafka           NONE      AVRO          10240   avgt           3.434           us/op
+OrchestratorBench.decodeKafka           NONE      AVRO        1048576   avgt         494.629           us/op
+OrchestratorBench.decodeKafka           NONE      JSON            100   avgt           4.793           us/op
+OrchestratorBench.decodeKafka           NONE      JSON          10240   avgt          31.766           us/op
+OrchestratorBench.decodeKafka           NONE      JSON        1048576   avgt        5305.228           us/op
+OrchestratorBench.decodeKafka           ZLIB      AVRO            100   avgt           2.845           us/op
+OrchestratorBench.decodeKafka           ZLIB      AVRO          10240   avgt          78.674           us/op
+OrchestratorBench.decodeKafka           ZLIB      AVRO        1048576   avgt        7243.838           us/op
+OrchestratorBench.decodeKafka           ZLIB      JSON            100   avgt           7.238           us/op
+OrchestratorBench.decodeKafka           ZLIB      JSON          10240   avgt         104.730           us/op
+OrchestratorBench.decodeKafka           ZLIB      JSON        1048576   avgt       12873.108           us/op
+OrchestratorBench.encodeKafka           NONE      AVRO            100   avgt           0.392           us/op
+OrchestratorBench.encodeKafka           NONE      AVRO          10240   avgt           7.020           us/op
+OrchestratorBench.encodeKafka           NONE      AVRO        1048576   avgt        1279.012           us/op
+OrchestratorBench.encodeKafka           NONE      JSON            100   avgt          44.293           us/op
+OrchestratorBench.encodeKafka           NONE      JSON          10240   avgt         359.682           us/op
+OrchestratorBench.encodeKafka           NONE      JSON        1048576   avgt       33741.875           us/op
+OrchestratorBench.encodeKafka           ZLIB      AVRO            100   avgt           8.998           us/op
+OrchestratorBench.encodeKafka           ZLIB      AVRO          10240   avgt         252.325           us/op
+OrchestratorBench.encodeKafka           ZLIB      AVRO        1048576   avgt       55740.187           us/op
+OrchestratorBench.encodeKafka           ZLIB      JSON            100   avgt          54.154           us/op
+OrchestratorBench.encodeKafka           ZLIB      JSON          10240   avgt         663.128           us/op
+OrchestratorBench.encodeKafka           ZLIB      JSON        1048576   avgt       82546.687           us/op
