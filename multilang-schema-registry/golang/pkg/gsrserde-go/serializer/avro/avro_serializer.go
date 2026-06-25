@@ -111,8 +111,11 @@ func (a *AvroSerializer) Serialize(data interface{}) ([]byte, error) {
 		}
 	}
 
-	// Parse AVRO schema using hamba/avro
-	schema, err := hambaavro.Parse(record.Schema)
+	// Parse AVRO schema using hamba/avro, via the package-level parse cache
+	// (Phase 8A). Schema parsing is the dominant cost of small-payload
+	// Serialize calls; the cached parsed schema is immutable and reused
+	// across all encodes of the same schema text.
+	schema, err := avro.ParseSchemaCached(record.Schema)
 	if err != nil {
 		return nil, &AvroSerializationError{
 			Message: "failed to parse AVRO schema",
@@ -189,8 +192,8 @@ func (a *AvroSerializer) Validate(schemaDefinition string, data []byte) error {
 		}
 	}
 
-	// Parse the schema
-	schema, err := hambaavro.Parse(schemaDefinition)
+	// Parse the schema via the package-level parse cache (Phase 8A).
+	schema, err := avro.ParseSchemaCached(schemaDefinition)
 	if err != nil {
 		return &AvroValidationError{
 			Message: "failed to parse schema definition",
@@ -245,8 +248,8 @@ func (a *AvroSerializer) ValidateObject(data interface{}) error {
 		}
 	}
 
-	// Try to parse the schema
-	_, err := hambaavro.Parse(record.Schema)
+	// Try to parse the schema via the package-level parse cache (Phase 8A).
+	_, err := avro.ParseSchemaCached(record.Schema)
 	if err != nil {
 		return &AvroValidationError{
 			Message: "failed to parse AVRO schema",

@@ -8,6 +8,7 @@ import (
 
 	gsrcore "github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/pkg/gsrserde-go/core"
 
+	"github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/pkg/gsrserde-go/avro"
 	"github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/pkg/gsrserde-go/common"
 )
 
@@ -144,8 +145,12 @@ func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 		}
 	}
 
-	// Parse the writer schema (from the GSR header's resolved schema-version UUID).
-	writerSchema, err := hambaavro.Parse(schema.SchemaDefinition)
+	// Parse the writer schema (from the GSR header's resolved schema-version
+	// UUID), via the package-level parse cache (Phase 8A). Schema parsing is
+	// the dominant cost of small-payload Deserialize calls; the cached parsed
+	// schema is immutable and reused across all decodes of the same schema
+	// text.
+	writerSchema, err := avro.ParseSchemaCached(schema.SchemaDefinition)
 	if err != nil {
 		return nil, &AvroDeserializationError{
 			Message: "failed to parse AVRO schema",
@@ -253,8 +258,8 @@ func (d *AvroDeserializer) ValidateData(data []byte, schemaString string) error 
 		}
 	}
 
-	// Parse the schema
-	avroSchema, err := hambaavro.Parse(schemaString)
+	// Parse the schema via the package-level parse cache (Phase 8A).
+	avroSchema, err := avro.ParseSchemaCached(schemaString)
 	if err != nil {
 		return &AvroDeserializationError{
 			Message: "failed to parse AVRO schema",
@@ -291,8 +296,9 @@ func (d *AvroDeserializer) ValidateSchema(schemaString string) error {
 		}
 	}
 
-	// Try to parse the schema to validate it
-	_, err := hambaavro.Parse(schemaString)
+	// Try to parse the schema to validate it (via package-level parse cache,
+	// Phase 8A).
+	_, err := avro.ParseSchemaCached(schemaString)
 	if err != nil {
 		return &AvroDeserializationError{
 			Message: "failed to parse AVRO schema",
