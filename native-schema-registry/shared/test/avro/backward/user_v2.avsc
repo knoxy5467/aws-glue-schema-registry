@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "user_v2",
+  "name": "User",
   "doc": "Backward compatible evolution - removed 'email' field, added optional 'status' field with default",
   "fields": [
     {"name": "id", "type": "string", "doc": "User identifier"},

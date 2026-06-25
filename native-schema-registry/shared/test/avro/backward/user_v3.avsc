@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "user_v3",
+  "name": "User",
   "doc": "Third backward evolution - added optional 'age' field with default, demonstrates BACKWARD_ALL compatibility",
   "fields": [
     {

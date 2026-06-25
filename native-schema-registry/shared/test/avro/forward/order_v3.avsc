@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "order_v3",
+  "name": "Order",
   "doc": "Third forward evolution - added 'timestamp' field, demonstrates FORWARD_ALL compatibility",
   "fields": [
     {

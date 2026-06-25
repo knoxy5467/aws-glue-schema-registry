@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "user_v1",
+  "name": "User",
   "doc": "Base schema for backward compatibility testing - COMPAT-007, COMPAT-010, COMPAT-011, COMPAT-012",
   "fields": [
     {"name": "id", "type": "string", "doc": "User identifier"},

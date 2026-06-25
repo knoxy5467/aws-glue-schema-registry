@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "order_v1",
+  "name": "Order",
   "doc": "Base schema for forward compatibility testing - COMPAT-013, COMPAT-016, COMPAT-017, COMPAT-018",
   "fields": [
     {
