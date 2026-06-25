@@ -31,6 +31,11 @@ Java reference: `GlueSchemaRegistryDefaultDeserializer` uses
 `ResolvingDecoder` from Apache Avro to achieve the same projection when a
 consumer-side `readerSchema` is provided.
 
+**Integration coverage:** exercised by `TestFixtureAvroCrossVersionInterop_Real`
+(Layer C cross-version cells) — Java produces one schema version, Go
+consumes with a different reader schema. Covers backward (v1->v2, v1->v3),
+forward (v2->v1), and full (v1->v2) directions with 7 cells total.
+
 ### Phase 4.16 fixture coverage
 
 Added shared multilang fixture test coverage for the Go GSR client, organized
@@ -53,10 +58,10 @@ in three layers:
 - **Layer C** (`integration-tests/tests/fixture_avro_interop_test.go` +
   `fixture_proto_interop_test.go`): Java↔Go cross-language interop via the
   Phase 4.13 Java sidecar + real Kafka + real Glue. Avro fixtures exercise
-  same-version round-trip in both directions (Java produce → Go consume, Go
-  produce → Java consume) for backward/forward/full modes; multi-version
-  registration sets the stage for future cross-version cells but
-  cross-version round-trip itself is deferred to Phase 5. Protobuf fixtures
+  same-version round-trip via `TestFixtureAvroSameVersionInterop_Real` in
+  both directions (Java produce → Go consume, Go produce → Java consume)
+  for backward/forward/full modes; cross-version round-trip exercised via
+  Phase 4.17's `TestFixtureAvroCrossVersionInterop_Real`. Protobuf fixtures
   exercise 5 representative .proto files (proto2 baseline, proto3 baseline,
   oneOf, complex nesting, all scalar types) in both directions with
   same-version round-trip.
