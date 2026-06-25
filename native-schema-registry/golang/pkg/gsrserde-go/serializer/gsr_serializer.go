@@ -197,3 +197,11 @@ func (s *Serializer) Close() error {
 
 // IsClosed reports whether Close() has been called.
 func (s *Serializer) IsClosed() bool { return s.closed }
+
+// CoreEncoder returns the underlying *gsrcore.GsrEncoder. This is exposed so
+// integration tests and demos can use gsrcore.EncoderCacheHas /
+// gsrcore.EvictEncoderCache to observe and manipulate cache state without
+// breaking the serializer's encapsulation for production callers.
+func (s *Serializer) CoreEncoder() *gsrcore.GsrEncoder {
+	return s.coreEncoder
+}
