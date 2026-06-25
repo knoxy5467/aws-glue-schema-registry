@@ -1,3 +1,16 @@
+// Package serializer provides the orchestrating Serializer that combines
+// format-layer payload encoding with core wire-format encoding.
+//
+// # Transport-agnostic
+//
+// Although the Serialize method accepts a `topic` parameter (named after
+// Kafka convention), this package has no Kafka dependency. The `topic`
+// argument is simply a string identifier that the configured
+// SchemaNameStrategy maps to a Glue schema name. Callers may pass a Kinesis
+// stream name, an SQS queue name, an S3 key prefix, an HTTP path, or any
+// other application-defined identifier. The production library at
+// pkg/gsrserde-go/ imports no Kafka libraries; reference Kafka adapters live
+// in integration-tests/pkg/clients/.
 package serializer
 
 import (
@@ -198,10 +211,12 @@ func (s *Serializer) Close() error {
 // IsClosed reports whether Close() has been called.
 func (s *Serializer) IsClosed() bool { return s.closed }
 
-// CoreEncoder returns the underlying *gsrcore.GsrEncoder. This is exposed so
-// integration tests and demos can use gsrcore.EncoderCacheHas /
-// gsrcore.EvictEncoderCache to observe and manipulate cache state without
-// breaking the serializer's encapsulation for production callers.
-func (s *Serializer) CoreEncoder() *gsrcore.GsrEncoder {
+// CoreEncoderForTest returns the underlying *gsrcore.GsrEncoder. Test-only.
+// Not for production use. Exposed so integration tests and demos can use
+// gsrcore.EncoderCacheHas / gsrcore.EvictEncoderCache to observe and
+// manipulate cache state without breaking the serializer's encapsulation for
+// production callers. Phase 6.4, finding A.4: renamed from CoreEncoder() to
+// align with the ...ForTest suffix convention used elsewhere in this project.
+func (s *Serializer) CoreEncoderForTest() *gsrcore.GsrEncoder {
 	return s.coreEncoder
 }

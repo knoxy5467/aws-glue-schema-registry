@@ -1,6 +1,18 @@
 // Package deserializer provides the orchestrating Deserializer that combines
 // core wire-format decoding with format-layer payload decoding.
 //
+// # Transport-agnostic
+//
+// Although the Deserialize method accepts a `topic` parameter (named after
+// Kafka convention), this package has no Kafka dependency. The `topic`
+// argument is retained for API symmetry with the serializer but is not
+// consumed by the core decoder — the wire-format prefix carries the
+// schema-version-id directly. Callers may pass a Kinesis stream name, an SQS
+// queue name, an HTTP path, or any other application-defined identifier (or
+// the empty string). The production library at pkg/gsrserde-go/ imports no
+// Kafka libraries; reference Kafka adapters live in
+// integration-tests/pkg/clients/.
+//
 // # Secondary Deserializer (Not Implemented)
 //
 // Java's GlueSchemaRegistryKafkaDeserializer supports a

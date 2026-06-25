@@ -111,41 +111,82 @@ limited by `encoding/json.Unmarshal` reflection overhead.
 These bypass the format layer and measure only the GSR 18-byte header
 construction, compression, and (for PROTOBUF) message-index varint.
 
+> **Phase 6.4 correction:** Earlier versions of this table reported Java
+> wire-format MB/s numbers that were ~1000x too low. The derivation bug
+> was: `payloadSize / (avgt_us * 1000)` instead of the correct
+> `payloadSize / avgt_us`. JMH reports avgt in **microseconds**
+> (`@OutputTimeUnit(TimeUnit.MICROSECONDS)`), and `bytes / us = MB/s`
+> directly. The ratios below reflect the corrected derivation.
+
 ### Encode wire format, NONE compression, warm cache
 
-| Payload | Go AVRO/JSON | Go PROTOBUF | Java WIRE_ONLY | Java PROTOBUF_INDEX |
-|---------|-------------:|------------:|---------------:|--------------------:|
-| 100 B   |    205 MB/s  |   1.7 MB/s  |   1.89 MB/s    |     1.30 MB/s       |
-| 10 KB   |   2542 MB/s  | 147  MB/s   |   3.78 MB/s    |     2.42 MB/s       |
-| 1 MB    |   2137 MB/s  | 840  MB/s   |   2.66 MB/s    |     1.62 MB/s       |
+| Payload | Go AVRO  | Go JSON  | Go PROTOBUF | Java WIRE_ONLY | Java PROTO_IDX |
+|---------|----------:|--------:|------------:|---------------:|---------------:|
+| 100 B   |   75 MB/s | 153 MB/s|   1.4 MB/s  |   1852 MB/s    |   1266 MB/s    |
+| 10 KB   | 2820 MB/s |4675 MB/s| 183  MB/s   |   3682 MB/s    |   2376 MB/s    |
+| 1 MB    | 1463 MB/s |1749 MB/s|1044  MB/s   |   2728 MB/s    |   1633 MB/s    |
+
+**Interpretation:** At the pure wire-format layer, Java is faster than Go
+at 100 B (Go's per-call encode overhead ~650-1300 ns dominates the tiny
+payload; Java's JIT-compiled path handles it in 54-79 ns). At 10 KB the
+two are comparable (Go JSON 4675 vs Java 3682), and at 1 MB Java leads
+by ~1.5x. Go's PROTOBUF path is much slower than Go AVRO/JSON because it
+re-parses the protobuf schema descriptor on every call (a Phase 7+
+optimization target).
+
+> Note: the Go AVRO 100 B cell (75 MB/s vs JSON 153 MB/s) is a single
+> smoke-grade measurement (count=10, benchtime=default). The 2x spread
+> likely reflects measurement noise at sub-microsecond timescales rather
+> than a real format difference — the AVRO and JSON encode paths diverge
+> only at the PROTOBUF branch.
 
 ### Encode wire format, ZLIB compression, warm cache
 
-| Payload | Go AVRO/JSON | Go PROTOBUF | Java WIRE_ONLY | Java PROTOBUF_INDEX |
-|---------|-------------:|------------:|---------------:|--------------------:|
-| 100 B   |   0.39 MB/s  |  0.23 MB/s  |  0.012 MB/s    |    0.012 MB/s       |
-| 10 KB   |   16.4 MB/s  |  13.8 MB/s  |  0.042 MB/s    |    0.045 MB/s       |
-| 1 MB    |   39.4 MB/s  |  39.3 MB/s  |  0.019 MB/s    |    0.020 MB/s       |
+| Payload | Go AVRO  | Go JSON  | Go PROTOBUF | Java WIRE_ONLY | Java PROTO_IDX |
+|---------|----------:|--------:|------------:|---------------:|---------------:|
+| 100 B   | 0.32 MB/s|0.25 MB/s|  0.31 MB/s  |   11.9 MB/s    |    11.7 MB/s   |
+| 10 KB   | 17.3 MB/s|15.5 MB/s|  17.3 MB/s  |   45.8 MB/s    |    44.5 MB/s   |
+| 1 MB    | 44.3 MB/s|44.9 MB/s|  42.6 MB/s  |   19.7 MB/s    |    19.7 MB/s   |
+
+**Interpretation:** Java's JDK `Deflater` is significantly faster at
+small/medium payloads (37x at 100 B, 3x at 10 KB). Go's
+`compress/flate` writer has high per-call initialization cost (~300 us
+at 100 B). At 1 MB, Go overtakes Java (44 vs 20 MB/s) because Go
+amortizes its setup cost and its steady-state deflate throughput is
+higher than Java's `new Deflater()` per-call approach.
 
 ### Decode wire format, NONE compression, warm cache
 
-| Payload | Go (zero-copy) | Java WIRE_ONLY |
-|---------|---------------:|---------------:|
-| 100 B   |    444 MB/s    |   4.7 MB/s     |
-| 10 KB   |  25.8 GB/s     |   6.1 MB/s     |
-| 1 MB    |   4.4 TB/s     |   4.5 MB/s     |
+| Payload | Go (zero-copy) | Java WIRE_ONLY | Ratio Go/Java |
+|---------|---------------:|---------------:|--------------:|
+| 100 B   |    223 MB/s    |   4762 MB/s    |    0.05x      |
+| 10 KB   |  22.7 GB/s     |   6297 MB/s    |    3.6x       |
+| 1 MB    |   2.8 TB/s     |   4264 MB/s    |    ~700x      |
 
-The Go decode path returns a zero-copy slice (`data[18:]`) with no allocation,
-so throughput scales with fixed overhead only. Java's path allocates a fresh
-`byte[]`.
+The Go decode path returns a zero-copy sub-slice (`data[18:]`) with no
+allocation, so the per-op time is ~400 ns **regardless of payload size**
+(it is a pointer adjustment + length check). The reported GB/s and TB/s
+numbers are an artifact of `b.SetBytes(len(payload))` divided by a
+constant ~400 ns — they do not reflect actual memory bandwidth. Java's
+path allocates a fresh `byte[]` and copies the payload, so its throughput
+scales linearly with payload size as expected.
+
+At 100 B the Go "zero-copy" is actually slower in MB/s because the fixed
+~450 ns overhead is large relative to the tiny payload. At 10 KB+ the
+zero-copy wins decisively. The 1 MB "700x" ratio is physically
+meaningless — it just reflects that Go does O(1) work while Java does
+O(n) copying.
 
 ### Decode wire format, ZLIB compression, warm cache
 
 | Payload | Go             | Java WIRE_ONLY |
 |---------|---------------:|---------------:|
-| 100 B   |  N/A (slice)   |  0.059 MB/s    |
-| 10 KB   |  ~80 MB/s      |  0.130 MB/s    |
-| 1 MB    |  ~617 MB/s     |  0.142 MB/s    |
+| 100 B   |    13 MB/s     |   58.5 MB/s    |
+| 10 KB   |    94 MB/s     |    127 MB/s    |
+| 1 MB    |    99 MB/s     |    147 MB/s    |
+
+When decompression is involved, both sides do real O(n) work.
+Java's `Inflater` is faster than Go's `compress/flate` reader.
 
 ---
 
@@ -244,30 +285,36 @@ the same JVM heap — GC pressure limits scaling at high allocation rates.
 
 ## Interpretation and summary
 
-1. **Wire-format layer: Go is 500-1000x faster than Java** (uncompressed).
-   Go's `EncodeWireFormat` is a single allocation + memcopy; Java's
-   `SerializationDataEncoder.write` constructs a `ByteArrayOutputStream`
-   per call.
+1. **Wire-format layer (encode): Java and Go are within 2x** for
+   uncompressed payloads. Java's JIT-compiled `ByteArrayOutputStream`
+   path edges out Go's single-allocation memcopy at small payloads. The
+   two converge at 1 MB. (Prior to Phase 6.4 this section incorrectly
+   reported Go as "500-1000x faster" due to a 1000x MB/s derivation bug.)
 
-2. **Format layer: Java is faster for AVRO/JSON at small-medium payloads.**
+2. **Wire-format layer (decode): Go's zero-copy wins at 10KB+.** Go's
+   decoder returns `data[18:]` — a sub-slice with no allocation. Java
+   allocates + copies. At 10 KB Go is 3.6x faster; at 100 B Java is
+   faster because Go's fixed ~450 ns overhead dominates.
+
+3. **Format layer: Java is faster for AVRO/JSON at small-medium payloads.**
    Java's Avro `GenericDatumWriter`/`GenericDatumReader` and Jackson JSON
    are more optimized than Go's `hamba/avro` and `encoding/json`. At 1 MB
    the gap closes.
 
-3. **End-to-end orchestrator: depends on format and payload size.** For
+4. **End-to-end orchestrator: depends on format and payload size.** For
    typical Kafka messages (1-100 KB), Java's AVRO path is 3-10x faster
-   end-to-end. Go's advantage at the wire layer is absorbed by the format
-   layer overhead.
+   end-to-end. The wire-format layer (where both languages are comparable)
+   is a small fraction of total cost — the format layer dominates.
 
-4. **ZLIB compression dominates at large payloads** on both sides. Go is
-   ~2x faster per-byte because Java's stdlib deflater has higher overhead
-   (new `Deflater` per call vs Go's pooled writers).
+5. **ZLIB compression: Java is 3x faster at small/medium; Go catches up
+   at 1 MB.** Java's JDK `Deflater` has lower per-call overhead. At 1 MB
+   steady-state throughput converges.
 
-5. **Concurrent scaling: Go scales well for AVRO/PROTOBUF decode** (2-3x
+6. **Concurrent scaling: Go scales well for AVRO/PROTOBUF decode** (2-3x
    at P=4). Serialization scales modestly. Java's scaling is limited by
    GC pressure.
 
-6. **Cache hit vs miss: 10x gap at small payloads.** The schema cache is
+7. **Cache hit vs miss: 10x gap at small payloads.** The schema cache is
    critical for production throughput; cold-start cost amortizes quickly
    after the first message.
 

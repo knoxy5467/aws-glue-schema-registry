@@ -15,6 +15,9 @@ import (
 type Cache interface {
 	Get(key string) (interface{}, bool)
 	Set(key string, value interface{})
+	// Remove evicts a single entry by key. Returns true if the key was present
+	// and removed, false if it was absent. Phase 6.4, finding A.2.
+	Remove(key string) bool
 	Close()
 }
 
@@ -138,6 +141,14 @@ func (c *LRUCacheWrapper) Set(key string, value interface{}) {
 		value:     value,
 		expiresAt: c.clock.Now().Add(c.ttl),
 	})
+}
+
+// Remove evicts the entry for key. Returns true if the key existed and was
+// removed, false if absent. Thread-safe. Phase 6.4, finding A.2.
+func (c *LRUCacheWrapper) Remove(key string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.lru.Remove(key)
 }
 
 // Close drops all entries. Mirrors the prior cache wrapper's Flush()

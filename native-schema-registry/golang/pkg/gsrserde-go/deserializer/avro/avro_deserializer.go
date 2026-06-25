@@ -71,15 +71,42 @@ func (e *AvroDeserializationError) Is(target error) bool {
 type AvroDeserializer struct {
 	// This deserializer is stateless and can be safely used concurrently
 	config *common.Configuration
+
+	// parsedReaderSchema is the pre-parsed reader schema, computed once at
+	// construction from config.AvroReaderSchema. nil when no reader schema
+	// is configured. Caching this avoids re-parsing the immutable reader
+	// schema on every Deserialize call (Phase 6.4, finding A.1).
+	parsedReaderSchema hambaavro.Schema
 }
 
-// NewAvroDeserializer creates a new AVRO deserializer instance.
+// ErrInvalidAvroReaderSchema is returned by NewAvroDeserializer when the
+// configured AvroReaderSchema cannot be parsed. Surfacing this at
+// construction time (rather than at first Deserialize call) is both a
+// correctness and a usability improvement — callers learn about a broken
+// reader schema immediately. Phase 6.4, finding A.1.
+var ErrInvalidAvroReaderSchema = fmt.Errorf("avro deserializer: invalid reader schema")
+
+// NewAvroDeserializer creates a new AVRO deserializer instance. If
+// config.AvroReaderSchema is set, it is parsed once here and cached for
+// the deserializer's lifetime. A malformed reader schema returns
+// ErrInvalidAvroReaderSchema immediately.
 func NewAvroDeserializer(config *common.Configuration) (*AvroDeserializer, error) {
 	if config == nil {
 		return nil, common.ErrNilConfig
 	}
+
+	var parsedReader hambaavro.Schema
+	if config.AvroReaderSchema != "" {
+		var err error
+		parsedReader, err = hambaavro.Parse(config.AvroReaderSchema)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrInvalidAvroReaderSchema, err)
+		}
+	}
+
 	return &AvroDeserializer{
-		config: config,
+		config:             config,
+		parsedReaderSchema: parsedReader,
 	}, nil
 }
 
@@ -126,23 +153,20 @@ func (d *AvroDeserializer) Deserialize(data []byte, schema *gsrcore.Schema) (int
 		}
 	}
 
-	// Resolve the effective decode schema. When AvroReaderSchema is set, use
-	// hamba/avro/v2's SchemaCompatibility.Resolve to produce a composite schema
-	// that maps writer-encoded bytes into the reader's field shape: drops fields
-	// the reader doesn't know about, fills defaults for fields the reader added,
-	// and applies type-promotion rules (int->long, float->double, etc.).
-	// This matches Java GSR's ResolvingDecoder pattern.
+	// Resolve the effective decode schema. When a reader schema is configured,
+	// use hamba/avro/v2's SchemaCompatibility.Resolve to produce a composite
+	// schema that maps writer-encoded bytes into the reader's field shape:
+	// drops fields the reader doesn't know about, fills defaults for fields
+	// the reader added, and applies type-promotion rules (int->long,
+	// float->double, etc.). This matches Java GSR's ResolvingDecoder pattern.
+	//
+	// The reader schema was parsed once at construction and cached in
+	// d.parsedReaderSchema (Phase 6.4, A.1). The writer schema varies per
+	// message (resolved via GSR header UUID) and must be parsed per call.
 	avroSchema := writerSchema
-	if d.config.AvroReaderSchema != "" {
-		readerSchema, err := hambaavro.Parse(d.config.AvroReaderSchema)
-		if err != nil {
-			return nil, &AvroDeserializationError{
-				Message: "failed to parse reader schema",
-				Cause:   err,
-			}
-		}
+	if d.parsedReaderSchema != nil {
 		sc := hambaavro.NewSchemaCompatibility()
-		resolved, err := sc.Resolve(readerSchema, writerSchema)
+		resolved, err := sc.Resolve(d.parsedReaderSchema, writerSchema)
 		if err != nil {
 			return nil, &AvroDeserializationError{
 				Message: "reader schema is incompatible with writer schema",
