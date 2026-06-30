@@ -7,11 +7,12 @@
 //	cd integration-tests && go run -tags integration ./cmd/demo-interop/
 //
 // Prerequisites:
-//   - AWS credentials for account 850995546034 (AWS_PROFILE or env vars)
+//   - AWS credentials (AWS_PROFILE or env vars) for the account you wish
+//     the demo to target. The demo prints whichever account STS resolves.
 //   - JDK 11+ on PATH (or GSR_INTEROP_JAVA pointing to a JDK binary)
 //   - Docker running (testcontainers-go Kafka broker)
 //   - Java sidecar JAR built: make java-sidecar-build
-//   - default-registry exists in Glue in us-east-2
+//   - default-registry exists in Glue in your target region
 //
 // The binary runs all 12 scenario cells (3 formats × 2 directions × 2
 // compressions {NONE, ZLIB}), narrates each step to stdout, cleans up all
@@ -27,6 +28,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/integration-tests/pkg/javasidecar"
 	"github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/integration-tests/pkg/kafkaharness"
 	"github.com/awslabs/aws-glue-schema-registry/multilang-schema-registry/golang/integration-tests/pkg/realglue"
@@ -34,7 +37,6 @@ import (
 
 const (
 	demoVersion      = "4.15"
-	demoAccountID    = "850995546034"
 	demoRegistryName = "default-registry"
 	demoPrefix       = "demo-4.15-"
 )
@@ -91,7 +93,8 @@ func main() {
 	}()
 
 	// ── Startup banner ────────────────────────────────────────────────────────
-	printBanner(demoVersion, demoAccountID, region)
+	accountID := resolveAccountID(ctx, region)
+	printBanner(demoVersion, accountID, region)
 
 	// ── Kafka startup ─────────────────────────────────────────────────────────
 	printStage("demo", "Kafka broker starting (testcontainers-go)...")
@@ -222,4 +225,20 @@ func directionLabel(d string) string {
 		// are used as-is.
 		return d
 	}
+}
+
+// resolveAccountID returns the AWS account ID for the credentials currently
+// in scope, or "(unresolved)" if STS cannot be reached. The result is for
+// banner display only; it does not affect demo behavior.
+func resolveAccountID(ctx context.Context, region string) string {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	if err != nil {
+		return "(unresolved)"
+	}
+	stsClient := sts.NewFromConfig(cfg)
+	out, err := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if err != nil || out.Account == nil {
+		return "(unresolved)"
+	}
+	return *out.Account
 }

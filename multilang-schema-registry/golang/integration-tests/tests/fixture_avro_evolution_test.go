@@ -3,7 +3,7 @@
 // Phase 4.16 Layer B — Tier-2 .avsc evolution sweep against real AWS Glue.
 //
 // Exercises all 23 .avsc fixtures in shared/test/avro/ against the real Glue
-// Schema Registry (account 850995546034). Tests are integration-tagged AND
+// Schema Registry (a configured AWS account). Tests are integration-tagged AND
 // gated by GSR_GLUE=real + AWS_INTEGRATION=1 (scenarioGate requiresReal=true).
 //
 // Test 1 (TestFixtureAvroEvolution_Real): for each positive compatibility mode

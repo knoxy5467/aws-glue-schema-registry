@@ -2,7 +2,7 @@
 
 **Status:** read-only investigation. No remote action taken (no push, no PR
 opened, no fork/upstream config changes). This file records what was found so
-mrknox@ can decide the move-strategy off-line.
+the project owner can decide the move-strategy off-line.
 
 **Investigation date:** 2026-06-21
 
@@ -65,9 +65,9 @@ golang-mrknox (local, ahead of origin/golang-mrknox by 4 commits):
    gh pr create, no remote interaction"), nothing has been pushed, no PR has
    been drafted, no branch has been created on upstream.
 3. **The 4 local commits on `golang-mrknox`** (and any future Phase 1
-   commits) remain entirely local until mrknox@ decides the move strategy.
+   commits) remain entirely local until the project owner decides the move strategy.
 
-## Options for mrknox@ (NOT decided here)
+## Options for the project owner (NOT decided here)
 
 These are the realistic paths forward. Listed for the user to choose; this
 script does not pick one.
@@ -108,7 +108,7 @@ a separate CR there. This is the fallback if Option A/B are blocked.
 ### Decision NOT taken in this session
 
 The user's instructions for this session were "local only — no push, no PR,
-no remote interaction." Picking among A / B / C is left to mrknox@. This
+no remote interaction." Picking among A / B / C is left to the project owner. This
 file is the paper trail.
 
 ## What to grep for when this file becomes stale

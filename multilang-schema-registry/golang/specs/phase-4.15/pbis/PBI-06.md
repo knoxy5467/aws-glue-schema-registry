@@ -2,7 +2,7 @@
 
 ## Description
 
-Executes the completed demo binary against real AWS (account `850995546034`, region `us-east-2`), captures the full stdout transcript to `demo.log`, verifies all 6 cross-pairs pass, verifies cleanup leaves no leaked schemas, and attaches the log to the IMPL_RESULT. This is the binding deliverable that proves Phase 4.15 is complete. Implements spec sections 9.1, 9.4, and Definition of Done (section 11).
+Executes the completed demo binary against real AWS (a configured AWS account, region `us-east-2`), captures the full stdout transcript to `demo.log`, verifies all 6 cross-pairs pass, verifies cleanup leaves no leaked schemas, and attaches the log to the IMPL_RESULT. This is the binding deliverable that proves Phase 4.15 is complete. Implements spec sections 9.1, 9.4, and Definition of Done (section 11).
 
 ## Acceptance Criteria
 
@@ -47,5 +47,5 @@ Exit code 0, transcript shows 6/6 PASS, no leaked schemas.
 
 - This PBI is a validation step, not a code-writing step. The implementor runs the demo, captures output, and reports the result.
 - If any scenario fails, the implementor should report the failure in IMPL_RESULT with the relevant log segment so the build-lead can route fixes back to the appropriate PBI.
-- Ensure Docker is running, JDK is on PATH, AWS creds are set for account `850995546034`, and `default-registry` exists before running.
+- Ensure Docker is running, JDK is on PATH, AWS creds are set for a configured AWS account, and `default-registry` exists before running.
 - The 5-minute budget excludes first-time Docker image pulls.

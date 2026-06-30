@@ -18,17 +18,17 @@ across languages. Phase 6.3 adds:
 
 ## Hardware caveats
 
-These baselines were captured on an Amazon Linux 2 internal dev host:
+These baselines were captured on a shared multi-tenant Linux developer host:
 
 - **CPU:** Intel Xeon Platinum 8175M @ 2.50 GHz (48 logical CPUs, AVX-512)
 - **L3 cache:** 33 MiB
-- **Kernel:** Linux 5.10.257-255.1015.amzn2int.x86_64 (CloudDesk)
-- **Go:** 1.26.4 (`/usr/local/go/bin/go`)
-- **JDK:** Amazon Corretto 17.0.19+10-LTS
+- **OS:** Linux 5.10.x
+- **Go:** 1.26.4
+- **JDK:** OpenJDK 17 LTS
 - **JVM flags:** `-Xms2g -Xmx2g` (set by JMH `@Fork`)
 - **Maven:** Apache 3.9.9
 
-A shared cloud-desk host is not a clean benchmarking environment.
+A shared multi-tenant host is not a clean benchmarking environment.
 Treat these numbers as *order-of-magnitude indicative*. CI baselines
 should run on a dedicated single-tenant instance.
 

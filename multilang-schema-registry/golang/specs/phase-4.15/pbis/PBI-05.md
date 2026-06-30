@@ -43,4 +43,4 @@ Dry-run exits 0. README content is reviewable for completeness against spec 8.1.
 - The Makefile target format is prescribed in spec 8.3. Match it closely (the `.PHONY`, the credential check, the `@echo`, the `cd integration-tests`).
 - The target name is `demo-interop` (not `demo` as mentioned in one place in room memory; the spec uses `demo-interop`).
 - README should reference `REAL-AWS-RUNBOOK.md` for `default-registry` setup.
-- Keep README concise: one-screen maximum. The demo is for developers on a Cloud Desktop, not end-users.
+- Keep README concise: one-screen maximum. The demo is for developers on a developer machine, not end-users.

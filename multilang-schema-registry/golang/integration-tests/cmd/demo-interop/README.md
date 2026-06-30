@@ -12,7 +12,7 @@ directions against real AWS Glue, with schema evolution (v1 producer, v2 consume
 | JDK | 11+ | Required to build the Java sidecar |
 | Maven | 3.9+ | `mvn --version` — see `java-interop/README.md` |
 | Docker | 20+ | testcontainers-go starts a Kafka broker in-process |
-| AWS credentials | — | Account `850995546034`, region `us-east-2` |
+| AWS credentials | — | Account `(your configured AWS account)`, region `us-east-2` |
 
 The `make demo-interop` target builds the Java sidecar JAR/image
 (`integration-tests/java-interop/target/java-interop-sidecar.jar`) automatically

@@ -13,10 +13,10 @@ This phase delivers a standalone demo binary (Go) that orchestrates the existing
 - Produce a single Go binary (`cmd/demo-interop/main.go`) that emits a narrated transcript to stdout.
 - Cover all 3 formats (Avro, JSON Schema, Protobuf) in both directions (Java-to-Go, Go-to-Java) with cross-version evolution (v1 producer, v2 registered, consumer verifies v1 fields).
 - Narrate at each step: registry name, schema name, schema body, Glue version-id, Go config applied, wire-byte hex dump decomposed into header/compression/UUID/payload, deserialized value field-by-field.
-- Run against real AWS Glue in account `850995546034`, region `us-east-2`.
+- Run against real AWS Glue in a configured AWS account, region `us-east-2`.
 - Exit 0 on full success, non-zero on any failure, with structured error reporting.
 - Clean up all Glue schemas on exit (success or failure).
-- Complete in under 5 minutes on a Cloud Desktop with warm JVM and Kafka container.
+- Complete in under 5 minutes on a developer machine with warm JVM and Kafka container.
 
 ### Non-Goals
 
@@ -101,7 +101,7 @@ The demo uses testcontainers-go for Kafka (same as integration tests). The Java 
 │             ▼                                                     │
 │  ┌────────────────────────────────────────────────────────────┐  │
 │  │  Real AWS Glue Schema Registry                             │  │
-│  │  Account 850995546034, us-east-2, default-registry         │  │
+│  │  Account: (configured via AWS_PROFILE / env vars), us-east-2, default-registry         │  │
 │  └────────────────────────────────────────────────────────────┘  │
 └───────────────────────────────────────────────────────────────────┘
 ```
@@ -118,7 +118,7 @@ Before any per-format scenario runs, the demo narrates startup:
 ================================================================================
   GSR Go Client — Java↔Go Cross-Language Cross-Version Interop Demo
   Date: <timestamp>
-  Account: 850995546034
+  Account: (configured via AWS_PROFILE / env vars)
   Region: us-east-2
   Registry: default-registry
 ================================================================================
@@ -458,7 +458,7 @@ The demo uses the sidecar via the `javasidecar.Sidecar` struct:
 - `sc.KafkaConsume(ctx, req)` to drive Java deserialization (line 568)
 - `sc.Stop(ctx)` for cleanup (line 397)
 
-The sidecar is started in local mode (JVM process, not container) because the demo runs on a developer Cloud Desktop where `java` is on PATH.
+The sidecar is started in local mode (JVM process, not container) because the demo runs on a developer developer machine where `java` is on PATH.
 
 ### 7.3 Narrating Java-Side Output
 
@@ -472,7 +472,7 @@ The demo decodes the base64 `bytes` field to hex for narration and prints the `r
 
 ### 8.1 Prerequisites
 
-1. **AWS credentials** for account `850995546034` (the developer "customer" account). Either `AWS_PROFILE` set in `~/.aws/config` or `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` exported.
+1. **AWS credentials** for a configured AWS account (a developer account). Either `AWS_PROFILE` set in `~/.aws/config` or `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` exported.
 2. **Go 1.21+** on PATH.
 3. **JDK 11+** on PATH (or `GSR_INTEROP_JAVA` pointing to a JDK binary).
 4. **Docker** running (for testcontainers-go Kafka broker).
@@ -556,7 +556,7 @@ To verify no leaked schemas:
 - MUST print the Go config map applied for each serialization/deserialization.
 - MUST exit 0 only when all 6 pairs pass.
 - MUST clean up all schemas on exit (defer + signal handler).
-- MUST run on a Cloud Desktop with `aws sts get-caller-identity` returning account `850995546034`.
+- MUST run on a developer machine with `aws sts get-caller-identity` returning a configured AWS account.
 - MUST complete in under 5 minutes.
 
 ### MUST NOT
@@ -569,7 +569,7 @@ To verify no leaked schemas:
 
 ## 11. Definition of Done
 
-1. `go run ./cmd/demo-interop/` exits 0 when run with valid AWS credentials against account `850995546034`.
+1. `go run ./cmd/demo-interop/` exits 0 when run with valid AWS credentials against a configured AWS account.
 2. The stdout transcript contains narration for all 6 cross-pairs (3 formats x 2 directions).
 3. Each narration section includes: schema body, Glue version-id, Go config, wire-byte hex dump with decomposition, decoded values, and equality check result.
 4. `make demo-interop` succeeds (target exists, builds sidecar, runs demo).
@@ -658,15 +658,15 @@ Then all schemas matching prefix "demo-4.15-" are deleted from default-registry
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
 | Glue rate-limiting during schema registration (6 schemas created serially) | Low | Demo fails mid-run | Demo runs formats sequentially, not in parallel. 6 schemas is well below Glue's burst limit. Built-in retry in Go serializer handles transient throttles. |
-| Kafka testcontainer slow start on cold Cloud Desktop | Medium | Demo exceeds 5-minute budget | 60s startup timeout (same as integration tests). First-time Docker pull is a one-time cost not counted against the 5-minute run. |
+| Kafka testcontainer slow start on cold developer machine | Medium | Demo exceeds 5-minute budget | 60s startup timeout (same as integration tests). First-time Docker pull is a one-time cost not counted against the 5-minute run. |
 | Java sidecar JAR not pre-built | Medium | Demo fails at startup | `make demo-interop` depends on `java-sidecar-build` target. README instructs user to run `make java-sidecar-build` first. |
 | Prior demo run leaked schemas with colliding names | Low | Registration fails with AlreadyExistsException | Random 8-hex suffix makes collisions improbable (1 in 4 billion). Prefix sweep in cleanup deletes any leftover schemas from prior runs. |
 | `default-registry` does not exist in account | Low | All schema operations fail | README prereqs check; `REAL-AWS-RUNBOOK.md` documents creation. |
 
 ### Assumptions
 
-1. The developer Cloud Desktop has Docker running and `java` on PATH.
-2. AWS credentials resolve to account `850995546034` with permissions listed in `REAL-AWS-RUNBOOK.md`.
+1. The developer developer machine has Docker running and `java` on PATH.
+2. AWS credentials resolve to a configured AWS account with permissions listed in `REAL-AWS-RUNBOOK.md`.
 3. The Java sidecar JAR is built (via `make java-sidecar-build`) before running the demo.
 4. `default-registry` exists in `us-east-2`.
 5. The demo is NOT intended to run in CI. It is a manual, one-shot demonstration tool.

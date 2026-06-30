@@ -1,6 +1,6 @@
 # Phase 4 — AWS account notes for the Go GSR canary
 
-**Status:** open question for mrknox@ to triage.
+**Status:** open question for the project owner to triage.
 **Date authored:** 2026-06-21.
 
 ## Plan §6.3 reference text
@@ -16,7 +16,7 @@
   pass. The plan instructed not to actually bill AWS, and this
   account is also outside the AssumeRole chain the dev host carries
   (verified via `cat ~/.aws/config` — only `mrknox-*` personal stack
-  accounts and the developer "customer" account 850995546034 are
+  accounts and the developer account are
   present).
 - The plan's open-question #2 (§11) explicitly asks whether reusing
   747156111546 is the default for the Go canary. The Java and C#
@@ -56,7 +56,7 @@ If 747156111546 is NOT reusable:
 3. Same OIDC trust setup as the Java/C# canary, gated on the new
    account ID.
 
-## Open items for mrknox@
+## Open items for the project owner
 
 1. Confirm whether 747156111546 has quota for one more set of
    `glue:CreateSchema` / `glue:CreateRegistry` operations beyond the

@@ -380,7 +380,7 @@ func (s *spyGlueClient) GetTags(ctx context.Context, params *glue.GetTagsInput, 
 // §5.3 item 25 — _Real companion.
 //
 // Exercises the EntityNotFound auto-register fall-through path against real
-// AWS Glue (account 850995546034, region determined by local AWS config). The
+// AWS Glue (a configured AWS account, region determined by local AWS config). The
 // companion fake-gated test is TestNegative_EntityNotFoundFallsThroughToCreate above.
 //
 // Flow (spec Architecture §4):
@@ -547,7 +547,7 @@ func TestNegative_EntityNotFound_FallsThroughToCreate_Real(t *testing.T) {
 	logContent := fmt.Sprintf(
 		"TestNegative_EntityNotFound_FallsThroughToCreate_Real\n"+
 			"timestamp:         %s\n"+
-			"account:           850995546034\n"+
+			"account:           (resolved via STS)\n"+
 			"region:            %s\n"+
 			"registry:          %s\n"+
 			"schema_name:       %s\n"+

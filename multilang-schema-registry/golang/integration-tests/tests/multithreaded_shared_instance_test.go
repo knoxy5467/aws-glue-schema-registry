@@ -30,7 +30,7 @@ import (
 // *Deserializer instance are shared across N=16 goroutines, each
 // producing+consuming M=8 messages through the existing Sarama
 // transport against a testcontainers-managed Kafka broker plus real
-// AWS Glue in account 850995546034.
+// AWS Glue in a configured AWS account.
 //
 // Pass criteria:
 //  1. `go test -race` reports no data races (C7 / C12 / R3).
@@ -51,7 +51,7 @@ import (
 // realglue.Cleanup.TrackSchema BEFORE the first encode for that name,
 // per spec §6 hard requirement. The newGlueHandle-installed t.Cleanup
 // hook runs Cleanup.Run on test exit so no schemas leak in account
-// 850995546034.
+// (your configured AWS account).
 func TestMultiThreadedShared_NoRaces_NoDoubleRegister(t *testing.T) {
 	scenarioGate(t, true, false) // requires GSR_GLUE=real + AWS_INTEGRATION=1
 	h := newGlueHandle(t)

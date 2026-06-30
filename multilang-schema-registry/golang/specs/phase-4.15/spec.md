@@ -518,7 +518,7 @@ Add to `/workplace/mrknox/phase-4.15/multilang-schema-registry/golang/Makefile`:
 
 ```makefile
 # Demo — narrated cross-language interop showcase.
-# Requires: Go, Maven (for sidecar JAR), Docker, AWS creds for 850995546034.
+# Requires: Go, Maven (for sidecar JAR), Docker, AWS creds for a configured account.
 JAVA_SIDECAR_JAR := integration-tests/java-interop/target/java-interop-sidecar.jar
 
 .PHONY: java-sidecar-jar
@@ -561,7 +561,7 @@ Java and Go take turns producing and consuming through the same topic and regist
 across schema versions.
 
 **Prerequisites:** Go 1.25+, Maven 3.x (for the Java sidecar JAR), Docker,
-AWS credentials for account 850995546034 with Glue permissions.
+AWS credentials for a configured AWS account with Glue permissions.
 
 ```bash
 make demo
@@ -623,7 +623,7 @@ The README links to this file for the full output reference.
 - [ ] **AC-6:** Makefile target `make demo` at `multilang-schema-registry/golang/Makefile`. Builds Java sidecar JAR if missing. Optional `make demo-cell CELL=...`.
 - [ ] **AC-7:** README section at `multilang-schema-registry/golang/README.md` titled "Live demo" with prerequisites, command, and sample output snippet (~20 lines, REAL captured output).
 - [ ] **AC-8:** All test suites GREEN with `-race` post-merge: inner core, outer module, integration-tests (no tag + with-integration-tag build). Demo binary itself has no test suite, but any new packages under `cmd/demo/internal/` get Tier-1 tests.
-- [ ] **AC-9:** Demo run captured in `multilang-schema-registry/golang/test-artifacts/4.15-demo-output.log` showing all 12 cells PASS + cache + auto-register + baseline scenarios, real Glue in 850995546034. Committed on `phase-4.15`.
+- [ ] **AC-9:** Demo run captured in `multilang-schema-registry/golang/test-artifacts/4.15-demo-output.log` showing all 12 cells PASS + cache + auto-register + baseline scenarios, real Glue in (your configured AWS account). Committed on `phase-4.15`.
 
 ## 15. Production-Code Changes (REQUIRES PM APPROVAL)
 

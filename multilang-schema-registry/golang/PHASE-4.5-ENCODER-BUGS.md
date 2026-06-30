@@ -1,6 +1,6 @@
 # Phase 4.5 — Pre-existing encoder bugs surfaced by Phase 4
 
-**Status:** open, awaiting mrknox@ go-ahead.
+**Status:** open, awaiting the project owner go-ahead.
 **Date authored:** 2026-06-22.
 **Scope owner:** Phase 4.5 (post-Phase-4, pre-Phase-5).
 
@@ -190,7 +190,7 @@ Each gets its own commit. Per-bug commit message should:
 
 ---
 
-## Open question for mrknox@
+## Open question for the project owner
 
 Phase 4.5 fits in the gap between Phase 4 (just landed locally) and
 Phase 5 (canary harness — gated on the PHASE-4-AWS-NOTES.md

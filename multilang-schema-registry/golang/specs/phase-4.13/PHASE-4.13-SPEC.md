@@ -15,7 +15,7 @@ The test proves that the GSR wire-format header (version UUID) is the canonical 
 - Two compression modes: NONE, ZLIB.
 - BACKWARD compatibility mode (fixed for all cells).
 - Schema evolution from v1 to v2 (one added optional/nullable field).
-- Real AWS Glue schema registration (account 850995546034).
+- Real AWS Glue schema registration (a configured AWS account).
 - Kafka transport via testcontainers-go.
 - Teardown via `realglue.Cleanup`.
 
@@ -57,7 +57,7 @@ The test proves that the GSR wire-format header (version UUID) is the canonical 
  │                          ▼                              │
  │         ┌──────────────────────────────────────┐        │
  │         │ Real AWS Glue (us-east-2)            │        │
- │         │ Account 850995546034                 │        │
+ │         │ Account: (configured via AWS_PROFILE / env vars)                 │        │
  │         │ default-registry, BACKWARD compat    │        │
  │         └──────────────────────────────────────┘        │
  └─────────────────────────────────────────────────────────┘

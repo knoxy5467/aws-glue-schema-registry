@@ -255,7 +255,7 @@ func TestLifecycle_CacheSizeEviction(t *testing.T) {
 }
 
 // §5.3 item 17 — _Real companion. Validates the size-eviction contract
-// against real Glue (account 850995546034) without depending on a Glue-side
+// against real Glue (a configured AWS account) without depending on a Glue-side
 // call counter (real Glue has none). Uses gsrcore.EncoderCacheHas — the
 // read-side mirror of PrimeEncoderCache (test_seam.go) — to inspect the
 // encoder's in-process LRU directly.

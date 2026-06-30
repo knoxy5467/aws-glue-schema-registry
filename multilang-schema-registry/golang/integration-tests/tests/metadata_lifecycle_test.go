@@ -5,7 +5,7 @@ package integration_tests
 
 // Tier-2 metadata-lifecycle cells — spec §3.11 cells 1-2 + spec §5.2 cell 3.
 //
-// Cells 1 and 2 require real AWS Glue (account 850995546034).
+// Cells 1 and 2 require real AWS Glue (a configured AWS account).
 // Gate: scenarioGate(t, requiresReal=true, false) + AWS_INTEGRATION=1 + GSR_GLUE=real.
 //
 // Cell 3 uses fakeglue and does NOT require real AWS.
