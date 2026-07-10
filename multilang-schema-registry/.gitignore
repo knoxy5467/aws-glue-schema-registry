@@ -28,6 +28,9 @@ DartConfiguration.tcl
 CTestTestfile.cmake
 compile_commands.json
 Makefile
+# Un-ignore our hand-authored Makefile under golang/ — the CMake `Makefile`
+# ignore above is for generated files under c/, not our Go build target.
+!golang/Makefile
 
 # SWIG generated files
 *_wrap.c
