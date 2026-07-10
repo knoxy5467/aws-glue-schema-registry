@@ -518,6 +518,183 @@ func runSameVersionDirectionA(
 	return result
 }
 
+// ---------------------------------------------------------------------------
+// C.4 — Go-writes / Java-reads scenario (Go auto-registers, Java cold-cache)
+// ---------------------------------------------------------------------------
+
+// runGoWritesJavaReadsScenario mirrors runSameVersionDirectionB (Go serializes
+// then Java consumes) but with NO Java pre-registration: the Go serializer
+// auto-registers the schema via schemaAutoRegistrationEnabled=true, producing
+// a CloudTrail CreateSchema event tagged with the Go user-agent. Java then
+// consumes with a cold cache (KafkaConsumeHandler constructs a fresh
+// GlueSchemaRegistryKafkaDeserializer per request — see java-interop
+// KafkaConsumeHandler.java lines 118-122), which forces a GetSchemaVersion
+// call against the UUID tagged with the Java user-agent.
+//
+// The scenario runs AVRO only with NONE compression — a single row is enough
+// to demonstrate the CloudTrail-pivot pattern (writer=go for CreateSchema,
+// reader=java for GetSchemaVersion) without expanding to JSON/PROTOBUF noise.
+// The record shape is identical to sameVersionRecords / javaRecordForFormat
+// so the existing verifyJavaConsumeResult helper works unchanged.
+func runGoWritesJavaReadsScenario(
+	ctx context.Context,
+	sc *javasidecar.Sidecar,
+	broker *kafkaharness.Broker,
+	cleanup *realglue.Cleanup,
+	region string,
+) []ScenarioResult {
+	result := ScenarioResult{
+		Format:      "AVRO",
+		Direction:   "Go->Java (Go-registers)",
+		Compression: "NONE",
+	}
+
+	printSectionHeader("SCENARIO: Go-writes / Java-reads (Go auto-registers, Java consumes cold-cache)")
+
+	suffix, err := randomSuffix()
+	if err != nil {
+		result.Err = fmt.Errorf("randomSuffix: %w", err)
+		printStage("demo", fmt.Sprintf("FAIL: %v", result.Err))
+		return []ScenarioResult{result}
+	}
+
+	schemaName := fmt.Sprintf("%sgo-writes-%s", demoPrefix, suffix)
+	// Track the schema for deletion BEFORE the auto-register happens, so a
+	// mid-run failure still leaves the schema in the cleanup list.
+	cleanup.TrackSchema(demoRegistryName, schemaName)
+	result.SchemaName = schemaName
+
+	topic := fmt.Sprintf("%sgo-writes-avro-%s", demoPrefix, suffix)
+
+	printStage("demo", fmt.Sprintf("Schema name: %s", schemaName))
+	printStage("demo", "Data format: AVRO")
+	printStage("demo", "Compression: NONE")
+	printStage("demo", "SchemaAutoRegistrationEnabled: true (Go registers, Java only reads)")
+	fmt.Println()
+
+	// ── Step 1: Build Go serializer with auto-registration ────────────────────
+	printStage("go-producer", "Building Go serializer with auto-registration...")
+	goConfig := configMapForFormat(region, "AVRO", "NONE")
+	printGoConfig(goConfig)
+
+	cfg, err := buildDemoConfigCellB(region, "AVRO", "NONE", crossVersionAvroV1)
+	if err != nil {
+		result.Err = fmt.Errorf("buildDemoConfigCellB: %w", err)
+		printStage("go-producer", fmt.Sprintf("FAIL: %v", result.Err))
+		return []ScenarioResult{result}
+	}
+
+	ser, err := serializer.NewSerializer(cfg)
+	if err != nil {
+		result.Err = fmt.Errorf("NewSerializer: %w", err)
+		printStage("go-producer", fmt.Sprintf("FAIL: %v", result.Err))
+		return []ScenarioResult{result}
+	}
+	defer ser.Close() //nolint:errcheck
+
+	// ── Step 2: Go serializer auto-registers + encodes ────────────────────────
+	printStage("glue", fmt.Sprintf("CreateSchema schemaName=%s compatibility=BACKWARD (via Go client UA)", schemaName))
+	printStage("schema-evolution", "schema absent — auto-register triggered (Go writer)")
+
+	goRecord, err := goRecordForFormat("AVRO", crossVersionAvroV1)
+	if err != nil {
+		result.Err = fmt.Errorf("goRecordForFormat: %w", err)
+		printStage("go-producer", fmt.Sprintf("FAIL: %v", result.Err))
+		return []ScenarioResult{result}
+	}
+
+	framed, err := ser.Serialize(schemaName, goRecord)
+	if err != nil {
+		result.Err = fmt.Errorf("Go Serialize (auto-register): %w", err)
+		printStage("go-producer", fmt.Sprintf("FAIL: %v", result.Err))
+		return []ScenarioResult{result}
+	}
+
+	if len(framed) < 18 {
+		result.Err = fmt.Errorf("framed bytes too short: %d", len(framed))
+		printStage("go-producer", fmt.Sprintf("FAIL: %v", result.Err))
+		return []ScenarioResult{result}
+	}
+	registeredUUID := formatUUID(framed[2:18])
+	result.SchemaVersionID = registeredUUID
+	printStage("glue", fmt.Sprintf("Schema auto-registered with UUID: %s", registeredUUID))
+	printStage("go-producer", fmt.Sprintf("Encoded v1 record (%d bytes)", len(framed)))
+	printHexDump("Wire bytes", framed)
+
+	// ── Step 3: Produce framed bytes to Kafka ─────────────────────────────────
+	printStage("kafka", fmt.Sprintf("Producing framed bytes to Kafka topic: %s", topic))
+	produceCtx, produceCancel := context.WithTimeout(ctx, 30*time.Second)
+	err = produceOneToKafka(produceCtx, broker.Bootstrap, topic, framed)
+	produceCancel()
+	if err != nil {
+		result.Err = fmt.Errorf("kafka produce: %w", err)
+		printStage("kafka", fmt.Sprintf("FAIL: %v", result.Err))
+		return []ScenarioResult{result}
+	}
+	printStage("kafka", "Produced successfully.")
+	fmt.Println()
+
+	// ── Step 4: Java sidecar consumes (fresh deserializer → cold cache) ───────
+	printStage("java-consumer", fmt.Sprintf("Java sidecar consuming from topic: %s", topic))
+	fmt.Printf("  Format:    AVRO\n")
+	fmt.Printf("  Region:    %s\n", region)
+	fmt.Printf("  Timeout:   60s\n")
+	fmt.Printf("  Note:      sidecar constructs a NEW GlueSchemaRegistryKafkaDeserializer\n")
+	fmt.Printf("             per request — cache is cold, GetSchemaVersion always fires.\n")
+	printStage("glue", fmt.Sprintf("GetSchemaVersion UUID=%s (via Java client UA, cold cache)", registeredUUID))
+	fmt.Println()
+
+	consumeCtx, consumeCancel := context.WithTimeout(ctx, 60*time.Second)
+	resp, err := sc.KafkaConsume(consumeCtx, javasidecar.KafkaConsumeRequest{
+		Bootstrap: broker.Bootstrap,
+		Topic:     topic,
+		Format:    "AVRO",
+		Region:    region,
+		TimeoutMs: 60_000,
+	})
+	consumeCancel()
+	if err != nil {
+		result.Err = fmt.Errorf("java consume: %w", err)
+		printStage("java-consumer", fmt.Sprintf("FAIL: %v", result.Err))
+		return []ScenarioResult{result}
+	}
+
+	printStage("java-consumer", "Java sidecar deserialized successfully.")
+	fmt.Printf("  DataFormat:        %s\n", resp.DataFormat)
+	fmt.Printf("  SchemaVersionID:   %s\n", resp.SchemaVersionID)
+	fmt.Printf("  Record envelope:   %v\n", resp.Record)
+	fmt.Println()
+
+	// Sanity check: Java's resolved UUID must match Go's registered UUID.
+	if resp.SchemaVersionID != registeredUUID {
+		result.Err = fmt.Errorf(
+			"UUID mismatch: Go registered %s, Java resolved %s",
+			registeredUUID, resp.SchemaVersionID)
+		printStage("verdict", fmt.Sprintf("FAIL: %v", result.Err))
+		return []ScenarioResult{result}
+	}
+
+	// ── Step 5: Verify decoded fields ────────────────────────────────────────
+	pass, verifyErr := verifyJavaConsumeResult("AVRO", resp.Record)
+	narrateVerifyJava("AVRO", resp.Record, pass, verifyErr)
+
+	result.Pass = pass
+	if verifyErr != nil {
+		result.Err = verifyErr
+	}
+
+	if pass {
+		printStage("verdict", fmt.Sprintf(
+			"go-writes/java-reads PASS — Go auto-registered %s, Java cold-cache resolved same UUID",
+			registeredUUID))
+	} else {
+		printStage("verdict", "go-writes/java-reads FAIL")
+	}
+	fmt.Println()
+
+	return []ScenarioResult{result}
+}
+
 // runSameVersionDirectionB: Go produces v1, Java consumes — no v2 registration.
 func runSameVersionDirectionB(
 	ctx context.Context,

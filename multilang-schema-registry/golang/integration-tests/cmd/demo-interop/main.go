@@ -153,6 +153,10 @@ func main() {
 	sameVersionResults := runSameVersionBaseline(ctx, sc, broker, cleanup, region)
 	results = append(results, sameVersionResults...)
 
+	// C.4: Go-writes / Java-reads (Go auto-registers, Java cold-cache reads)
+	goWritesResults := runGoWritesJavaReadsScenario(ctx, sc, broker, cleanup, region)
+	results = append(results, goWritesResults...)
+
 	// ── Summary ───────────────────────────────────────────────────────────────
 	exitCode := printSummary(results)
 	cleanupAndExit(exitCode)
