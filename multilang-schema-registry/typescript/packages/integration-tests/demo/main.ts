@@ -79,10 +79,13 @@ import {
 } from "@gsr/core";
 import { Kafka, logLevel as KafkaLogLevel } from "kafkajs";
 
+// Import the vitest-free runtime helpers — importing from `env-gate.js`
+// would transitively pull vitest into the vite-node process, tripping
+// vitest's internal-state guard at module load.
 import {
   requireRealCreds,
   resolveRegion,
-} from "../src/env-gate.js";
+} from "../src/env-gate.runtime.js";
 import { requireInterop } from "../src/interop-gate.js";
 import {
   isSkip,
@@ -478,13 +481,20 @@ function defaultSink(): NarratorSink {
 // Node entry — invoke `main()` when this module is the process entry point.
 // Guarded so importing this file (e.g. for a future diagnostic tool that
 // wants to reuse `resolveAccountId`) does not run the demo on import.
+//
+// vite-node keeps its OWN binary in `process.argv[1]`, so the classic
+// `import.meta.url === file://${process.argv[1]}` shape does not work here.
+// Match `import.meta.url` against this file's stable suffix instead, and
+// use the presence of `VITEST` as a reliable "we're under the test runner,
+// do not auto-run" signal. Same pattern as `bench/report.ts`.
 // ---------------------------------------------------------------------------
 
-const invokedDirectly =
-  typeof process !== "undefined" &&
-  Array.isArray(process.argv) &&
-  process.argv[1] !== undefined &&
-  import.meta.url === `file://${process.argv[1]}`;
+const invokedDirectly = ((): boolean => {
+  const metaUrl = import.meta.url;
+  if (typeof metaUrl !== "string") return false;
+  if (process.env.VITEST) return false;
+  return metaUrl.endsWith("/packages/integration-tests/demo/main.ts");
+})();
 if (invokedDirectly) {
   void main().then(
     (code) => {

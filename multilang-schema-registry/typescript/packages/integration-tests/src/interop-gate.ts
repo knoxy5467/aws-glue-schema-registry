@@ -41,10 +41,14 @@
  * env-gate, which the interop tier is not permitted to do).
  */
 
+// Import the two runtime predicates from the vitest-free runtime module.
+// Importing from `env-gate.js` would drag vitest into any non-vitest
+// consumer of the interop gate (e.g. the narrated demo entrypoint), which
+// vitest's internal-state guard rejects at module load.
 import {
   isAwsIntegrationEnabled,
   isRealGlue,
-} from "./env-gate.js";
+} from "./env-gate.runtime.js";
 import { isJvmAvailable, resolveJarPath } from "./java-sidecar.js";
 
 /**
