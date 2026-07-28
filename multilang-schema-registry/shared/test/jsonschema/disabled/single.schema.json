@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/disabled/single.json",
+  "title": "Single",
+  "description": "DISABLED compatibility - single schema, no versioning allowed after initial registration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["key", "active"],
+  "properties": {
+    "key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

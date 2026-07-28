@@ -1,0 +1,13 @@
+{
+  "invoiceId": "INV-2026-0002",
+  "issued": "2026-07-23T12:00:00Z",
+  "lineItems": [
+    {
+      "description": "Consulting",
+      "quantity": 8,
+      "unitPrice": 125.0
+    }
+  ],
+  "total": 1000.0,
+  "status": "issued"
+}

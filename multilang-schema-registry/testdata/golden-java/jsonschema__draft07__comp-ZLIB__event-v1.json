@@ -1,0 +1,15 @@
+{
+  "format" : "jsonschema",
+  "recordType" : "draft07",
+  "compression" : "ZLIB",
+  "schemaVersionId" : "01020304-0506-0708-090a-0b0c0d0e0f10",
+  "sourceSchema" : "jsonschema/full/event_v1.schema.json",
+  "payloadTag" : "event-v1",
+  "provenance" : {
+    "tool" : "golden-gen-java",
+    "repoSha" : "54af0eed1adfd5beab428ec440f52619fd368d91",
+    "capturedAt" : "2026-07-23T05:59:44.169481274Z"
+  },
+  "sha256" : "a13a9c57ec058d74bd7415c9b6f59fcc16935b6d940deab76474cb56b7cf8f11",
+  "byteLength" : 131
+}

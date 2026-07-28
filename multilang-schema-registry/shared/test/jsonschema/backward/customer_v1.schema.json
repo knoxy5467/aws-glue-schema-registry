@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/backward/customer_v1.json",
+  "title": "Customer",
+  "description": "Base backward-compatibility schema - hazard: email format keyword, required address (nested object)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["id", "email", "address"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["street", "city", "postalCode"],
+      "properties": {
+        "street": { "type": "string" },
+        "city": { "type": "string" },
+        "postalCode": { "type": "string" }
+      }
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

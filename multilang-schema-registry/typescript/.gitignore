@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+.vitest/
+packages/integration-tests/bench/.results/
+docs/api/

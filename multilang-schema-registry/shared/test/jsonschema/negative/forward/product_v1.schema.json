@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/negative/forward/product_v1.json",
+  "title": "Product",
+  "description": "Base schema for negative forward compatibility",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sku", "price"],
+  "properties": {
+    "sku": { "type": "string" },
+    "price": { "type": "number" },
+    "notes": { "type": "string", "default": "" }
+  }
+}

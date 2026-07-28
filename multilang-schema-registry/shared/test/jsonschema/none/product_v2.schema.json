@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/none/product_v2.json",
+  "title": "Product",
+  "description": "Incompatible NONE-mode evolution - completely different structure, exercises array of strings + boolean",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sku", "tags", "inStock"],
+  "properties": {
+    "sku": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}-[0-9]{4}$"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "inStock": {
+      "type": "boolean"
+    }
+  }
+}

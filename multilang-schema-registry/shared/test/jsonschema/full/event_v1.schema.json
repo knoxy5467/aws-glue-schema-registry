@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/full/event_v1.json",
+  "title": "Event",
+  "description": "Base full-compatibility schema - hazard: URI format, deeply nested payload, integer vs number distinction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "source", "timestamp"],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "pattern": "^evt-[0-9a-f]{8}$"
+    },
+    "source": {
+      "type": "string",
+      "format": "uri"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

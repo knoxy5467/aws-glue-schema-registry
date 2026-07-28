@@ -1,0 +1,60 @@
+{
+  "name": "@gsr/serde",
+  "version": "1.0.0",
+  "description": "AWS Glue Schema Registry — Avro / Protobuf / JSON-Schema serializers and deserializers.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./internal": {
+      "import": {
+        "types": "./dist/internal.d.ts",
+        "default": "./dist/internal.mjs"
+      },
+      "require": {
+        "types": "./dist/internal.d.cts",
+        "default": "./dist/internal.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "registry": "<internal-codeartifact-npm-endpoint>",
+    "access": "restricted"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "avsc": "5.7.9",
+    "protobufjs": "8.7.1"
+  },
+  "peerDependencies": {
+    "@gsr/core": "~1.0.0"
+  },
+  "devDependencies": {
+    "@gsr/core": "~1.0.0"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "source": "reference go benchmark run, 2026-06-25, Intel Xeon 8175M, Go 1.22.4",
+  "language": "go",
+  "cells": [
+    {
+      "format": "AVRO",
+      "direction": "encode",
+      "compression": "NONE",
+      "sizeBytes": 100,
+      "mbPerSec": 12.5
+    },
+    {
+      "format": "AVRO",
+      "direction": "encode",
+      "compression": "NONE",
+      "sizeBytes": 10240,
+      "mbPerSec": 320.0
+    },
+    {
+      "format": "AVRO",
+      "direction": "encode",
+      "compression": "NONE",
+      "sizeBytes": 1048576,
+      "mbPerSec": 1450.0
+    },
+    {
+      "format": "AVRO",
+      "direction": "encode",
+      "compression": "ZLIB",
+      "sizeBytes": 100,
+      "mbPerSec": 1.8
+    },
+    {
+      "format": "AVRO",
+      "direction": "encode",
+      "compression": "ZLIB",
+      "sizeBytes": 10240,
+      "mbPerSec": 45.0
+    },
+    {
+      "format": "AVRO",
+      "direction": "encode",
+      "compression": "ZLIB",
+      "sizeBytes": 1048576,
+      "mbPerSec": 0.8
+    },
+    {
+      "format": "PROTOBUF",
+      "direction": "encode",
+      "compression": "NONE",
+      "sizeBytes": 100,
+      "mbPerSec": 30.0
+    },
+    {
+      "format": "PROTOBUF",
+      "direction": "encode",
+      "compression": "NONE",
+      "sizeBytes": 10240,
+      "mbPerSec": 900.0
+    },
+    {
+      "format": "PROTOBUF",
+      "direction": "encode",
+      "compression": "NONE",
+      "sizeBytes": 1048576,
+      "mbPerSec": 3900.0
+    },
+    {
+      "format": "JSON",
+      "direction": "encode",
+      "compression": "NONE",
+      "sizeBytes": 100,
+      "mbPerSec": 15.5
+    },
+    {
+      "format": "AVRO",
+      "direction": "decode",
+      "compression": "NONE",
+      "sizeBytes": 100,
+      "mbPerSec": 8.0
+    },
+    {
+      "format": "PROTOBUF",
+      "direction": "decode",
+      "compression": "ZLIB",
+      "sizeBytes": 1048576,
+      "mbPerSec": 200.0
+    }
+  ]
+}

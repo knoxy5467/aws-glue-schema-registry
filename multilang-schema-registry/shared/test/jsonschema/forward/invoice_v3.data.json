@@ -1,0 +1,14 @@
+{
+  "invoiceId": "INV-2026-0003",
+  "issued": "2026-07-23T18:30:00Z",
+  "lineItems": [
+    {
+      "description": "Storage",
+      "quantity": 30,
+      "unitPrice": 2.5
+    }
+  ],
+  "total": 75.0,
+  "status": "issued",
+  "paymentTerms": 30
+}

@@ -1,0 +1,8 @@
+{
+  "id": 42,
+  "name": "Widget",
+  "pricing": {
+    "amount": 19.99,
+    "currency": "USD"
+  }
+}

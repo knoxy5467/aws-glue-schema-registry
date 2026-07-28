@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/negative/disabled/restricted_v2.json",
+  "title": "Restricted",
+  "description": "DISABLED-INCOMPATIBLE - version bump is disallowed regardless of content",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["token", "issued"],
+  "properties": {
+    "token": { "type": "string" },
+    "issued": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "name": "@gsr/core",
+  "version": "1.0.0",
+  "license": "Apache-2.0",
+  "description": "AWS Glue Schema Registry — wire format, compression, config, cache, errors, and Glue seam.",
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "registry": "<internal-codeartifact-npm-endpoint>",
+    "access": "restricted"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-glue": "3.1093.0",
+    "@aws-sdk/credential-providers": "3.1093.0",
+    "lru-cache": "11.5.2",
+    "pako": "1.0.11",
+    "protobufjs": "8.7.1"
+  },
+  "devDependencies": {
+    "@types/pako": "1.0.7",
+    "aws-sdk-client-mock": "4.1.0"
+  }
+}

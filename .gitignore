@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+coverage/
+.vitest/
+docs/api/
+
+# Bench + integration test outputs
+**/.results/
+
+# Java sidecar build outputs
+**/target/

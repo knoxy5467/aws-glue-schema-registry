@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/negative/forward/product_v3.json",
+  "title": "Product",
+  "description": "Forward-INCOMPATIBLE evolution - narrowed 'price' from number to integer",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sku", "price"],
+  "properties": {
+    "sku": { "type": "string" },
+    "price": { "type": "integer" },
+    "notes": { "type": "string", "default": "" }
+  }
+}

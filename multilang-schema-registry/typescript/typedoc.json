@@ -1,0 +1,21 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "packages/core/src/index.ts",
+    "packages/serde/src/index.ts"
+  ],
+  "out": "docs/api",
+  "name": "AWS Glue Schema Registry — TypeScript API Reference",
+  "readme": "none",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "skipErrorChecking": true,
+  "externalSymbolLinkMappings": {
+    "gsr-typescript-monorepo": {
+      "unknown": "../classes/core_src.GsrIncompatibleDataError.html"
+    },
+    "@gsr/core": {
+      "GsrIncompatibleDataError": "../classes/core_src.GsrIncompatibleDataError.html"
+    }
+  }
+}

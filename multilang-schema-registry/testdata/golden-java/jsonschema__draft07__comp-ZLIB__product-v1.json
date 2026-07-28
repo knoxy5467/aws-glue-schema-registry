@@ -1,0 +1,15 @@
+{
+  "format" : "jsonschema",
+  "recordType" : "draft07",
+  "compression" : "ZLIB",
+  "schemaVersionId" : "01020304-0506-0708-090a-0b0c0d0e0f10",
+  "sourceSchema" : "jsonschema/none/product_v1.schema.json",
+  "payloadTag" : "product-v1",
+  "provenance" : {
+    "tool" : "golden-gen-java",
+    "repoSha" : "54af0eed1adfd5beab428ec440f52619fd368d91",
+    "capturedAt" : "2026-07-23T05:59:44.140477715Z"
+  },
+  "sha256" : "1384fa11c75631d3ff28ac85bd9e7ef6c3092168d416276e170e1737812eb231",
+  "byteLength" : 94
+}

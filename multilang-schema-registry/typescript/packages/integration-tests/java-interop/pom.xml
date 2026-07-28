@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Java sidecar for the GSR TypeScript client's cross-language interop tier.
+
+  A standalone fat JAR that exposes /health, /encode, /decode, /kafka-produce,
+  and /kafka-consume HTTP endpoints driven by the real aws-glue-schema-registry
+  Java library (schema-registry-common + schema-registry-serde), so the TS
+  client's wire format and full Kafka-in-the-loop customer path can be
+  cross-checked against the canonical Java reference implementation live.
+
+  The wire-format endpoints (/encode, /decode) never call AWS Glue: they
+  exercise only the header + compression layer against an in-memory schema
+  map populated by /encode requests. The Kafka-in-the-loop endpoints
+  (/kafka-produce, /kafka-consume) drive the full Kafka customer API and
+  do register/lookup against real AWS Glue.
+
+  Build:
+    mvn -f java-interop/pom.xml -DskipTests package
+  produces target/java-interop-sidecar.jar.
+
+  Run:
+    java -jar target/java-interop-sidecar.jar (port arg)
+  prints "PORT: (n)" on the first stdout line, then serves until SIGTERM.
+
+  All runtime dependencies resolve from public Maven Central; the module
+  builds standalone with no dependency on any surrounding project tree.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.amazonaws.services.schemaregistry.interop</groupId>
+    <artifactId>java-interop-sidecar</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>GSR TypeScript Client Java Interop Sidecar</name>
+    <description>
+        Test-only sidecar that drives the real Java GSR library's wire-format
+        encode/decode helpers and full Kafka customer API from a small HTTP
+        surface, so the TypeScript client's wire format and Kafka-in-the-loop
+        behavior can be cross-checked live against the canonical Java reference.
+    </description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <!--
+          Pinned upstream Java GSR version. The interop harness must run
+          against a specific published Java library so the wire-format
+          contract has a fixed reference; bumping this deliberately (in a
+          separate change) re-anchors the cross-language parity target.
+        -->
+        <gsr.version>1.1.27</gsr.version>
+        <jackson.version>2.17.2</jackson.version>
+        <!--
+          slf4j-nop must use the same major as the slf4j-api version GSR
+          transitively pulls in (currently 1.7.x). Mismatched majors yield
+          the noisy "Failed to load class StaticLoggerBinder" warning on
+          stdout/stderr at JVM startup.
+        -->
+        <slf4j.version>1.7.30</slf4j.version>
+    </properties>
+
+    <dependencies>
+        <!-- The real GSR Java library — what the sidecar is here to exercise. -->
+        <dependency>
+            <groupId>software.amazon.glue</groupId>
+            <artifactId>schema-registry-common</artifactId>
+            <version>${gsr.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.glue</groupId>
+            <artifactId>schema-registry-serde</artifactId>
+            <version>${gsr.version}</version>
+        </dependency>
+        <!-- JSON for the tiny HTTP surface. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <!--
+          protobuf-java-util adds JsonFormat for DynamicMessage <-> JSON.
+          schema-registry-serde transitively pulls protobuf-java; util is
+          a separate jar that we need explicitly for the JsonFormat parser
+          and printer the Kafka-in-the-loop handlers use to reconstruct
+          and re-encode DynamicMessage instances.
+        -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>3.25.5</version>
+        </dependency>
+        <!-- Quiet SLF4J: GSR pulls slf4j-api; bind a no-op impl in the fat JAR. -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-nop</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>java-interop-sidecar</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <minimizeJar>false</minimizeJar>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.amazonaws.services.schemaregistry.interop.SidecarMain</mainClass>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

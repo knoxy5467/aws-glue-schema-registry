@@ -1,0 +1,7 @@
+{
+  "eventId": "evt-deadbeef",
+  "source": "https://events.example.amazon.com/producer/v2",
+  "timestamp": 1785283200,
+  "verified": false,
+  "severity": "warn"
+}

@@ -1,0 +1,86 @@
+name: TypeScript CI
+
+# Runs the TypeScript / NPM GSR client's full offline test suite — build +
+# unit tests + the wire-byte-identity gate against the in-repo golden
+# vectors and shared source-schemas. A byte-identity regression on any of
+# the 18 Java-canonical golden cells (avro/protobuf/JSON-Schema × NONE/ZLIB)
+# fails the build here.
+#
+# GSR_REFERENCE_ROOT is deliberately NOT exported. The gate must resolve the
+# fixture roots via the in-repo path so a fresh clone / CI runner produces
+# real assertions, not silent skips.
+
+on:
+  push:
+    branches:
+      - mainline
+      - main
+      - "master"
+  pull_request:
+    branches:
+      - mainline
+      - main
+      - "master"
+  workflow_dispatch:
+
+concurrency:
+  group: typescript-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: multilang-schema-registry/typescript
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: multilang-schema-registry/typescript/.nvmrc
+          cache: npm
+          cache-dependency-path: multilang-schema-registry/typescript/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check for AI-artifact token regression
+        # Runs scripts/check-no-ai-artifacts.mjs — the committed regression
+        # guard for the token classes the review discipline has scrubbed
+        # from the tree. The script owns the canonical pattern set; see its
+        # header for the enumeration and whitelist. Failing this step means
+        # a scrubbed token has re-entered the tree; the exit output pins
+        # the exact file:line so the offender is obvious.
+        run: npm run check:ai-artifacts
+
+      - name: Verify fixture integrity (SHA-256 vs committed manifest)
+        working-directory: multilang-schema-registry
+        run: node scripts/verify-fixtures.mjs
+
+      - name: Build all packages
+        run: npm run build
+
+      - name: Run tests (includes wire-byte-identity gate)
+        env:
+          # Intentionally NOT exporting GSR_REFERENCE_ROOT — the gate must
+          # resolve the fixture roots via the in-repo path. Silent-skip drift
+          # (a future package-dir rename or fixture-tree move) is caught by
+          # the non-skip-guarded assertion-count floor in
+          # `packages/integration-tests/test/gate/wire-byte-identity.test.ts`
+          # (top-level `describe("wire byte-identity gate — assertion-count
+          # floor (silent-skip guard)")`). That block asserts
+          # `referenceRootExists === true`, the discovered golden-cell count
+          # >= the floor derived from `fixtures.manifest.json`, AND that every
+          # golden `.bin` on disk matches the SHA-256 committed in the
+          # manifest (defense-in-depth for the bare-`npm test`-in-isolation
+          # path — the CI `verify-fixtures.mjs` step above already SHA-checks
+          # all fixtures). A silently-disabled or content-drifted gate here
+          # makes THIS step fail red rather than pass green.
+          CI: "true"
+        run: npm test
+
+      - name: Verify pack (offline packaging gate)
+        run: npm run verify:pack

@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/negative/full/account_v2.json",
+  "title": "Account",
+  "description": "Full-INCOMPATIBLE evolution - added required 'currency' with no default (breaks forward)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["accountId", "owner", "currency"],
+  "properties": {
+    "accountId": { "type": "string" },
+    "owner": { "type": "string" },
+    "balance": { "type": "number", "default": 0 },
+    "currency": { "type": "string", "enum": ["USD", "EUR"] }
+  }
+}

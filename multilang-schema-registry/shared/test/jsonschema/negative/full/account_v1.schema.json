@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/negative/full/account_v1.json",
+  "title": "Account",
+  "description": "Base schema for negative full compatibility",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["accountId", "owner"],
+  "properties": {
+    "accountId": { "type": "string" },
+    "owner": { "type": "string" },
+    "balance": { "type": "number", "default": 0 }
+  }
+}

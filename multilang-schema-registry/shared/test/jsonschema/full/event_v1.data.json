@@ -1,0 +1,6 @@
+{
+  "eventId": "evt-0a1b2c3d",
+  "source": "https://events.example.amazon.com/producer",
+  "timestamp": 1785196800,
+  "verified": true
+}

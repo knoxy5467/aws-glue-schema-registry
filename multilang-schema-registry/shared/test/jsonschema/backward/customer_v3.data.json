@@ -1,0 +1,12 @@
+{
+  "id": "cust-003",
+  "email": "third@example.net",
+  "address": {
+    "street": "440 Terry Ave N",
+    "city": "Seattle",
+    "postalCode": "98109"
+  },
+  "active": true,
+  "phone": "+1-555-0199",
+  "preferences": ["email", "push"]
+}

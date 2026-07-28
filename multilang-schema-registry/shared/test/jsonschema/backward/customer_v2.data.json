@@ -1,0 +1,11 @@
+{
+  "id": "cust-002",
+  "email": "customer@example.org",
+  "address": {
+    "street": "1 Amazon Way",
+    "city": "Arlington",
+    "postalCode": "22202"
+  },
+  "active": true,
+  "phone": "+1-555-0100"
+}

@@ -1,0 +1,15 @@
+{
+  "format" : "protobuf",
+  "recordType" : "concrete",
+  "compression" : "ZLIB",
+  "schemaVersionId" : "01020304-0506-0708-090a-0b0c0d0e0f10",
+  "sourceSchema" : "google/protobuf/wrappers.proto#StringValue",
+  "payloadTag" : "stringvalue-hello",
+  "provenance" : {
+    "tool" : "golden-gen-java",
+    "repoSha" : "54af0eed1adfd5beab428ec440f52619fd368d91",
+    "capturedAt" : "2026-07-23T05:43:12.677917340Z"
+  },
+  "sha256" : "d64b9314351108b570bf2c22d4956344dc2d2975e89644d38dbccee41326d3fd",
+  "byteLength" : 34
+}

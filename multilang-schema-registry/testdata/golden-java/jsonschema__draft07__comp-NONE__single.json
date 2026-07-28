@@ -1,0 +1,15 @@
+{
+  "format" : "jsonschema",
+  "recordType" : "draft07",
+  "compression" : "NONE",
+  "schemaVersionId" : "01020304-0506-0708-090a-0b0c0d0e0f10",
+  "sourceSchema" : "jsonschema/disabled/single.schema.json",
+  "payloadTag" : "single",
+  "provenance" : {
+    "tool" : "golden-gen-java",
+    "repoSha" : "54af0eed1adfd5beab428ec440f52619fd368d91",
+    "capturedAt" : "2026-07-23T05:59:44.172096688Z"
+  },
+  "sha256" : "f65491387027be1c1ce01a02b8123da26a0a4d2ea4ab86500a39a5b224bd4d1f",
+  "byteLength" : 49
+}

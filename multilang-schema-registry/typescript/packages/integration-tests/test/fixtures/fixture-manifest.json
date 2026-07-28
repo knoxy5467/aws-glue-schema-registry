@@ -1,0 +1,490 @@
+{
+  "root": "shared/test",
+  "entries": [
+    {
+      "relativePath": "avro/backward/user_v1.avsc",
+      "kind": "avsc",
+      "sha256": "b0587194fd2b94bb8c0971429533dfba7d790635ab13ecff13c9ce0c896f5629"
+    },
+    {
+      "relativePath": "avro/backward/user_v2.avsc",
+      "kind": "avsc",
+      "sha256": "e33c95c25e235e62e8b92245749f36ec046c42d8148406adffd38e5fa40fcaf5"
+    },
+    {
+      "relativePath": "avro/backward/user_v3.avsc",
+      "kind": "avsc",
+      "sha256": "380073c3e66219fa918817e2c6b7770f48ef990d93af4f583ee98a85cc5c8a8e"
+    },
+    {
+      "relativePath": "avro/disabled/single.avsc",
+      "kind": "avsc",
+      "sha256": "ef983635524d7472607dc0b1c35f9ac2b467346eb14f74ce57de8f7aeca9843e"
+    },
+    {
+      "relativePath": "avro/forward/order_v1.avsc",
+      "kind": "avsc",
+      "sha256": "f5e2de21b87db65f4107d1a3d4ff0776efb9afb263a36e21142a02f14b720d7a"
+    },
+    {
+      "relativePath": "avro/forward/order_v2.avsc",
+      "kind": "avsc",
+      "sha256": "a7afae3b8c4f554f42d0d9caf0b5e0b81c024137665465d59dfce5277c84ec05"
+    },
+    {
+      "relativePath": "avro/forward/order_v3.avsc",
+      "kind": "avsc",
+      "sha256": "8acefcbf0effd6af409302d5acb7a4e93a6e7816aff0edc86921814ef6c8d403"
+    },
+    {
+      "relativePath": "avro/full/profile_v1.avsc",
+      "kind": "avsc",
+      "sha256": "9505c49d2d2c11ac691442644b4cadad111f6cefc14c498fa6df85f75e244285"
+    },
+    {
+      "relativePath": "avro/full/profile_v2.avsc",
+      "kind": "avsc",
+      "sha256": "ea061915299c504f628db8be59121da5f051a1b33c60d5f259fb88b475b8da0e"
+    },
+    {
+      "relativePath": "avro/negative/backward/employee_v1.avsc",
+      "kind": "avsc",
+      "sha256": "ebf93bdf26f1052dfea9a82e142a00894d56406f3eff34c1f353f2326743f78b"
+    },
+    {
+      "relativePath": "avro/negative/backward/employee_v2.avsc",
+      "kind": "avsc",
+      "sha256": "e064a773a74edae6848b23c3c870659a81d77ed6f47b0ec93bd5861d7fc59b26"
+    },
+    {
+      "relativePath": "avro/negative/backward/employee_v3.avsc",
+      "kind": "avsc",
+      "sha256": "d729e58ac73c398166abfe3f638b54a770776b28b43e049f8061c0012ccf168d"
+    },
+    {
+      "relativePath": "avro/negative/disabled/restricted_v1.avsc",
+      "kind": "avsc",
+      "sha256": "dea4c5ec665fa745f4cb6aaba52becbcd3d50ce7562229ac262917caecd994a3"
+    },
+    {
+      "relativePath": "avro/negative/disabled/restricted_v2.avsc",
+      "kind": "avsc",
+      "sha256": "4de19b411992fd19ad074b72c7d89205e238ff0672232cf8c0385387d156bc93"
+    },
+    {
+      "relativePath": "avro/negative/forward/product_v1.avsc",
+      "kind": "avsc",
+      "sha256": "dee375a8a72ea3315156052881c67d23b452822c46e7a4205aaddaec96953b26"
+    },
+    {
+      "relativePath": "avro/negative/forward/product_v2.avsc",
+      "kind": "avsc",
+      "sha256": "56b6e020667e69e9de17b75d4c2469802c311cf9baac83aebedf69f3600e2f2f"
+    },
+    {
+      "relativePath": "avro/negative/forward/product_v3.avsc",
+      "kind": "avsc",
+      "sha256": "d0558b3fcece54f79905227ef9ec9bf16664df39f9080adf3e28beb790d39fbe"
+    },
+    {
+      "relativePath": "avro/negative/full/account_v1.avsc",
+      "kind": "avsc",
+      "sha256": "cb8a6d66efa6d9fe128b64e3bd41108623bcc85262da32eb7e383466b16e3f34"
+    },
+    {
+      "relativePath": "avro/negative/full/account_v2.avsc",
+      "kind": "avsc",
+      "sha256": "f7bb02bf9ecb6409d7464992680d120184fb2256a993ed5bcdd913b6e703fcad"
+    },
+    {
+      "relativePath": "avro/negative/full/account_v3.avsc",
+      "kind": "avsc",
+      "sha256": "f6927122dd12898c8783befd39a3d9595922f80fe4ca8d0dacc1d9a4007d98f7"
+    },
+    {
+      "relativePath": "avro/negative/malformed/invalid_syntax.avsc",
+      "kind": "avsc",
+      "sha256": "f2704c2e5bc387098995ebc2192abfa37f574615fd5e24b1f63596a756da26cc"
+    },
+    {
+      "relativePath": "avro/none/test_v1.avsc",
+      "kind": "avsc",
+      "sha256": "57becf6f3e7ec84532f3720ff4fd54210e9992643152fc5f4d799f8026295894"
+    },
+    {
+      "relativePath": "avro/none/test_v2.avsc",
+      "kind": "avsc",
+      "sha256": "02602d2e8df7bdfca12adb8ff600c9caad524a5fe41533a8e108999692284fa9"
+    },
+    {
+      "relativePath": "jsonschema/backward/customer_v1.schema.json",
+      "kind": "jsonschema",
+      "sha256": "be455ccaa86c921f78b9ae3712863ba2bc8c478b5805276d6a4292a16efa9f7e"
+    },
+    {
+      "relativePath": "jsonschema/backward/customer_v2.schema.json",
+      "kind": "jsonschema",
+      "sha256": "f7936be26a474a785a9b99b0a7aa3acb0c63e80de7d605fa496ac166f7f65804"
+    },
+    {
+      "relativePath": "jsonschema/backward/customer_v3.schema.json",
+      "kind": "jsonschema",
+      "sha256": "684bc5256df2fb6f4038ab96498bc2ae178e6a3fe8d3ff59648f12f383e04969"
+    },
+    {
+      "relativePath": "jsonschema/disabled/single.schema.json",
+      "kind": "jsonschema",
+      "sha256": "1d278b65fcbcf513ba7ee845772b2e18dac27925c8b1949be02991e904ca3c23"
+    },
+    {
+      "relativePath": "jsonschema/forward/invoice_v1.schema.json",
+      "kind": "jsonschema",
+      "sha256": "4d377b758e65df014e87e2698949feb91b5013389279bc97a7c50fb156394318"
+    },
+    {
+      "relativePath": "jsonschema/forward/invoice_v2.schema.json",
+      "kind": "jsonschema",
+      "sha256": "6a3f453e1721b16c0733217adee893ad27da8c78dffcca44d84986050e6d8986"
+    },
+    {
+      "relativePath": "jsonschema/forward/invoice_v3.schema.json",
+      "kind": "jsonschema",
+      "sha256": "743cb043e4074885236c75fca6a8b51cf4a206ffbd6d0a863d24379e622ae7c5"
+    },
+    {
+      "relativePath": "jsonschema/full/event_v1.schema.json",
+      "kind": "jsonschema",
+      "sha256": "77486f9dff9e2aea30e32c17d577859464cffdef3016a283572ab0ee87c20eef"
+    },
+    {
+      "relativePath": "jsonschema/full/event_v2.schema.json",
+      "kind": "jsonschema",
+      "sha256": "543d126fbaff50630c25cc646b2875f9eac4cec2e96a0a61dfa6f54ecb8723aa"
+    },
+    {
+      "relativePath": "jsonschema/negative/backward/employee_v1.schema.json",
+      "kind": "jsonschema",
+      "sha256": "93c9d2f4d5e51eb14aa534bdfe99fd0948251d692be7352e33f095477524a642"
+    },
+    {
+      "relativePath": "jsonschema/negative/backward/employee_v2.schema.json",
+      "kind": "jsonschema",
+      "sha256": "606174c99d375c64586af2ba2f56f8fd6956c8ddd2440fbc949919ebbef47ac8"
+    },
+    {
+      "relativePath": "jsonschema/negative/backward/employee_v3.schema.json",
+      "kind": "jsonschema",
+      "sha256": "9c58147e504e526027a0dda4ffb9503f867e4c49f3dc458e149984cf4ea860eb"
+    },
+    {
+      "relativePath": "jsonschema/negative/disabled/restricted_v1.schema.json",
+      "kind": "jsonschema",
+      "sha256": "371d389e373c5c022738bea0e6fb55a46d14ab525afccd4081b9c63fc682e244"
+    },
+    {
+      "relativePath": "jsonschema/negative/disabled/restricted_v2.schema.json",
+      "kind": "jsonschema",
+      "sha256": "0bb1efa48ee9aee73a8a763f6457536661d983d9ed15128e54e2ac31d6ff872f"
+    },
+    {
+      "relativePath": "jsonschema/negative/forward/product_v1.schema.json",
+      "kind": "jsonschema",
+      "sha256": "35c699aa165183675bdd6a78e43daa723566675cce6441cde48ca98a25725972"
+    },
+    {
+      "relativePath": "jsonschema/negative/forward/product_v2.schema.json",
+      "kind": "jsonschema",
+      "sha256": "a7dd364ce811697c89d2667be864acc9a77bbfe4997250f1cd3820644f5f4610"
+    },
+    {
+      "relativePath": "jsonschema/negative/forward/product_v3.schema.json",
+      "kind": "jsonschema",
+      "sha256": "0674346ea5c12a4936e3fa8e948bb39dd57635650ac1748cc665079c93eb4c84"
+    },
+    {
+      "relativePath": "jsonschema/negative/full/account_v1.schema.json",
+      "kind": "jsonschema",
+      "sha256": "0216536477caea88c3b5b4e96e72304b535be4c4c3de82d4140202a2d3805450"
+    },
+    {
+      "relativePath": "jsonschema/negative/full/account_v2.schema.json",
+      "kind": "jsonschema",
+      "sha256": "0b849f247463908c761c4ede9ec24f4d8ddd1290b394c016d913b132ca6c1979"
+    },
+    {
+      "relativePath": "jsonschema/negative/full/account_v3.schema.json",
+      "kind": "jsonschema",
+      "sha256": "6c580f08a16489be72c4444d4e03c9db108356341262f537c31d245161cebfa6"
+    },
+    {
+      "relativePath": "jsonschema/negative/malformed/invalid_syntax.schema.json",
+      "kind": "jsonschema",
+      "sha256": "6ed9000763b009a1e0bf71689228bd7c811558cbb0c524c5e69d3c5e0894c693"
+    },
+    {
+      "relativePath": "jsonschema/none/product_v1.schema.json",
+      "kind": "jsonschema",
+      "sha256": "b576b3d87e7d192d3afa692c83e5838b95b5019f74b516401a365f286516952d"
+    },
+    {
+      "relativePath": "jsonschema/none/product_v2.schema.json",
+      "kind": "jsonschema",
+      "sha256": "6a0d919e24ae7fd22be0eee4eced37590b943d46c1ba6e74b4eb50464937bf38"
+    },
+    {
+      "relativePath": "protos/.protodevelasl.proto.proto.protodevel$---$$.bar.3.proto",
+      "kind": "proto",
+      "sha256": "76e3f8f6a02f4bd8ea122b43ebb421fc087b17158be6a6fbeb8bf76577128982"
+    },
+    {
+      "relativePath": "protos/◉◉◉unicode⏩.proto",
+      "kind": "proto",
+      "sha256": "32c2009a83da99b2ba5405c7dea73e6bd0368017d8c1d69e309ed7b98437ae04"
+    },
+    {
+      "relativePath": "protos/AllTypesSyntax2.proto",
+      "kind": "proto",
+      "sha256": "29fa1f878617dde89266413f809fbe158da9bc0abed0ce6bab34abf8e58367ea"
+    },
+    {
+      "relativePath": "protos/AllTypesSyntax3.proto",
+      "kind": "proto",
+      "sha256": "a649d7222e06922f7397f0ac7d673710c802536c43e88ad9d848853da54f6116"
+    },
+    {
+      "relativePath": "protos/Another_snakeCase_ProtoFile.proto",
+      "kind": "proto",
+      "sha256": "599578b9f8dba106d50fcbedc67ba703a6c81209ad170a5ed49943238d699012"
+    },
+    {
+      "relativePath": "protos/Basic.proto",
+      "kind": "proto",
+      "sha256": "759c235c7e8b27b0e568319bb10d686489d201b108db751ff6cc71bd995f5225"
+    },
+    {
+      "relativePath": "protos/basicSyntax2.proto",
+      "kind": "proto",
+      "sha256": "b74c5cf80e596ef9841eef99110f8c4525013957713803f054bd3492e3448c70"
+    },
+    {
+      "relativePath": "protos/basicsyntax3.proto",
+      "kind": "proto",
+      "sha256": "ad3b337390586c3a4e2467fabc3f0a340500e7aea96861271de719e31f7e3dc4"
+    },
+    {
+      "relativePath": "protos/ComplexNestingSyntax2.proto",
+      "kind": "proto",
+      "sha256": "2bcc32a790d8573964a139bc61023929eb44414a8756cf82cd2ff35eb036177f"
+    },
+    {
+      "relativePath": "protos/ComplexNestingSyntax3.proto",
+      "kind": "proto",
+      "sha256": "e047a5f254abaadfae768b1894af936f6526ea7671975fe9fdb15789ca5821d1"
+    },
+    {
+      "relativePath": "protos/ComplexNestingSyntax3WithMultipleFiles.proto",
+      "kind": "proto",
+      "sha256": "c7bab96bb46e6341024d99d1dc8fe11e35a5ce8b4632bbec050d3d0e69cc30d4"
+    },
+    {
+      "relativePath": "protos/ConflictingName.proto",
+      "kind": "proto",
+      "sha256": "414882df972ebd332cc43d765a1235b631a0e76b1eadde1a70ff1852eb005a2c"
+    },
+    {
+      "relativePath": "protos/foo$$$1.proto",
+      "kind": "proto",
+      "sha256": "4cf0a265a950923cbba100373a16b2d3d1a9134ef5ceb876283c49e8f3b77ead"
+    },
+    {
+      "relativePath": "protos/google/type/calendar_period.proto",
+      "kind": "proto",
+      "sha256": "52fdb43b896ab97b93f40bbf6c9289f78507803dd5f572195118ed8152147541"
+    },
+    {
+      "relativePath": "protos/google/type/color.proto",
+      "kind": "proto",
+      "sha256": "90af4602b15c438963ea690bb9ea1aa64392529ad1de5345a67838dd836b508d"
+    },
+    {
+      "relativePath": "protos/google/type/date.proto",
+      "kind": "proto",
+      "sha256": "06e05f19945adc67a9745310ff57118697728a8f2a27c06d62491076f00e230b"
+    },
+    {
+      "relativePath": "protos/google/type/datetime.proto",
+      "kind": "proto",
+      "sha256": "8912d198f3d2459e5bf3aa3aca3888b0af35d115c6cac5b049a174f025ed0255"
+    },
+    {
+      "relativePath": "protos/google/type/dayofweek.proto",
+      "kind": "proto",
+      "sha256": "e7a6015d451c0b15d098f58d83be86dce208f9b3cbb408c29af093920b3a2706"
+    },
+    {
+      "relativePath": "protos/google/type/decimal.proto",
+      "kind": "proto",
+      "sha256": "307c21b49bf12ce9939e6945afbce353350cbfe1ad2968edf0a8c8ee1f287127"
+    },
+    {
+      "relativePath": "protos/google/type/expr.proto",
+      "kind": "proto",
+      "sha256": "874d683dac27fdb659b84f2d6b3c30538036747776ee00d3ca9f3dc4ed8d6d5d"
+    },
+    {
+      "relativePath": "protos/google/type/fraction.proto",
+      "kind": "proto",
+      "sha256": "bff50c8f8d1a6c89c6ea0cf0dfce9af69a051f7475aacd4d2fb2d90961df988b"
+    },
+    {
+      "relativePath": "protos/google/type/interval.proto",
+      "kind": "proto",
+      "sha256": "68bf5ef06637ea0777d2df9ee1c0cf39532819be2dff35e1b71fb7bc63dafd2a"
+    },
+    {
+      "relativePath": "protos/google/type/latlng.proto",
+      "kind": "proto",
+      "sha256": "a76296383e31c717f179a8c2b7eca28074611f4b8199e8de019bffab01574d5f"
+    },
+    {
+      "relativePath": "protos/google/type/localized_text.proto",
+      "kind": "proto",
+      "sha256": "9d2965b412efad321863e985d3804596bab26eab6f9d4152ebf0ea0fa48e81bc"
+    },
+    {
+      "relativePath": "protos/google/type/money.proto",
+      "kind": "proto",
+      "sha256": "73e13c27df2c856b42ebcb65a9459c4bfc59dd9e09cc48e1a765bbe06b9fa406"
+    },
+    {
+      "relativePath": "protos/google/type/month.proto",
+      "kind": "proto",
+      "sha256": "efa4efa9011d0033de91b4a7a50c412753ffc41afca3e048fea1b70721c921f2"
+    },
+    {
+      "relativePath": "protos/google/type/phone_number.proto",
+      "kind": "proto",
+      "sha256": "57f18999af4514686dd691240b3306f482f89ddf8a4194164f9ef83f3b06b9d2"
+    },
+    {
+      "relativePath": "protos/google/type/postal_address.proto",
+      "kind": "proto",
+      "sha256": "fd1e35cde68ed4f706a9f114e201e517352e6ca276484473c619ef2714c8203d"
+    },
+    {
+      "relativePath": "protos/google/type/quaternion.proto",
+      "kind": "proto",
+      "sha256": "29fa133569f0a362f2a5d06ff2b30f1c1e697ff91d708e503e22d7aee71d3a9c"
+    },
+    {
+      "relativePath": "protos/google/type/timeofday.proto",
+      "kind": "proto",
+      "sha256": "ef330490959e62d79555ccf74a933af3a1852faea15fe6a0b9aa88299c09bf63"
+    },
+    {
+      "relativePath": "protos/hyphen-ated-proto_file-.proto",
+      "kind": "proto",
+      "sha256": "78e4006f72fde5056effc3aa900959f3564d2b1ea70540856a0a6081e9e3a210"
+    },
+    {
+      "relativePath": "protos/JavaOptionsMultipleFilesSyntax3.proto",
+      "kind": "proto",
+      "sha256": "529be08fcddb1b320d1253a520e275ac259eee8e366c151a254d6e399a14476a"
+    },
+    {
+      "relativePath": "protos/JAVAOPTIONSSYNTAX3.proto",
+      "kind": "proto",
+      "sha256": "c5b4ab1e01d79208ea06fb875519d47c3bc4c358be170e4a4e5c18310eaf7f03"
+    },
+    {
+      "relativePath": "protos/NestedConflicting#ClassName.proto",
+      "kind": "proto",
+      "sha256": "cd7c0cc3987081aee072aca7f6b6ff86be5eb4996b2aa5c8611883e4238e998e"
+    },
+    {
+      "relativePath": "protos/snake_case_file.proto",
+      "kind": "proto",
+      "sha256": "b9761573f15e8b2555eef3e56c389f42264da8180e515ed4195947157fee6449"
+    },
+    {
+      "relativePath": "protos/TestOrderingSyntax2.proto",
+      "kind": "proto",
+      "sha256": "88e9da7f2bc812c6799a6c46d30e1aa088b22ff486e0de5806a23f0a760e9c18"
+    },
+    {
+      "relativePath": "protos/TestOrderingSyntax2Options.proto",
+      "kind": "proto",
+      "sha256": "73741bb1681b3b80fef21a22074d4c26d0e14bb4aa329cf2c0ba30d366cf05bf"
+    },
+    {
+      "relativePath": "protos/TestOrderingSyntax2References.proto",
+      "kind": "proto",
+      "sha256": "2d90af0a1c08c00ba30d724bac9711f8d0fb8872e9d8020fa444bf80b51d0741"
+    },
+    {
+      "relativePath": "protos/TestOrderingSyntax2Specified.proto",
+      "kind": "proto",
+      "sha256": "33d0c6d255af03e2b1585f80bdf3aca292c29faf13f98ae4e642ea01321e43d8"
+    },
+    {
+      "relativePath": "protos/TestOrderingSyntax3.proto",
+      "kind": "proto",
+      "sha256": "ec7042445e63842d6bd16cb32fcb6ea989b6d64f5a0610c5caf703bf6d3dfbbb"
+    },
+    {
+      "relativePath": "protos/TestOrderingSyntax3Options.proto",
+      "kind": "proto",
+      "sha256": "2a72ae5288d174a4541044d428f3f0492c3b152078eed98f502065ebb829fe4e"
+    },
+    {
+      "relativePath": "protos/TestOrderingSyntax3References.proto",
+      "kind": "proto",
+      "sha256": "c10030902548e70e9dfd4b6430a11d4863a985224b7485c784c21342aaf89d50"
+    },
+    {
+      "relativePath": "protos/TestSyntax2JavaPackage.proto",
+      "kind": "proto",
+      "sha256": "70c8d4984ca6e60b36ee08219a9f073f2ffd9b56108e6d24c1527ff50694da4f"
+    },
+    {
+      "relativePath": "protos/TestSyntax2JsonName.proto",
+      "kind": "proto",
+      "sha256": "06c8076bf8bfa524a79e4b0685ab956637d776b0f4fcaa0a44177f66ab715ead"
+    },
+    {
+      "relativePath": "protos/TestSyntax2OneOfs.proto",
+      "kind": "proto",
+      "sha256": "f47d3142eff048d15a6425276f3f4978bde2acab3ac77c9c5cb1c64c49dfa79d"
+    },
+    {
+      "relativePath": "protos/TestSyntax3JavaPackage.proto",
+      "kind": "proto",
+      "sha256": "112f8337ca06d18f2b6da804fbcaa6cacd4d21f82948dad8eeb73881f4760f14"
+    },
+    {
+      "relativePath": "protos/TestSyntax3JsonName.proto",
+      "kind": "proto",
+      "sha256": "d6177f019c5ebb7ac99b53850563492dd92e143ebb496dc5e101e21e1f831026"
+    },
+    {
+      "relativePath": "protos/TestSyntax3OneOfs.proto",
+      "kind": "proto",
+      "sha256": "6b187b3d3ac4493b2976a0ac9fa1265ea8b4dea72665f6ee66d9c8d2f470cd07"
+    },
+    {
+      "relativePath": "protos/TestSyntax3Optional.proto",
+      "kind": "proto",
+      "sha256": "15a84cf0771a4329aa8c252b0e232d9344d9bc7dc219b2c44ae38e161f245a37"
+    },
+    {
+      "relativePath": "protos/WellKnownTypesTestSyntax2.proto",
+      "kind": "proto",
+      "sha256": "f1c694b04b8566c6569990b39a55bee15942b894b800a4f463b7c1f323113a51"
+    },
+    {
+      "relativePath": "protos/WellKnownTypesTestSyntax3.proto",
+      "kind": "proto",
+      "sha256": "62cd6a7def814045c14ad2ea591e37631ae76b640ffe28a5f562da964496725f"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "invoiceId": "INV-2026-0001",
+  "issued": "2026-07-23T00:00:00Z",
+  "lineItems": [
+    {
+      "description": "Widget",
+      "quantity": 2,
+      "unitPrice": 19.99
+    },
+    {
+      "description": "Gadget",
+      "quantity": 1,
+      "unitPrice": 49.5
+    }
+  ],
+  "total": 89.48
+}

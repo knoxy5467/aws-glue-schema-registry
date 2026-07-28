@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/full/event_v2.json",
+  "title": "Event",
+  "description": "Full-compatible evolution - only optional field changes with defaults (bidirectional compat)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "source", "timestamp"],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "pattern": "^evt-[0-9a-f]{8}$"
+    },
+    "source": {
+      "type": "string",
+      "format": "uri"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["info", "warn", "error"],
+      "default": "info"
+    }
+  }
+}

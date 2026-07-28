@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/negative/backward/employee_v3.json",
+  "title": "Employee",
+  "description": "Backward-INCOMPATIBLE evolution - changed 'id' type from string to integer",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "salary"],
+  "properties": {
+    "id": { "type": "integer" },
+    "name": { "type": "string" },
+    "department": { "type": "string", "default": "engineering" },
+    "salary": { "type": "number" }
+  }
+}

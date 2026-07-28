@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/none/product_v1.json",
+  "title": "Product",
+  "description": "Base schema for NONE compatibility - hazard: integer vs number, required + optional, nested pricing object",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "pricing"],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "pricing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amount", "currency"],
+      "properties": {
+        "amount": {
+          "type": "number",
+          "multipleOf": 0.01
+        },
+        "currency": {
+          "type": "string",
+          "enum": ["USD", "EUR", "GBP", "JPY"]
+        }
+      }
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}

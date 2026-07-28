@@ -1,0 +1,15 @@
+{
+  "format" : "avro",
+  "recordType" : "generic",
+  "compression" : "NONE",
+  "schemaVersionId" : "01020304-0506-0708-090a-0b0c0d0e0f10",
+  "sourceSchema" : "avro/none/test_v1.avsc",
+  "payloadTag" : "test-v1",
+  "provenance" : {
+    "tool" : "golden-gen-java",
+    "repoSha" : "54af0eed1adfd5beab428ec440f52619fd368d91",
+    "capturedAt" : "2026-07-23T05:43:12.585148268Z"
+  },
+  "sha256" : "ab3e33e2e16c720a91a98dc07f9351fd9c847185a8884b5c44ba8d464b7c6286",
+  "byteLength" : 25
+}

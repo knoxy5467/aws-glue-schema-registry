@@ -1,0 +1,36 @@
+{
+  "name": "gsr-typescript-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "AWS Glue Schema Registry TypeScript client — npm workspaces monorepo root.",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc --noEmit",
+    "docs:examples:typecheck": "tsc --noEmit -p tsconfig.examples.json",
+    "docs": "typedoc",
+    "test": "vitest run",
+    "verify:pack": "node scripts/verify-pack.mjs",
+    "check:ai-artifacts": "node scripts/check-no-ai-artifacts.mjs",
+    "bench": "vitest bench --run --config vitest.bench.config.ts --outputJson packages/integration-tests/bench/.results/ts-latest.json packages/integration-tests/bench",
+    "bench:report": "vite-node packages/integration-tests/bench/report.ts",
+    "test:integ": "vitest run --config vitest.integration.config.ts",
+    "coverage": "vitest run --coverage",
+    "test:integ:real": "bash -c 'if [ -z \"$AWS_PROFILE\" ] && [ -z \"$AWS_ACCESS_KEY_ID\" ]; then echo \"test:integ:real: refusing to run — neither AWS_PROFILE nor AWS_ACCESS_KEY_ID is set. See packages/integration-tests/README-REAL-AWS.md.\" >&2; exit 1; fi; echo \"About to bill real AWS Glue in ${AWS_REGION:-us-east-2}. Press Ctrl-C within 5s to abort.\"; sleep 5; GSR_GLUE=real AWS_INTEGRATION=1 vitest run --config vitest.integration.config.ts'",
+    "test:integ:interop:real": "bash -c 'if [ -z \"$AWS_PROFILE\" ] && [ -z \"$AWS_ACCESS_KEY_ID\" ]; then echo \"test:integ:interop:real: refusing to run — neither AWS_PROFILE nor AWS_ACCESS_KEY_ID is set. See packages/integration-tests/README-INTEROP.md.\" >&2; exit 1; fi; echo \"About to bill real AWS Glue and drive a Java sidecar + Kafka against ${AWS_REGION:-us-east-2}. Press Ctrl-C within 5s to abort.\"; sleep 5; GSR_GLUE=real AWS_INTEGRATION=1 vitest run --config vitest.integration.config.ts'",
+    "demo:interop:real": "bash -c 'if [ -z \"$AWS_PROFILE\" ] && [ -z \"$AWS_ACCESS_KEY_ID\" ]; then echo \"demo:interop:real: refusing to run — neither AWS_PROFILE nor AWS_ACCESS_KEY_ID is set. See packages/integration-tests/demo/README.md.\" >&2; exit 1; fi; echo \"About to bill real AWS Glue and drive a Java sidecar + Kafka against ${AWS_REGION:-us-east-2}. Press Ctrl-C within 5s to abort.\"; sleep 5; GSR_GLUE=real AWS_INTEGRATION=1 vite-node packages/integration-tests/demo/main.ts'"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@vitest/coverage-v8": "^2.1.9",
+    "tsup": "^8.5.1",
+    "typedoc": "^0.28.20",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.9"
+  }
+}

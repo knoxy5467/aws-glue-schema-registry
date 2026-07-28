@@ -1,0 +1,22 @@
+{
+  "name": "@gsr/integration-tests",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AWS Glue Schema Registry — tiered integration and interop test harness (never published).",
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build:sidecar": "mvn -f java-interop/pom.xml -DskipTests package"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-glue": "3.1093.0",
+    "@gsr/core": "^1.0.0",
+    "aws-sdk-client-mock": "4.1.0",
+    "kafkajs": "2.2.4",
+    "testcontainers": "10.13.2"
+  }
+}

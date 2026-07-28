@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/negative/disabled/restricted_v1.json",
+  "title": "Restricted",
+  "description": "Base schema for negative DISABLED compatibility - any version bump is invalid",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["token"],
+  "properties": {
+    "token": { "type": "string" }
+  }
+}

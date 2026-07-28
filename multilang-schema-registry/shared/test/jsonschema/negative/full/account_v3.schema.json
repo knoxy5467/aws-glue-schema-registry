@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/negative/full/account_v3.json",
+  "title": "Account",
+  "description": "Full-INCOMPATIBLE evolution - removed required 'owner' field (breaks backward)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["accountId", "currency"],
+  "properties": {
+    "accountId": { "type": "string" },
+    "balance": { "type": "number", "default": 0 },
+    "currency": { "type": "string", "enum": ["USD", "EUR"] }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "cust-001",
+  "email": "user@example.com",
+  "address": {
+    "street": "410 Terry Ave N",
+    "city": "Seattle",
+    "postalCode": "98109"
+  },
+  "active": true
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gsr/negative/forward/product_v2.json",
+  "title": "Product",
+  "description": "Forward-INCOMPATIBLE evolution - removed required 'price' field",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sku"],
+  "properties": {
+    "sku": { "type": "string" },
+    "notes": { "type": "string", "default": "" }
+  }
+}

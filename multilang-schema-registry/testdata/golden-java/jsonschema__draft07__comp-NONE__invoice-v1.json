@@ -1,0 +1,15 @@
+{
+  "format" : "jsonschema",
+  "recordType" : "draft07",
+  "compression" : "NONE",
+  "schemaVersionId" : "01020304-0506-0708-090a-0b0c0d0e0f10",
+  "sourceSchema" : "jsonschema/forward/invoice_v1.schema.json",
+  "payloadTag" : "invoice-v1",
+  "provenance" : {
+    "tool" : "golden-gen-java",
+    "repoSha" : "54af0eed1adfd5beab428ec440f52619fd368d91",
+    "capturedAt" : "2026-07-23T05:59:44.163173400Z"
+  },
+  "sha256" : "37d6b181f5069442ad85224732f1dc75a4ca1a736d358e1a8e00ff659d323ee7",
+  "byteLength" : 218
+}
